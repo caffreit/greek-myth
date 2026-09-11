@@ -1,0 +1,307 @@
+{
+  "grid": {
+    "origin_id": "chaos",
+    "x_min": -4,
+    "x_max": 8,
+    "y_min": -6,
+    "y_max": 7
+  },
+  "nodes": {
+    "chaos": {
+      "x": 2,
+      "y": -1,
+      "placement_group": "core"
+    },
+    "eros": {
+      "x": 3,
+      "y": -1,
+      "placement_group": "chaos"
+    },
+    "gaia": {
+      "x": 1,
+      "y": -1,
+      "placement_group": "chaos"
+    },
+    "tartarus": {
+      "x": 1,
+      "y": -2,
+      "placement_group": "chaos"
+    },
+    "erebus": {
+      "x": 3,
+      "y": -2,
+      "placement_group": "chaos"
+    },
+    "nyx": {
+      "x": 2,
+      "y": -2,
+      "placement_group": "chaos"
+    },
+    "pontus": {
+      "x": 0,
+      "y": 0,
+      "placement_group": "gaia"
+    },
+    "ourea": {
+      "x": -1,
+      "y": -1,
+      "placement_group": "gaia"
+    },
+    "uranus": {
+      "x": 2,
+      "y": 0,
+      "placement_group": "gaia"
+    },
+    "echidna": {
+      "x": 0,
+      "y": -2,
+      "placement_group": "tartarus"
+    },
+    "typhon": {
+      "x": 0,
+      "y": -1,
+      "placement_group": "tartarus"
+    },
+    "thaumas": {
+      "x": -2,
+      "y": 0,
+      "placement_group": "pontus"
+    },
+    "phorcys": {
+      "x": -3,
+      "y": 0,
+      "placement_group": "pontus"
+    },
+    "ceto": {
+      "x": -1,
+      "y": 0,
+      "placement_group": "pontus"
+    },
+    "themis": {
+      "x": 1,
+      "y": 1,
+      "placement_group": "uranus"
+    },
+    "mnemosyne": {
+      "x": 1,
+      "y": 0,
+      "placement_group": "uranus"
+    },
+    "hyperion": {
+      "x": 0,
+      "y": 2,
+      "placement_group": "uranus"
+    },
+    "theia": {
+      "x": 0,
+      "y": 1,
+      "placement_group": "uranus"
+    },
+    "crius": {
+      "x": 2,
+      "y": 2,
+      "placement_group": "uranus"
+    },
+    "iapetus": {
+      "x": 4,
+      "y": 1,
+      "placement_group": "uranus"
+    },
+    "coeus": {
+      "x": 3,
+      "y": 2,
+      "placement_group": "uranus"
+    },
+    "phoebe": {
+      "x": 3,
+      "y": 1,
+      "placement_group": "uranus"
+    },
+    "oceanus": {
+      "x": 1,
+      "y": 2,
+      "placement_group": "uranus"
+    },
+    "tethys": {
+      "x": 2,
+      "y": 1,
+      "placement_group": "uranus"
+    },
+    "cronus": {
+      "x": 2,
+      "y": 3,
+      "placement_group": "uranus"
+    },
+    "rhea": {
+      "x": 1,
+      "y": 3,
+      "placement_group": "uranus"
+    },
+    "aphrodite": {
+      "x": 3,
+      "y": 0,
+      "placement_group": "uranus"
+    },
+    "aether": {
+      "x": 3,
+      "y": -5,
+      "placement_group": "erebus"
+    },
+    "hemera": {
+      "x": 3,
+      "y": -3,
+      "placement_group": "erebus"
+    },
+    "charon": {
+      "x": 3,
+      "y": -4,
+      "placement_group": "erebus"
+    },
+    "hypnos": {
+      "x": 2,
+      "y": -5,
+      "placement_group": "nyx"
+    },
+    "thanatos": {
+      "x": 2,
+      "y": -3,
+      "placement_group": "nyx"
+    },
+    "moros": {
+      "x": 2,
+      "y": -4,
+      "placement_group": "nyx"
+    },
+    "helios": {
+      "x": -1,
+      "y": 1,
+      "placement_group": "hyperion"
+    },
+    "selene": {
+      "x": -1,
+      "y": 2,
+      "placement_group": "hyperion"
+    },
+    "eos": {
+      "x": -2,
+      "y": 2,
+      "placement_group": "hyperion"
+    },
+    "clymene": {
+      "x": 5,
+      "y": 0,
+      "placement_group": "iapetus"
+    },
+    "atlas": {
+      "x": 7,
+      "y": 1,
+      "placement_group": "iapetus"
+    },
+    "prometheus": {
+      "x": 5,
+      "y": 1,
+      "placement_group": "iapetus"
+    },
+    "epimetheus": {
+      "x": 6,
+      "y": 1,
+      "placement_group": "iapetus"
+    },
+    "hestia": {
+      "x": -1,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "demeter": {
+      "x": 1,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "hera": {
+      "x": 3,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "hades": {
+      "x": 0,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "poseidon": {
+      "x": 4,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "zeus": {
+      "x": 2,
+      "y": 4,
+      "placement_group": "cronus_rhea"
+    },
+    "athena": {
+      "x": 0,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "metis": {
+      "x": 0,
+      "y": 5,
+      "placement_group": "metis"
+    },
+    "ares": {
+      "x": 3,
+      "y": 5,
+      "placement_group": "zeus"
+    },
+    "hebe": {
+      "x": 3,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "persephone": {
+      "x": 1,
+      "y": 5,
+      "placement_group": "zeus"
+    },
+    "hephaestus": {
+      "x": 4,
+      "y": 5,
+      "placement_group": "hera"
+    },
+    "apollo": {
+      "x": -3,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "artemis": {
+      "x": -2,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "leto": {
+      "x": -2,
+      "y": 5,
+      "placement_group": "leto"
+    },
+    "hermes": {
+      "x": -1,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "maia": {
+      "x": -1,
+      "y": 5,
+      "placement_group": "maia"
+    },
+    "dionysus": {
+      "x": 5,
+      "y": 6,
+      "placement_group": "zeus"
+    },
+    "semele": {
+      "x": 5,
+      "y": 5,
+      "placement_group": "semele"
+    }
+  },
+  "pinned_ids": []
+}
