@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Greek Theogony · Editorial Poster Prototype V25.9</title>
+<style>
+:root{
+  --bg:#f7f6f1; --panel:#fffefa; --ink:#181916; --muted:#6c7069;
+  --grid:#deddd6; --grid-major:#cecdc5; --border:#d8d8d0;
+  --child:#dff1fb; --parent:#efe7fa; --selected:#fff2b9; --danger:#d54545;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto 1fr}
+.toolbar{grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(255,254,250,.96);z-index:5;flex-wrap:wrap}
+.title{font-weight:760;letter-spacing:-.025em;margin-right:8px}.hint{font-size:12px;color:var(--muted);margin-right:auto}
+button,.file-label{font:inherit;font-size:12px;border:1px solid #cfcfc7;background:white;border-radius:999px;padding:7px 10px;cursor:pointer;color:#292a27;white-space:nowrap}
+button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cursor:default}
+.file-label input{display:none}
+.canvas-wrap{position:relative;overflow:auto;background:var(--bg)}
+#canvas{display:block;background:#faf9f5;user-select:none;touch-action:none}
+.sidebar{border-left:1px solid var(--border);background:var(--panel);padding:18px;overflow:auto}
+.sidebar h2{font-size:20px;letter-spacing:-.035em;margin:0 0 4px}.coord{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);margin-bottom:18px}
+.section{border-top:1px solid #e7e6df;padding-top:13px;margin-top:13px}.section h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#777b74;margin:0 0 8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{font-size:12px;padding:4px 7px;border:1px solid #d8d8d1;border-radius:999px;background:#fff}.empty{color:#9a9d97;font-size:12px}
+.status{position:absolute;left:14px;bottom:14px;border:1px solid var(--border);background:rgba(255,255,255,.94);border-radius:10px;padding:7px 10px;font-size:11px;color:#61655e;box-shadow:0 4px 18px rgba(0,0,0,.05);pointer-events:none}
+.status.error{color:#9d2525;border-color:#e0aaaa;background:#fff7f7}
+.grid{stroke:var(--grid);stroke-width:1}.grid.major{stroke:var(--grid-major);stroke-width:1.3}.axis-label{fill:#969991;font:10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.boundary{fill:none;stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:.86;pointer-events:none}.boundary.dim{opacity:.08}.boundary.emph{stroke-width:6;opacity:1}
+.region-fill{stroke:none;opacity:1;pointer-events:none;fill-rule:evenodd}.region-fill.dim{opacity:.11}.region-fill.emph{opacity:1}.shared-underlay{stroke:#faf9f5;stroke-width:6.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}.shared-stripe{stroke-linecap:round;stroke-linejoin:round}.shared-stripe.emph{stroke-width:6.5}
+.person{cursor:grab}.person.dragging{cursor:grabbing}.node{fill:rgba(255,255,255,0);stroke:rgba(0,0,0,0);stroke-width:0;rx:7;ry:7;vector-effect:non-scaling-stroke}.person .label{font-size:12px;font-weight:620;text-anchor:middle;dominant-baseline:middle;pointer-events:none;fill:#20211e;letter-spacing:-.012em}.person .label.text-a{paint-order:stroke;stroke:rgba(250,249,245,.72);stroke-width:2.6px;stroke-linejoin:round}.person .label.text-b{paint-order:normal;stroke:none;filter:drop-shadow(0 1px 1.2px rgba(250,249,245,.98)) drop-shadow(0 0 1.4px rgba(250,249,245,.75))}.person .label.text-c{paint-order:normal;stroke:none}.label-backing{fill:rgba(250,249,245,.74);stroke:rgba(255,255,255,.35);stroke-width:.5;pointer-events:none}.person .tiny{display:none}.owner-dot{opacity:.92}.person.dim{opacity:.18}.person.selected .node{fill:rgba(255,255,255,.58);stroke:#383933;stroke-width:1.8}.person.child .node{fill:rgba(204,235,247,.62);stroke:#4a8baa;stroke-width:1.7}.person.parent .node{fill:rgba(236,217,247,.62);stroke:#8059a0;stroke-width:1.7}.person.hover .node{fill:rgba(255,255,255,.38);stroke:#222;stroke-width:1.5}.macro-fill{pointer-events:none}.macro-fill.dim{opacity:.08}
+.legend{display:grid;grid-template-columns:18px 1fr;gap:7px 8px;align-items:center;font-size:11px;color:#5f635c}.swatch{height:10px;border-radius:999px}.macro-swatch{height:12px;border-radius:4px;opacity:.55;border:1px solid rgba(0,0,0,.06)} .macro-region{pointer-events:none}.macro-setback{pointer-events:none;fill:none;stroke:#faf9f5;stroke-linejoin:round;stroke-linecap:round}
+.family-region{pointer-events:none;stroke:none}.family-region.dim{opacity:.03}.family-region.emph{opacity:1}.family-setback-outline{pointer-events:none;fill:none;stroke:rgba(255,255,255,.58);stroke-width:1;vector-effect:non-scaling-stroke}.family-badge circle{stroke:rgba(20,20,18,.14);stroke-width:.8}.family-badge text{font:10.5px ui-sans-serif,system-ui,sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:middle;font-weight:800;letter-spacing:-.02em;paint-order:normal;stroke:none}.family-pill rect{fill:rgba(255,254,250,.96);stroke:rgba(62,65,59,.24);stroke-width:1}.family-pill text{font-size:10px;font-weight:700;letter-spacing:.02em;fill:#2d2f2a;text-anchor:middle;dominant-baseline:middle}.family-marker.dim{opacity:.14}.family-marker.emph{opacity:1}.family-key-badge{width:18px;height:18px;border-radius:999px;border:1.25px solid #2f312d;background:#fffefa;display:inline-flex;align-items:center;justify-content:center;font:10px ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:#232520}.family-key-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#444740}.family-key-meta{font-size:10px;color:#8a8d86}
+.kbd{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid #d3d4cd;border-bottom-width:2px;border-radius:4px;padding:1px 4px;background:white;color:#555}
+.help{font-size:12px;line-height:1.5;color:#5f635d}
+.score-card{border:1px solid #dddcd4;background:#faf9f4;border-radius:12px;padding:12px;margin:4px 0 14px}
+.score-head{display:flex;align-items:baseline;gap:8px}.score-label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#777b74}.score-total{font-size:28px;font-weight:780;letter-spacing:-.04em;margin-left:auto}.score-delta{font-size:12px;font-weight:650;min-width:55px;text-align:right}.score-delta.good{color:#37804d}.score-delta.bad{color:#b54545}.score-caption{font-size:10.5px;color:#858880;margin:2px 0 9px}.score-actions{display:flex;gap:6px;margin-top:10px}.score-actions button{padding:5px 8px;font-size:10.5px}
+.metric-list{display:grid;gap:5px}.metric-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:5px 0;border-top:1px solid #ecebe5}.metric-row:first-child{border-top:0}.metric-name{font-size:11.5px;color:#484b46}.metric-score{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#292b28}.metric-detail{grid-column:1/-1;font-size:9.5px;color:#8a8d86;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.family-metrics{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:11px}.family-metrics .v{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:#333}.family-note{font-size:10px;color:#8b8e87;line-height:1.35;margin-top:7px}.score-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:9.5px;color:#858880;margin-top:7px}
+.optimizer-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.optimizer-row button{padding:6px 9px;font-size:10.5px}.pin-state{font-size:11px;color:#6d716a;margin-top:6px}.pin-state strong{color:#252623}.person.pinned .node{stroke-dasharray:5 3;stroke-width:2}.pin-mark{fill:#343632;pointer-events:none}.optimizing .person{cursor:wait}.progress{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#777b74;min-height:14px;margin-top:6px}
+@media(max-width:900px){body{overflow:auto}.app{display:block}.toolbar{position:sticky;top:0}.canvas-wrap{height:70vh}.sidebar{border-left:0;border-top:1px solid var(--border)}}
+
+/* Poster-stage controls: keep the underlying development code available, but hide its UI. */
+#pinBtn,#optFamilyBtn,#optAllBtn,#stopOptBtn,#centerBtn,#resetBtn,.score-card,#familyMetricsSection,.pin-state{display:none !important}
+.parent-cue-select{font:inherit;font-size:11px;border:1px solid #cfcfc7;background:white;border-radius:999px;padding:5px 8px;color:#292a27}
+.person.owner-bold .label{font-weight:780}
+
+.design-select{font:inherit;font-size:11px;border:1px solid #cfcfc7;background:white;border-radius:999px;padding:5px 8px;color:#292a27;max-width:150px}
+.poster-key-panel{fill:#f0efea;stroke:rgba(40,42,37,.06);stroke-width:1}.poster-note-panel{fill:#f0efea;stroke:rgba(40,42,37,.06);stroke-width:1}.poster-key-title{font-size:18px;font-weight:800;fill:#22231f;letter-spacing:-.018em}.poster-key-group{font-size:18px;font-weight:700;fill:#22231f;letter-spacing:-.012em}.poster-key-row-name{font-size:15px;font-weight:500;fill:#30322e}.poster-key-note-head{font-size:18px;font-weight:800;fill:#22231f}.poster-key-note{font-size:13.75px;font-weight:520;fill:#50534d}.poster-divider{stroke:rgba(40,42,37,.10);stroke-width:1}
+
+
+/* V25 editorial poster page */
+:root{--paper:#fbfaf6;--paper-edge:#d6d1c7;--panel-paper:#fff;--editor-bg:#ebe9e3}
+.app{grid-template-columns:minmax(0,1fr);grid-template-rows:1fr}
+.sidebar{display:none!important}
+.toolbar{display:none!important}
+.canvas-wrap{background:var(--editor-bg);padding:34px;scrollbar-gutter:stable both-edges}
+#canvas{background:transparent;filter:drop-shadow(0 18px 34px rgba(42,38,31,.12));margin:0 auto}
+.poster-page{fill:var(--paper)}
+.poster-page-rule{fill:none;stroke:var(--paper-edge);stroke-width:1.25}
+.poster-main-panel{fill:var(--panel-paper);stroke:#cfcac0;stroke-width:1.25}
+.poster-header-kicker{font:700 11px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.18em;fill:#737068}
+.poster-header-title{font:700 58px Georgia,"Times New Roman",serif;letter-spacing:-.035em;fill:#1b1c19}
+.poster-header-logo{image-rendering:auto}
+.poster-header-subtitle{font:520 17px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;fill:#555650}
+.poster-header-source{font:650 11px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.08em;fill:#77746d}
+.poster-header-rule,.poster-footer-rule{stroke:#d4d0c7;stroke-width:1}
+.poster-footer-left{font:750 13px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.16em;fill:#2a2b27}
+.poster-footer-right{font:650 10.5px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.11em;fill:#77746d}
+.poster-lower-rule,.poster-lower-divider{stroke:#d4d0c7;stroke-width:1}
+.poster-key-group{font-size:18px;font-weight:700;fill:#22231f;letter-spacing:-.012em}
+.poster-key-row-name{font-size:15px;font-weight:500;fill:#30322e}
+.poster-key-note-head{font-size:18px;font-weight:760;fill:#22231f;letter-spacing:-.018em}
+.poster-key-note{font-size:13.5px;font-weight:520;fill:#50534d}
+.person .label{font-size:14px;fill:#20211e}
+.person .label.text-a{paint-order:normal;stroke:none;filter:none}
+.family-badge text{font-size:11.5px;dominant-baseline:auto}
+@media(max-width:900px){.canvas-wrap{height:72vh;padding:16px}.sidebar{background:var(--panel)}}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <div class="title">Greek theogony · poster design V25.9 <span style="font-size:10px;color:#777;font-weight:650;letter-spacing:.04em">SHAREABLE SVG EXPORT</span></div>
+    <div class="hint">Locked poster layout · Jewel Modern palette.</div>
+    <button id="undoBtn" disabled>Undo</button>
+    <button id="redoBtn" disabled>Redo</button>
+    <label class="fill-control" style="font-size:11px;color:#666;display:flex;gap:5px;align-items:center">Palette
+      <select id="paletteMode" class="design-select">
+        <option value="jewel" selected>jewel modern</option>
+        <option value="editorial">cool editorial</option>
+        <option value="fresco">fresco modern</option>
+      </select>
+    </label>
+    <button id="saveBtn">Save layout JSON</button>
+    <label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label>
+
+    <div style="display:none">
+      <button id="pinBtn" disabled></button>
+      <button id="optFamilyBtn" disabled></button>
+      <button id="optAllBtn"></button>
+      <button id="stopOptBtn" disabled></button>
+      <button id="centerBtn"></button>
+      <button id="resetBtn"></button>
+      <input id="fillOpacity" type="range" value="0.32">
+      <span id="fillOpacityVal">0.32</span>
+      <input id="familyOpacity" type="range" value="0.40">
+      <span id="familyOpacityVal">0.40</span>
+      <input id="setbackScale" type="range" value="0">
+      <span id="setbackScaleVal">0.00×</span>
+      <input id="cornerRadius" type="range" value="17">
+      <span id="cornerRadiusVal">17</span>
+      <select id="parentCueMode"><option value="numbers" selected>numbered badge</option></select>
+      <select id="textTreatment"><option value="a" selected>A · soft halo</option></select>
+      <select id="typefaceMode"><option value="grotesk" selected>clean sans</option></select>
+      <input id="showPosterKey" type="checkbox" checked>
+      <input id="showFills" type="checkbox">
+      <input id="showFamilies" type="checkbox" checked>
+      <input id="showBoundaries" type="checkbox">
+      <input id="showGrid" type="checkbox">
+    </div>
+  </div>
+  <div class="canvas-wrap" id="wrap">
+    <svg id="canvas" aria-label="Interactive Greek mythology radial layout editor"></svg>
+    <div class="status" id="status">Click a figure to inspect its direct family.</div>
+  </div>
+  <aside class="sidebar">
+    <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#8a7f6f;margin-bottom:10px">Poster layout prototype · layout.6 baseline</div><h2 id="personName">Nothing selected</h2>
+    <div class="coord" id="personCoord">Click or drag a figure</div>
+    <div class="score-card">
+      <div class="score-head"><span class="score-label">Layout score</span><strong class="score-total" id="scoreTotal">—</strong><span class="score-delta" id="scoreDelta"></span></div>
+      <div class="score-caption">Lower is better · Δ compares with your session baseline</div>
+      <div class="metric-list" id="scoreMetrics"></div>
+      <div class="score-legend"><span>raw × weight = contribution</span></div>
+      <div class="score-actions"><button id="baselineBtn">Set current as baseline</button></div>
+      <div class="progress" id="optimizerProgress"></div>
+    </div>
+    <div class="section">
+      <h3>Parents</h3><div class="chips" id="parents"><span class="empty">—</span></div>
+    </div>
+    <div class="section">
+      <h3>Direct children</h3><div class="chips" id="children"><span class="empty">—</span></div>
+    </div>
+    <div class="section">
+      <h3>Owned boundary</h3><div id="owned" class="empty">No boundary</div>
+      <div class="pin-state" id="pinState">Select a figure to pin it.</div>
+    </div>
+    <div class="section" id="familyMetricsSection" style="display:none">
+      <h3>Selected family geometry</h3><div class="family-metrics" id="familyMetrics"></div>
+      <div class="family-note">Distances are compared with the tightest possible Manhattan packing for a family of this size.</div>
+    </div>
+    <div class="section">
+      <h3>Controls</h3>
+      <div class="help">
+        Drag to snap to the logical grid. Click to lock relationship highlighting.<br><br>
+        With a figure selected, use <span class="kbd">←</span> <span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">→</span> to nudge one square.<br><br>
+        <span class="kbd">Esc</span> clears selection. <span class="kbd">Ctrl/Cmd Z</span> undoes a move.<br><br>
+        Occupied squares are blocked. A move is also rejected if it makes any family boundary impossible to route without crossing an unrelated occupied square.<br><br>
+        The locked poster baseline is families only at 0.40 opacity, corners 17 and setback 0. Use the text, typeface and palette controls for design comparison; macro zones, boundaries and grid remain available only as inspection layers.
+      </div>
+    </div>
+    <div class="section">
+      <h3>Macro zones</h3><div class="legend" id="macroLegend"></div>
+      <div class="family-note" style="margin-top:8px">The fills are broad macro generations/clans. The outlines still show the exact immediate-family groupings.</div>
+    </div>
+    <div class="section">
+      <h3>Family key</h3><div class="legend" id="familyKey"></div>
+      <div class="family-note" style="margin-top:8px">Family overlays use the macro hue. Parents are marked with a coloured numbered badge keyed to the poster legend.</div>
+    </div>
+    <div class="section">
+      <h3>Boundary colours</h3><div class="legend" id="legend"></div>
+    </div>
+  </aside>
+</div>
+<script id="svgExportBuffer" type="application/xml"></script>
+<script>
+const PEOPLE_RAW = [{"id": "chaos", "name": "Chaos", "relations": [], "notes": "Central origin / anchor."}, {"id": "eros", "name": "Eros", "relations": [{"parent_id": "chaos", "kind": "parent", "boundary_include": true}], "notes": "Upper-space seed."}, {"id": "gaia", "name": "Gaia", "relations": [{"parent_id": "chaos", "kind": "parent", "boundary_include": true}], "notes": "Western branch owner."}, {"id": "tartarus", "name": "Tartarus", "relations": [{"parent_id": "chaos", "kind": "parent", "boundary_include": true}], "notes": "Western branch owner."}, {"id": "erebus", "name": "Erebus", "relations": [{"parent_id": "chaos", "kind": "parent", "boundary_include": true}], "notes": "Eastern branch owner."}, {"id": "nyx", "name": "Nyx", "relations": [{"parent_id": "chaos", "kind": "parent", "boundary_include": true}], "notes": "Eastern branch owner."}, {"id": "pontus", "name": "Pontus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}], "notes": "Owner of Pontus subgroup."}, {"id": "ourea", "name": "Ourea", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}], "notes": "Kept close to Gaia."}, {"id": "uranus", "name": "Uranus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}], "notes": "Owner of Uranus/Titan subgroup."}, {"id": "echidna", "name": "Echidna", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "tartarus", "kind": "parent", "boundary_include": true}], "notes": "Deliberate Gaia + Tartarus overlap in the current working structure."}, {"id": "typhon", "name": "Typhon", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "tartarus", "kind": "parent", "boundary_include": true}], "notes": "Deliberate Gaia + Tartarus overlap in the current working structure."}, {"id": "thaumas", "name": "Thaumas", "relations": [{"parent_id": "pontus", "kind": "parent", "boundary_include": true}], "notes": "Pontus member in the current working structure."}, {"id": "phorcys", "name": "Phorcys", "relations": [{"parent_id": "pontus", "kind": "parent", "boundary_include": true}], "notes": "Pontus member in the current working structure."}, {"id": "ceto", "name": "Ceto", "relations": [{"parent_id": "pontus", "kind": "parent", "boundary_include": true}], "notes": "Pontus member in the current working structure."}, {"id": "themis", "name": "Themis", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "mnemosyne", "name": "Mnemosyne", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "hyperion", "name": "Hyperion", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "theia", "name": "Theia", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "crius", "name": "Crius", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "iapetus", "name": "Iapetus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "coeus", "name": "Coeus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "phoebe", "name": "Phoebe", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "oceanus", "name": "Oceanus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "cronus", "name": "Cronus", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "tethys", "name": "Tethys", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "rhea", "name": "Rhea", "relations": [{"parent_id": "gaia", "kind": "parent", "boundary_include": true}, {"parent_id": "uranus", "kind": "parent", "boundary_include": true}], "notes": "Gaia + Uranus direct-child overlap."}, {"id": "aphrodite", "name": "Aphrodite", "relations": [{"parent_id": "uranus", "kind": "origin", "boundary_include": true}], "notes": "Origin relation retained from the current working model; not being canon-checked yet."}, {"id": "aether", "name": "Aether", "relations": [{"parent_id": "erebus", "kind": "parent", "boundary_include": true}, {"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Shared Erebus + Nyx membership; soft radial exception."}, {"id": "hemera", "name": "Hemera", "relations": [{"parent_id": "erebus", "kind": "parent", "boundary_include": true}, {"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Shared Erebus + Nyx membership."}, {"id": "charon", "name": "Charon", "relations": [{"parent_id": "erebus", "kind": "parent", "boundary_include": true}, {"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Shared Erebus + Nyx membership in the current working structure."}, {"id": "hypnos", "name": "Hypnos", "relations": [{"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Uses upper-right space."}, {"id": "thanatos", "name": "Thanatos", "relations": [{"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Uses upper-right space."}, {"id": "moros", "name": "Moros", "relations": [{"parent_id": "nyx", "kind": "parent", "boundary_include": true}], "notes": "Lower-right extension."}, {"id": "hestia", "name": "Hestia", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "demeter", "name": "Demeter", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "hera", "name": "Hera", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "hades", "name": "Hades", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "poseidon", "name": "Poseidon", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "zeus", "name": "Zeus", "relations": [{"parent_id": "cronus", "kind": "parent", "boundary_include": true}, {"parent_id": "rhea", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Cronus + Rhea."}, {"id": "helios", "name": "Helios", "relations": [{"parent_id": "hyperion", "kind": "parent", "boundary_include": true}, {"parent_id": "theia", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Hyperion + Theia."}, {"id": "selene", "name": "Selene", "relations": [{"parent_id": "hyperion", "kind": "parent", "boundary_include": true}, {"parent_id": "theia", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Hyperion + Theia."}, {"id": "eos", "name": "Eos", "relations": [{"parent_id": "hyperion", "kind": "parent", "boundary_include": true}, {"parent_id": "theia", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Hyperion + Theia."}, {"id": "clymene", "name": "Clymene", "relations": [], "notes": "Working parent node for the Iapetus branch; exact tradition to revisit when canon is frozen."}, {"id": "atlas", "name": "Atlas", "relations": [{"parent_id": "iapetus", "kind": "parent", "boundary_include": true}, {"parent_id": "clymene", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Iapetus + Clymene."}, {"id": "prometheus", "name": "Prometheus", "relations": [{"parent_id": "iapetus", "kind": "parent", "boundary_include": true}, {"parent_id": "clymene", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Iapetus + Clymene."}, {"id": "epimetheus", "name": "Epimetheus", "relations": [{"parent_id": "iapetus", "kind": "parent", "boundary_include": true}, {"parent_id": "clymene", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Iapetus + Clymene."}, {"id": "metis", "name": "Metis", "relations": [], "notes": "Placed as parent node in the Zeus branch; wider ancestry deferred."}, {"id": "athena", "name": "Athena", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "metis", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Metis."}, {"id": "leto", "name": "Leto", "relations": [], "notes": "Placed as parent node in the Zeus branch; wider ancestry deferred."}, {"id": "apollo", "name": "Apollo", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "leto", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Leto."}, {"id": "artemis", "name": "Artemis", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "leto", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Leto."}, {"id": "maia", "name": "Maia", "relations": [], "notes": "Placed as parent node in the Zeus branch; wider ancestry deferred."}, {"id": "hermes", "name": "Hermes", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "maia", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Maia."}, {"id": "semele", "name": "Semele", "relations": [], "notes": "Placed as parent node in the Zeus branch; wider ancestry deferred."}, {"id": "dionysus", "name": "Dionysus", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "semele", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Semele."}, {"id": "ares", "name": "Ares", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "hera", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Hera."}, {"id": "hephaestus", "name": "Hephaestus", "relations": [{"parent_id": "hera", "kind": "parent", "boundary_include": true}], "notes": "Working Hesiod-style placement as Hera's child only; parentage to revisit when canon is frozen."}, {"id": "hebe", "name": "Hebe", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "hera", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Hera."}, {"id": "persephone", "name": "Persephone", "relations": [{"parent_id": "zeus", "kind": "parent", "boundary_include": true}, {"parent_id": "demeter", "kind": "parent", "boundary_include": true}], "notes": "Working genealogy; child of Zeus + Demeter."}];
+const INITIAL_LAYOUT = {"grid":{"origin_id":"chaos","x_min":-4,"x_max":7,"y_min":-6,"y_max":7},"nodes":{"chaos":{"x":2,"y":-1,"placement_group":"core"},"eros":{"x":3,"y":-1,"placement_group":"chaos"},"gaia":{"x":1,"y":-1,"placement_group":"chaos"},"tartarus":{"x":1,"y":-2,"placement_group":"chaos"},"erebus":{"x":3,"y":-2,"placement_group":"chaos"},"nyx":{"x":2,"y":-2,"placement_group":"chaos"},"pontus":{"x":0,"y":0,"placement_group":"gaia"},"ourea":{"x":-1,"y":-1,"placement_group":"gaia"},"uranus":{"x":2,"y":0,"placement_group":"gaia"},"echidna":{"x":0,"y":-2,"placement_group":"tartarus"},"typhon":{"x":0,"y":-1,"placement_group":"tartarus"},"thaumas":{"x":-2,"y":0,"placement_group":"pontus"},"phorcys":{"x":-3,"y":0,"placement_group":"pontus"},"ceto":{"x":-1,"y":0,"placement_group":"pontus"},"themis":{"x":1,"y":1,"placement_group":"uranus"},"mnemosyne":{"x":1,"y":0,"placement_group":"uranus"},"hyperion":{"x":0,"y":2,"placement_group":"uranus"},"theia":{"x":0,"y":1,"placement_group":"uranus"},"crius":{"x":2,"y":2,"placement_group":"uranus"},"iapetus":{"x":4,"y":1,"placement_group":"uranus"},"coeus":{"x":3,"y":2,"placement_group":"uranus"},"phoebe":{"x":3,"y":1,"placement_group":"uranus"},"oceanus":{"x":1,"y":2,"placement_group":"uranus"},"tethys":{"x":2,"y":1,"placement_group":"uranus"},"cronus":{"x":2,"y":3,"placement_group":"uranus"},"rhea":{"x":1,"y":3,"placement_group":"uranus"},"aphrodite":{"x":3,"y":0,"placement_group":"uranus"},"aether":{"x":3,"y":-5,"placement_group":"erebus"},"hemera":{"x":3,"y":-3,"placement_group":"erebus"},"charon":{"x":3,"y":-4,"placement_group":"erebus"},"hypnos":{"x":2,"y":-5,"placement_group":"nyx"},"thanatos":{"x":2,"y":-3,"placement_group":"nyx"},"moros":{"x":2,"y":-4,"placement_group":"nyx"},"helios":{"x":-1,"y":1,"placement_group":"hyperion"},"selene":{"x":-1,"y":2,"placement_group":"hyperion"},"eos":{"x":-2,"y":2,"placement_group":"hyperion"},"clymene":{"x":5,"y":0,"placement_group":"iapetus"},"atlas":{"x":5,"y":2,"placement_group":"iapetus"},"prometheus":{"x":5,"y":1,"placement_group":"iapetus"},"epimetheus":{"x":6,"y":1,"placement_group":"iapetus"},"hestia":{"x":-1,"y":4,"placement_group":"cronus_rhea"},"demeter":{"x":1,"y":4,"placement_group":"cronus_rhea"},"hera":{"x":3,"y":4,"placement_group":"cronus_rhea"},"hades":{"x":0,"y":4,"placement_group":"cronus_rhea"},"poseidon":{"x":4,"y":4,"placement_group":"cronus_rhea"},"zeus":{"x":2,"y":4,"placement_group":"cronus_rhea"},"athena":{"x":0,"y":6,"placement_group":"zeus"},"metis":{"x":0,"y":5,"placement_group":"metis"},"ares":{"x":3,"y":5,"placement_group":"zeus"},"hebe":{"x":3,"y":6,"placement_group":"zeus"},"persephone":{"x":1,"y":5,"placement_group":"zeus"},"hephaestus":{"x":4,"y":5,"placement_group":"hera"},"apollo":{"x":-3,"y":6,"placement_group":"zeus"},"artemis":{"x":-2,"y":6,"placement_group":"zeus"},"leto":{"x":-2,"y":5,"placement_group":"leto"},"hermes":{"x":-1,"y":6,"placement_group":"zeus"},"maia":{"x":-1,"y":5,"placement_group":"maia"},"dionysus":{"x":5,"y":6,"placement_group":"zeus"},"semele":{"x":5,"y":5,"placement_group":"semele"}},"pinned_ids":[]};
+const STYLES = {"chaos": {"color": "#6f7785"}, "gaia": {"color": "#d64545"}, "nyx": {"color": "#c63fcf"}, "pontus": {"color": "#e58b2a"}, "tartarus": {"color": "#43a160"}, "uranus": {"color": "#2b7cd3"}, "erebus": {"color": "#d0aa00"}, "hyperion": {"color": "#d39b2a"}, "theia": {"color": "#9a6dc2"}, "iapetus": {"color": "#667785"}, "clymene": {"color": "#7f8f4e"}, "cronus": {"color": "#8b5a3c"}, "rhea": {"color": "#3f9d9a"}, "zeus": {"color": "#315fc3"}, "hera": {"color": "#bd5573"}, "demeter": {"color": "#6b9f45"}, "metis": {"color": "#3a9fb0"}, "leto": {"color": "#7d61b8"}, "maia": {"color": "#a77b4d"}, "semele": {"color": "#9b405d"}};
+const MACRO_GROUPS = {
+  primordial:{
+    label:'Primordials',
+    color:'#c4474d',
+    setback:4,
+    members:['chaos','eros','gaia','tartarus','pontus','ourea','echidna','typhon','thaumas','phorcys','ceto']
+  },
+  night:{
+    label:'Night / underworld',
+    color:'#b98315',
+    setback:8,
+    members:['erebus','nyx','aether','hemera','charon','hypnos','thanatos','moros']
+  },
+  titan:{
+    label:'Titans',
+    color:'#7650b8',
+    setback:7,
+    members:['uranus','aphrodite','mnemosyne','themis','tethys','phoebe','oceanus','crius','coeus','hyperion','theia','helios','selene','eos','iapetus','clymene','prometheus','epimetheus','atlas','cronus','rhea']
+  },
+  olympian:{
+    label:'Olympians',
+    color:'#c65a2e',
+    setback:9,
+    members:['hestia','demeter','hera','hades','poseidon','zeus','athena','metis','ares','hebe','persephone','hephaestus','apollo','artemis','leto','hermes','maia','dionysus','semele']
+  }
+};
+
+
+const PALETTES = {
+  jewel:{label:'Jewel modern', colors:{primordial:'#D94E64',night:'#D8A21B',titan:'#735BCB',olympian:'#E8793F'}},
+  editorial:{label:'Cool editorial', colors:{primordial:'#D98292',night:'#C3A447',titan:'#8588CE',olympian:'#E5A07C'}},
+  fresco:{label:'Fresco modern', colors:{primordial:'#C45F50',night:'#A99A4F',titan:'#6579A9',olympian:'#70A1B1'}}
+};
+const TYPEFACE_STACKS = {
+  grotesk:'"Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif',
+  humanist:'"Trebuchet MS", "Segoe UI", Candara, ui-sans-serif, sans-serif',
+  editorial:'Georgia, "Times New Roman", Times, serif',
+  classical:'"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif'
+};
+function applyPalette(id){
+  const p=PALETTES[id]||PALETTES.jewel;
+  for(const mid of Object.keys(MACRO_GROUPS)) MACRO_GROUPS[mid].color=p.colors[mid];
+}
+function currentTypeface(){ return TYPEFACE_STACKS[document.getElementById('typefaceMode')?.value || 'grotesk']; }
+
+const people = Object.fromEntries(PEOPLE_RAW.map(p => [p.id,p]));
+const initialNodes = structuredClone(INITIAL_LAYOUT.nodes);
+let nodes = structuredClone(initialNodes);
+let grid = structuredClone(INITIAL_LAYOUT.grid);
+
+// We give the editor some breathing room beyond the current content, independent
+// of the exported layout bounds. This lets the user experiment freely.
+const EDIT_PAD_X = 0, EDIT_PAD_Y = 0;
+let selectedId = null, hoveredId = null, drag = null;
+let pinnedIds = new Set();
+let undoStack = [], redoStack = [];
+let currentMasks = {};
+let lastValidNodes = structuredClone(nodes);
+let optimizing = false, optimizerAbort = false;
+
+const CELL_W = 112, CELL_H = 112;
+const PAGE_MARGIN = 48, HEADER_H = 118, PANEL_PAD_X = 30, PANEL_PAD_Y = 26;
+const DIAGRAM_GUTTER_X = 34, DIAGRAM_GUTTER_Y = 32;
+const KEY_GAP = 20, KEY_PANEL_H = 276, FOOTER_H = 72;
+const LEFT = PAGE_MARGIN + PANEL_PAD_X + DIAGRAM_GUTTER_X;
+const TOP = PAGE_MARGIN + HEADER_H + PANEL_PAD_Y + DIAGRAM_GUTTER_Y;
+const REGION_CORNER_R = 17;
+const NODE_INSET_X = 8, NODE_INSET_Y = 10;
+const svg = document.getElementById('canvas');
+const wrap = document.getElementById('wrap');
+const statusEl = document.getElementById('status');
+
+const ownerIds = new Set(Object.keys(STYLES));
+const groups = deriveGroups();
+const FAMILY_OWNER_ORDER = ['chaos','gaia','tartarus','nyx','erebus','pontus','uranus','hyperion','theia','iapetus','clymene','cronus','rhea','zeus','hera','demeter','leto','maia','metis','semele'];
+const FAMILY_INDEX = Object.fromEntries(FAMILY_OWNER_ORDER.map((id,i)=>[id,i+1]));
+const FAMILY_MEMBER_SETS = (()=>{
+  const out={};
+  for(const [gid,g] of Object.entries(groups)) out[gid]=new Set([g.owner,...g.children]);
+  return out;
+})();
+const RELATED_GROUPS = (()=>{
+  const out={};
+  const ids=Object.keys(groups);
+  for(const a of ids){
+    out[a]=new Set([a]);
+    for(const b of ids){
+      if(a===b) continue;
+      const sa=FAMILY_MEMBER_SETS[a], sb=FAMILY_MEMBER_SETS[b];
+      let shared=false;
+      for(const m of sa){ if(sb.has(m)){ shared=true; break; } }
+      if(shared) out[a].add(b);
+    }
+  }
+  return out;
+})();
+const MEMBER_TO_MACRO = (()=>{
+  const out={};
+  for(const [mid,def] of Object.entries(MACRO_GROUPS)){
+    for(const id of def.members) out[id]=mid;
+  }
+  return out;
+})();
+
+function deriveGroups(){
+  const g = {};
+  for(const owner of ownerIds) g[owner] = {owner, children:[]};
+  for(const p of PEOPLE_RAW){
+    for(const rel of (p.relations||[])){
+      if(rel.boundary_include && g[rel.parent_id]) g[rel.parent_id].children.push(p.id);
+    }
+  }
+  return g;
+}
+
+function relationInfo(id){
+  const parents = (people[id].relations||[]).map(r=>r.parent_id).filter(x=>people[x]);
+  const children = [];
+  for(const p of PEOPLE_RAW){
+    if((p.relations||[]).some(r=>r.parent_id===id && r.boundary_include)) children.push(p.id);
+  }
+  return {parents,children};
+}
+
+function boundsForEditor(layout=nodes){
+  const xs=Object.values(layout).map(n=>n.x), ys=Object.values(layout).map(n=>n.y);
+  return {
+    xMin:Math.min(...xs)-EDIT_PAD_X,
+    xMax:Math.max(...xs)+EDIT_PAD_X,
+    yMin:Math.min(...ys)-EDIT_PAD_Y,
+    yMax:Math.max(...ys)+EDIT_PAD_Y,
+  };
+}
+function occupiedMap(layout=nodes){
+  const m = new Map();
+  for(const [id,n] of Object.entries(layout)){
+    const key=`${n.x},${n.y}`;
+    if(m.has(key)) throw new Error(`Collision: ${id} and ${m.get(key)}`);
+    m.set(key,id);
+  }
+  return m;
+}
+function neighbors([x,y]){return [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]}
+function key([x,y]){return `${x},${y}`}
+function parseKey(k){return k.split(',').map(Number)}
+
+function targetsConnected(mask,targetKeys){
+  if(!targetKeys.size)return true;
+  for(const t of targetKeys)if(!mask.has(t))return false;
+  const start=targetKeys.values().next().value,seen=new Set([start]),q=[parseKey(start)];let qi=0;
+  while(qi<q.length){
+    const cur=q[qi++];
+    for(const nxt of neighbors(cur)){const nk=key(nxt);if(mask.has(nk)&&!seen.has(nk)){seen.add(nk);q.push(nxt);}}
+  }
+  for(const t of targetKeys)if(!seen.has(t))return false;
+  return true;
+}
+function maskContactPenalty(mask, ownerId, layout, otherMasks=null, relatedGroups=RELATED_GROUPS){
+  let score=0;
+  const related=relatedGroups[ownerId] || new Set([ownerId]);
+  const occ=occupiedMap(layout);
+  for(const mk of mask){
+    const cell=parseKey(mk);
+    for(const n of neighbors(cell)){
+      const nk=key(n);
+      const occId=occ.get(nk);
+      if(occId && !FAMILY_MEMBER_SETS[ownerId].has(occId)) score += 1.0;
+      if(otherMasks){
+        for(const [gid,omask] of Object.entries(otherMasks)){
+          if(gid===ownerId || related.has(gid)) continue;
+          if(omask.has(nk)) score += 0.75;
+        }
+      }
+    }
+  }
+  return score;
+}
+
+function pruneRedundantMaskCells(mask,targetKeys,ownerId=null,layout=nodes,otherMasks=null,relatedGroups=RELATED_GROUPS){
+  // Family masks use the unrelated-contact penalty below. Macro-zone masks do
+  // not have a family owner, so they fall back to the original connectivity-only
+  // pruning. Keeping those two code paths separate avoids treating a macro zone
+  // as though it were one genealogical family.
+  const out=new Set(mask); let changed=true;
+  while(changed){
+    changed=false;
+    const baselinePenalty = ownerId ? maskContactPenalty(out, ownerId, layout, otherMasks, relatedGroups) : 0;
+    const candidates=[...out].filter(k=>!targetKeys.has(k)).sort((ka,kb)=>{
+      const a=parseKey(ka),b=parseKey(kb);
+      const deg=c=>neighbors(c).filter(n=>out.has(key(n))).length;
+      const dist=c=>Math.min(...[...targetKeys].map(t=>{const q=parseKey(t);return Math.abs(c[0]-q[0])+Math.abs(c[1]-q[1]);}));
+      return deg(a)-deg(b)||dist(a)-dist(b)||a[1]-b[1]||a[0]-b[0];
+    });
+    for(const ck of candidates){
+      const trial=new Set(out); trial.delete(ck);
+      if(!targetsConnected(trial,targetKeys)) continue;
+      if(!ownerId){
+        out.delete(ck); changed=true; break;
+      }
+      const trialPenalty=maskContactPenalty(trial, ownerId, layout, otherMasks, relatedGroups);
+      if(trialPenalty <= baselinePenalty + 1e-9){
+        out.delete(ck); changed=true; break;
+      }
+    }
+  }
+  return out;
+}
+
+function shortestPathToMask(start, mask, blocked, b, options={}){
+  const sk=key(start); if(mask.has(sk)) return [start];
+  const ownerId=options.ownerId || null;
+  const layout=options.layout || nodes;
+  const otherMasks=options.otherMasks || null;
+  const relatedGroups=options.relatedGroups || RELATED_GROUPS;
+  const occ=occupiedMap(layout);
+  const targetMemberSet = ownerId ? FAMILY_MEMBER_SETS[ownerId] : new Set();
+  const related = ownerId ? (relatedGroups[ownerId] || new Set([ownerId])) : new Set();
+
+  function stepCost(cur, nxt){
+    let cost = 1;
+    const nk=key(nxt);
+    const occId=occ.get(nk);
+    if(occId && ownerId && !targetMemberSet.has(occId)) cost += 1000; // should be blocked anyway
+    // discourage hugging unrelated occupied figures
+    for(const adj of neighbors(nxt)){
+      const ak=key(adj), adjOcc=occ.get(ak);
+      if(adjOcc && ownerId && !targetMemberSet.has(adjOcc)) cost += 1.4;
+    }
+    // discourage traversing or hugging unrelated family masks from prior iteration
+    if(otherMasks && ownerId){
+      for(const [gid, omask] of Object.entries(otherMasks)){
+        if(gid===ownerId || related.has(gid)) continue;
+        if(omask.has(nk)) cost += 3.0;
+        for(const adj of neighbors(nxt)) if(omask.has(key(adj))) cost += 0.65;
+      }
+    }
+    // slight preference for staying close to existing mask to avoid shelves
+    let adjMask=0;
+    for(const adj of neighbors(nxt)) if(mask.has(key(adj))) adjMask++;
+    if(adjMask===0) cost += 0.6;
+    else cost -= Math.min(0.45, 0.15*adjMask);
+    return cost;
+  }
+
+  const dist=new Map([[sk,0]]), prev=new Map([[sk,null]]), seen=new Set();
+  while(true){
+    let curKey=null, curDist=Infinity;
+    for(const [k,v] of dist.entries()) if(!seen.has(k) && v<curDist){curKey=k; curDist=v;}
+    if(curKey===null) break;
+    seen.add(curKey);
+    if(mask.has(curKey)){ break; }
+    const cur=parseKey(curKey);
+    for(const nxt of neighbors(cur)){
+      const [x,y]=nxt, nk=key(nxt);
+      if(x<b.xMin||x>b.xMax||y<b.yMin||y>b.yMax) continue;
+      if(blocked.has(nk) && !mask.has(nk)) continue;
+      const nd=curDist + stepCost(cur,nxt);
+      if(nd < (dist.get(nk) ?? Infinity)){
+        dist.set(nk, nd);
+        prev.set(nk, curKey);
+      }
+    }
+  }
+  let endKey=null, endDist=Infinity;
+  for(const mk of mask){ const d=dist.get(mk); if(d!==undefined && d<endDist){ endDist=d; endKey=mk; } }
+  if(endKey===null) throw new Error(`Could not route boundary from ${start}`);
+  const path=[]; let ck=endKey;
+  while(ck!==null){path.push(parseKey(ck)); ck=prev.get(ck) ?? null;}
+  return path.reverse();
+}
+
+function generateMask(group, layout=nodes, otherMasks=null, relatedGroups=RELATED_GROUPS){
+  const occ=occupiedMap(layout), b=boundsForEditor(layout);
+  const targetIds=[group.owner,...group.children];
+  const targetCells=new Map(targetIds.map(id=>[id,[layout[id].x,layout[id].y]]));
+  const ownerCell=targetCells.get(group.owner);
+  const mask=new Set([key(ownerCell)]);
+  const targetSet=new Set(targetIds);
+  const blocked=new Set([...occ.entries()].filter(([k,id])=>!targetSet.has(id)).map(([k])=>k));
+  let remaining=targetIds.filter(id=>!mask.has(key(targetCells.get(id))));
+  while(remaining.length){
+    const distanceToMask=id=>{
+      const [x,y]=targetCells.get(id); let d=Infinity;
+      for(const mk of mask){const [mx,my]=parseKey(mk);d=Math.min(d,Math.abs(x-mx)+Math.abs(y-my));}
+      return d;
+    };
+    remaining.sort((a,b)=>distanceToMask(a)-distanceToMask(b)||a.localeCompare(b));
+    const id=remaining[0];
+    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b,{ownerId:group.owner,layout,otherMasks,relatedGroups});
+    path.forEach(c=>mask.add(key(c)));
+    remaining=targetIds.filter(id=>!mask.has(key(targetCells.get(id))));
+  }
+  return pruneRedundantMaskCells(mask,new Set([...targetCells.values()].map(key)),group.owner,layout,otherMasks,relatedGroups);
+}
+
+function computeAllMasks(layout=nodes){
+  // First pass: ordinary routing. Second pass: route each family again while
+  // penalizing needless contact with unrelated families from pass 1. A short
+  // final pass stabilizes the result.
+  let masks={};
+  for(const [id,g] of Object.entries(groups)) masks[id]=generateMask(g,layout,null,RELATED_GROUPS);
+  for(let iter=0; iter<2; iter++){
+    const next={};
+    for(const [id,g] of Object.entries(groups)) next[id]=generateMask(g,layout,masks,RELATED_GROUPS);
+    masks=next;
+  }
+  return masks;
+}
+
+function generateMaskForIds(memberIds, layout=nodes){
+  const ids = [...new Set(memberIds.filter(id=>layout[id]))];
+  if(!ids.length) return new Set();
+  const occ=occupiedMap(layout), b=boundsForEditor(layout);
+  const targetCells=new Map(ids.map(id=>[id,[layout[id].x,layout[id].y]]));
+  const anchorId=ids[0];
+  const mask=new Set([key(targetCells.get(anchorId))]);
+  const targetSet=new Set(ids);
+  const blocked=new Set([...occ.entries()].filter(([k,id])=>!targetSet.has(id)).map(([k])=>k));
+  let remaining=ids.filter(id=>!mask.has(key(targetCells.get(id))));
+  while(remaining.length){
+    const distanceToMask=id=>{
+      const [x,y]=targetCells.get(id); let d=Infinity;
+      for(const mk of mask){const [mx,my]=parseKey(mk); d=Math.min(d,Math.abs(x-mx)+Math.abs(y-my));}
+      return d;
+    };
+    remaining.sort((a,b)=>distanceToMask(a)-distanceToMask(b)||a.localeCompare(b));
+    const id=remaining[0];
+    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b);
+    path.forEach(c=>mask.add(key(c)));
+    remaining=ids.filter(id=>!mask.has(key(targetCells.get(id))));
+  }
+  return pruneRedundantMaskCells(mask,new Set([...targetCells.values()].map(key)));
+}
+
+function computeMacroMasks(_masks=currentMasks){
+  const out={};
+  for(const [mid,def] of Object.entries(MACRO_GROUPS)){
+    out[mid]=generateMaskForIds(def.members,nodes);
+  }
+  return out;
+}
+
+
+function pathStringForMask(mask,b){
+  const loops=stitchLoops(boundarySegments(mask));
+  return loops.map(loop=>cornerPath(loop,b)).join(' ');
+}
+function familyMacroId(gid){ return MEMBER_TO_MACRO[gid] || 'primordial'; }
+function familyMarkerAnchor(gid, layout=nodes, b=layoutBounds()){
+  const n=layout[gid];
+  const [cx,cy]=cellToPx(n.x,n.y,b);
+  const x=cx+CELL_W-NODE_INSET_X-10;
+  const y=cy+NODE_INSET_Y+10;
+  return {x,y};
+}
+function makeFamilyBadge(gid,b){
+  const idx=FAMILY_INDEX[gid], a=familyMarkerAnchor(gid,nodes,b);
+  const mid=familyMacroId(gid), badgeColor=(MACRO_GROUPS[mid]||MACRO_GROUPS.primordial).color;
+  const g=makeSvg('g',{class:'family-marker family-badge','data-group':gid,transform:`translate(${a.x},${a.y})`});
+  g.append(makeSvg('circle',{cx:0,cy:0,r:10.5,fill:badgeColor}), makeSvg('text',{x:0,y:0,dy:'.35em','dominant-baseline':'auto'}));
+  g.lastChild.textContent=String(idx);
+  return g;
+}
+function makeFamilyPill(gid,b){
+  const a=familyMarkerAnchor(gid,nodes,b);
+  const label=people[gid].name.toUpperCase();
+  const width=Math.max(44, label.length*6.6 + 16), height=18;
+  const g=makeSvg('g',{class:'family-marker family-pill','data-group':gid,transform:`translate(${a.x-width/2},${a.y-28})`});
+  g.append(makeSvg('rect',{x:0,y:0,width:width,height:height,rx:9,ry:9}), makeSvg('text',{x:width/2,y:height/2+0.5}));
+  g.lastChild.textContent=label;
+  return g;
+}
+
+function masksOverlap(a,b){
+  const small=a.size<=b.size?a:b, large=a.size<=b.size?b:a;
+  for(const k of small) if(large.has(k)) return true;
+  return false;
+}
+function computeFamilySetbackLevels(masks){
+  // Build an overlap graph and greedily colour it. Families that share any
+  // region cell must receive different levels; unrelated/non-overlapping
+  // families are free to reuse the same level.
+  const ids=Object.keys(groups);
+  const adj=Object.fromEntries(ids.map(id=>[id,new Set()]));
+  for(let i=0;i<ids.length;i++){
+    for(let j=i+1;j<ids.length;j++){
+      const a=ids[i],b=ids[j];
+      if(masksOverlap(masks[a],masks[b])){adj[a].add(b);adj[b].add(a);}
+    }
+  }
+  const order=[...ids].sort((a,b)=>adj[b].size-adj[a].size || masks[b].size-masks[a].size || a.localeCompare(b));
+  const level={};
+  for(const id of order){
+    const used=new Set([...adj[id]].map(n=>level[n]).filter(v=>v!==undefined));
+    let v=0; while(used.has(v))v++;
+    level[id]=v;
+  }
+  return {level,adj};
+}
+
+function familyShiftForLevel(level, scale=1){
+  // Inspired by the TLDR poster: overlapping memberships are not only inset by
+  // different amounts, they are also gently staggered/shifted so coincident
+  // contours can still be distinguished by the eye.
+  const pattern=[
+    {dx:0,dy:0},
+    {dx:5,dy:-5},
+    {dx:-5,dy:5},
+    {dx:7,dy:7},
+    {dx:-7,dy:-7},
+    {dx:9,dy:0},
+    {dx:0,dy:9},
+    {dx:-9,dy:0},
+    {dx:0,dy:-9}
+  ];
+  const p=pattern[level % pattern.length];
+  return {dx:p.dx*scale, dy:p.dy*scale};
+}
+function appendInsetFamilyRegion(svg,gid,d,fill,opacity,inset,W,H,dx=0,dy=0){
+  // SVG has no native inset-path operation. Use a per-family mask: the filled
+  // polygon is white, then a black stroke erodes its own perimeter. We also
+  // allow a small dx/dy translation so overlapping families can be staggered,
+  // not merely nested by increasingly deep insets.
+  const safe=gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  const maskId=`familyInset_${safe}`;
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const mask=makeSvg('mask',{id:maskId,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  mask.append(makeSvg('path',{d,fill:'white',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round','stroke-linecap':'round',transform:`translate(${dx},${dy})`}));
+  defs.append(mask);
+  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid,mask:`url(#${maskId})`,transform:`translate(${dx},${dy})`}));
+}
+
+
+// --- Layout taste / scoring engine -------------------------------------------------
+// This is intentionally diagnostic first. We want the mathematics to track the
+// editor's visual judgement before an optimiser is allowed to move anything.
+const SCORE_DEFS = {
+  empty:{label:'Empty boundary cells',weight:10},
+  meanDistance:{label:'Mean parent distance',weight:5},
+  p90Distance:{label:'90th-pct parent distance',weight:6},
+  perimeter:{label:'Boundary perimeter',weight:4},
+  crossings:{label:'True boundary crossings',weight:8},
+  sparsity:{label:'Local sparsity',weight:1.5},
+  backtrack:{label:'Branch backtracking',weight:2},
+  radial:{label:'Radial reversals',weight:0.75},
+  footprint:{label:'Global footprint',weight:0.4},
+};
+let baselineScore = null;
+
+function mean(xs){return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:0}
+function quantile(xs,q){
+  if(!xs.length)return 0;
+  const a=[...xs].sort((x,y)=>x-y), pos=(a.length-1)*q, lo=Math.floor(pos), hi=Math.ceil(pos);
+  if(lo===hi)return a[lo];
+  return a[lo]+(a[hi]-a[lo])*(pos-lo);
+}
+function manhattan(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)}
+function idealManhattanDistances(n){
+  const out=[];
+  for(let r=1;out.length<n;r++) for(let i=0;i<4*r && out.length<n;i++) out.push(r);
+  return out;
+}
+function minPolyominoPerimeter(n){
+  if(n<=0)return 0;
+  let best=Infinity;
+  for(let w=1;w<=n;w++){const h=Math.ceil(n/w);best=Math.min(best,2*(w+h));}
+  return best;
+}
+function groupTargetIds(g){return [g.owner,...g.children]}
+function groupMetrics(gid,layout=nodes,masks=currentMasks){
+  const g=groups[gid], ids=groupTargetIds(g), mask=masks[gid];
+  const targetCount=ids.length, childCount=g.children.length;
+  const emptyCount=Math.max(0,mask.size-targetCount);
+  const emptyNorm=targetCount?emptyCount/targetCount:0;
+  const actualD=g.children.map(id=>manhattan(layout[g.owner],layout[id]));
+  const idealD=idealManhattanDistances(childCount);
+  const actualMean=mean(actualD), idealMean=mean(idealD);
+  const actualP90=quantile(actualD,.9), idealP90=quantile(idealD,.9);
+  const meanDistance=Math.max(0,actualMean-idealMean);
+  const p90Distance=Math.max(0,actualP90-idealP90);
+  const perimeter=boundarySegments(mask).length;
+  const idealPerimeter=minPolyominoPerimeter(targetCount);
+  const perimeterNorm=idealPerimeter?Math.max(0,(perimeter-idealPerimeter)/idealPerimeter):0;
+  const pts=ids.map(id=>layout[id]);
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const bboxArea=(Math.max(...xs)-Math.min(...xs)+1)*(Math.max(...ys)-Math.min(...ys)+1);
+  const sparsity=targetCount?Math.max(0,(bboxArea-targetCount)/targetCount):0;
+  return {gid,targetCount,childCount,emptyCount,emptyNorm,actualMean,idealMean,actualP90,idealP90,meanDistance,p90Distance,perimeter,idealPerimeter,perimeterNorm,bboxArea,sparsity};
+}
+function canonicalSegment([a,b]){
+  const ak=key(a),bk=key(b);return ak<bk?`${ak}|${bk}`:`${bk}|${ak}`;
+}
+function sharedBoundarySegments(masks){
+  const index=new Map();
+  for(const [gid,mask] of Object.entries(masks)){
+    for(const seg of boundarySegments(mask)){
+      const canon=canonicalSegment(seg);
+      if(!index.has(canon))index.set(canon,{seg,gids:[]});
+      index.get(canon).gids.push(gid);
+    }
+  }
+  return [...index.values()].filter(r=>r.gids.length>1);
+}
+function sharedBoundaryRuns(masks){
+  // Stitch adjacent shared edges with the same owner set into longer runs. This
+  // lets the multicolour redraw follow rounded corners rather than overlaying
+  // the rounded family boundary with separate square-ended line segments.
+  const recs=sharedBoundarySegments(masks);
+  const byCombo=new Map();
+  for(const rec of recs){
+    const gids=[...rec.gids].sort();
+    const combo=gids.join(',');
+    if(!byCombo.has(combo))byCombo.set(combo,{gids,segs:[]});
+    byCombo.get(combo).segs.push(rec.seg);
+  }
+  const runs=[];
+  for(const {gids,segs} of byCombo.values()){
+    const edges=segs.map((seg,i)=>({i,a:key(seg[0]),b:key(seg[1]),seg,used:false}));
+    const adj=new Map();
+    for(const e of edges){
+      if(!adj.has(e.a))adj.set(e.a,[]); if(!adj.has(e.b))adj.set(e.b,[]);
+      adj.get(e.a).push(e); adj.get(e.b).push(e);
+    }
+    const chooseNext=(cands,prevKey,curKey)=>{
+      if(cands.length<=1)return cands[0];
+      if(prevKey){
+        const p=parseKey(prevKey),c=parseKey(curKey);
+        const vx=c[0]-p[0],vy=c[1]-p[1];
+        const straight=cands.find(e=>{
+          const nk=e.a===curKey?e.b:e.a,q=parseKey(nk);
+          return q[0]-c[0]===vx && q[1]-c[1]===vy;
+        });
+        if(straight)return straight;
+      }
+      return cands[0];
+    };
+    while(edges.some(e=>!e.used)){
+      const remaining=edges.filter(e=>!e.used);
+      let startEdge=remaining.find(e=>(adj.get(e.a)||[]).filter(x=>!x.used).length===1 || (adj.get(e.b)||[]).filter(x=>!x.used).length===1) || remaining[0];
+      let startKey=((adj.get(startEdge.a)||[]).filter(x=>!x.used).length===1)?startEdge.a:startEdge.b;
+      const points=[parseKey(startKey)];
+      let prevKey=null,curKey=startKey;
+      while(true){
+        const cands=(adj.get(curKey)||[]).filter(e=>!e.used);
+        if(!cands.length)break;
+        const e=chooseNext(cands,prevKey,curKey); e.used=true;
+        const nextKey=e.a===curKey?e.b:e.a;
+        points.push(parseKey(nextKey));
+        prevKey=curKey;curKey=nextKey;
+        if(curKey===startKey)break;
+      }
+      if(points.length>1)runs.push({gids,points});
+    }
+  }
+  return runs;
+}
+function roundedRunPath(points,b,radius=REGION_CORNER_R){
+  const pts=points.map(([x,y])=>cellToPx(x,y,b));
+  if(pts.length===2)return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+  const closed=pts.length>2 && pts[0][0]===pts[pts.length-1][0] && pts[0][1]===pts[pts.length-1][1];
+  if(closed){
+    const loop=points.slice(0,-1);
+    return cornerPath(loop,b);
+  }
+  let d=`M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const prev=pts[i-1],cur=pts[i],next=pts[i+1];
+    const lenIn=Math.hypot(cur[0]-prev[0],cur[1]-prev[1]),lenOut=Math.hypot(next[0]-cur[0],next[1]-cur[1]);
+    if(!lenIn||!lenOut){d+=` L ${cur[0]} ${cur[1]}`;continue;}
+    const r=Math.min(radius,lenIn/2,lenOut/2);
+    const p1=[cur[0]+(prev[0]-cur[0])/lenIn*r,cur[1]+(prev[1]-cur[1])/lenIn*r];
+    const p2=[cur[0]+(next[0]-cur[0])/lenOut*r,cur[1]+(next[1]-cur[1])/lenOut*r];
+    d+=` L ${p1[0]} ${p1[1]} Q ${cur[0]} ${cur[1]} ${p2[0]} ${p2[1]}`;
+  }
+  d+=` L ${pts[pts.length-1][0]} ${pts[pts.length-1][1]}`;
+  return d;
+}
+function segmentOrientation([a,b]){return a[1]===b[1]?'H':'V'}
+function boundaryVertexProfile(mask){
+  const segs=boundarySegments(mask), vertices=new Map(), segSet=new Set();
+  for(const seg of segs){
+    segSet.add(canonicalSegment(seg));
+    const o=segmentOrientation(seg);
+    for(const p of seg){const k=key(p);if(!vertices.has(k))vertices.set(k,{H:0,V:0,segs:new Set()});const v=vertices.get(k);v[o]++;v.segs.add(canonicalSegment(seg));}
+  }
+  return {vertices,segSet};
+}
+function semanticallyIntertwined(a,b){
+  const A=groups[a],B=groups[b], bKids=new Set(B.children);
+  const shared=A.children.some(id=>bKids.has(id));
+  const directlyNested=A.children.includes(B.owner)||B.children.includes(A.owner);
+  return shared||directlyNested;
+}
+function isTrueOrthogonalCrossing(av,bv){
+  // Only a straight horizontal boundary passing through a straight vertical
+  // boundary counts. Corners, edge+corner/T contacts, and parallel/shared edges
+  // are deliberately free.
+  const aH=av.H>=2,aV=av.V>=2,bH=bv.H>=2,bV=bv.V>=2;
+  return (aH&&bV)||(aV&&bH);
+}
+function trueBoundaryCrossings(masks){
+  const gids=Object.keys(groups), profiles=Object.fromEntries(gids.map(g=>[g,boundaryVertexProfile(masks[g])]));
+  let severity=0, count=0; const examples=[];
+  for(let i=0;i<gids.length;i++) for(let j=i+1;j<gids.length;j++){
+    const a=gids[i],b=gids[j];
+    if(semanticallyIntertwined(a,b))continue; // shared children or direct owner nesting
+    const A=profiles[a],B=profiles[b];
+    const sharedVertices=[...A.vertices.keys()].filter(k=>B.vertices.has(k));
+    for(const vk of sharedVertices){
+      const av=A.vertices.get(vk),bv=B.vertices.get(vk);
+      if([...av.segs].some(s=>bv.segs.has(s)))continue; // running alongside is free
+      if(!isTrueOrthogonalCrossing(av,bv))continue;
+      severity+=2;count++;
+      if(examples.length<5)examples.push(`${people[a].name} × ${people[b].name} @ ${vk}`);
+    }
+  }
+  return {raw:gids.length?severity/gids.length:0,severity,count,examples};
+}
+function branchBacktracking(layout=nodes){
+  const vals=[];
+  for(const [parentId,g] of Object.entries(groups)){
+    const parent=layout[parentId];
+    for(const childId of g.children){
+      if(!groups[childId]||!groups[childId].children.length)continue;
+      const child=layout[childId], kids=groups[childId].children.map(id=>layout[id]);
+      const centroid={x:mean(kids.map(p=>p.x)),y:mean(kids.map(p=>p.y))};
+      const vx=child.x-parent.x,vy=child.y-parent.y,wx=centroid.x-child.x,wy=centroid.y-child.y;
+      const vn=Math.hypot(vx,vy),wn=Math.hypot(wx,wy);if(!vn||!wn)continue;
+      const cos=(vx*wx+vy*wy)/(vn*wn);vals.push(Math.max(0,-cos));
+    }
+  }
+  return {raw:mean(vals),count:vals.length};
+}
+function radialReversal(layout=nodes){
+  const vals=[];
+  for(const p of PEOPLE_RAW) for(const rel of (p.relations||[])){
+    if(!layout[rel.parent_id]||!layout[p.id])continue;
+    const pr=Math.hypot(layout[rel.parent_id].x,layout[rel.parent_id].y),cr=Math.hypot(layout[p.id].x,layout[p.id].y);
+    vals.push(Math.max(0,pr-cr));
+  }
+  return {raw:mean(vals),count:vals.length};
+}
+function footprintCost(layout=nodes){
+  const pts=Object.values(layout),xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),n=pts.length;
+  const area=(Math.max(...xs)-Math.min(...xs)+1)*(Math.max(...ys)-Math.min(...ys)+1);
+  return {raw:n?Math.max(0,(area-n)/n):0,area,n};
+}
+function computeLayoutScore(layout=nodes,masks=currentMasks){
+  const gm=Object.keys(groups).map(gid=>groupMetrics(gid,layout,masks));
+  const withChildren=gm.filter(g=>g.childCount>0);
+  const cross=trueBoundaryCrossings(masks),back=branchBacktracking(layout),rad=radialReversal(layout),foot=footprintCost(layout);
+  const raw={
+    empty:mean(gm.map(g=>g.emptyNorm)),
+    meanDistance:mean(withChildren.map(g=>g.meanDistance)),
+    p90Distance:mean(withChildren.map(g=>g.p90Distance)),
+    perimeter:mean(gm.map(g=>g.perimeterNorm)),
+    crossings:cross.raw,
+    sparsity:mean(gm.map(g=>g.sparsity)),
+    backtrack:back.raw,
+    radial:rad.raw,
+    footprint:foot.raw,
+  };
+  const contributions={};let total=0;
+  for(const [k,d] of Object.entries(SCORE_DEFS)){contributions[k]=raw[k]*d.weight;total+=contributions[k];}
+  const worst={
+    empty:[...gm].sort((a,b)=>b.emptyNorm-a.emptyNorm)[0],
+    meanDistance:[...withChildren].sort((a,b)=>b.meanDistance-a.meanDistance)[0],
+    p90Distance:[...withChildren].sort((a,b)=>b.p90Distance-a.p90Distance)[0],
+    perimeter:[...gm].sort((a,b)=>b.perimeterNorm-a.perimeterNorm)[0],
+    sparsity:[...gm].sort((a,b)=>b.sparsity-a.sparsity)[0],
+  };
+  return {total,raw,contributions,groupMetrics:gm,cross,back,rad,foot,worst};
+}
+function fmt(n,d=2){return Number.isFinite(n)?n.toFixed(d):'—'}
+function updateScorePanel(score){
+  const total=document.getElementById('scoreTotal'),delta=document.getElementById('scoreDelta'),list=document.getElementById('scoreMetrics');
+  total.textContent=fmt(score.total,1);
+  if(baselineScore===null)baselineScore=score.total;
+  const d=score.total-baselineScore;delta.textContent=(Math.abs(d)<.05?'±0.0':`${d>0?'+':''}${fmt(d,1)}`);delta.className='score-delta '+(d<-.05?'good':d>.05?'bad':'');
+  list.replaceChildren();
+  const details={
+    empty:score.worst.empty?`worst: ${people[score.worst.empty.gid].name} · ${score.worst.empty.emptyCount} connector cell${score.worst.empty.emptyCount===1?'':'s'}`:'',
+    meanDistance:score.worst.meanDistance?`worst excess: ${people[score.worst.meanDistance.gid].name} · ${fmt(score.worst.meanDistance.meanDistance)}`:'',
+    p90Distance:score.worst.p90Distance?`worst excess: ${people[score.worst.p90Distance.gid].name} · ${fmt(score.worst.p90Distance.p90Distance)}`:'',
+    perimeter:score.worst.perimeter?`worst: ${people[score.worst.perimeter.gid].name} · ${score.worst.perimeter.perimeter} vs ideal ${score.worst.perimeter.idealPerimeter}`:'',
+    crossings:`${score.cross.count} true crossing${score.cross.count===1?'':'s'}${score.cross.examples.length?' · '+score.cross.examples[0]:''}`,
+    sparsity:score.worst.sparsity?`worst bbox: ${people[score.worst.sparsity.gid].name} · ${fmt(score.worst.sparsity.sparsity)}`:'',
+    backtrack:`${score.back.count} owner→child-owner branch${score.back.count===1?'':'es'} checked`,
+    radial:`${score.rad.count} direct parent edges checked`,
+    footprint:`${score.foot.area} grid cells around ${score.foot.n} figures`,
+  };
+  for(const [k,ddef] of Object.entries(SCORE_DEFS)){
+    const row=document.createElement('div');row.className='metric-row';
+    const n=document.createElement('div');n.className='metric-name';n.textContent=ddef.label;
+    const v=document.createElement('div');v.className='metric-score';v.textContent=`${fmt(score.raw[k])} × ${ddef.weight} = ${fmt(score.contributions[k],1)}`;
+    const det=document.createElement('div');det.className='metric-detail';det.textContent=details[k]||'';det.title=details[k]||'';
+    row.append(n,v,det);list.append(row);
+  }
+}
+function updateSelectedFamilyMetrics(score,id){
+  const sec=document.getElementById('familyMetricsSection'),el=document.getElementById('familyMetrics');
+  if(!id||!groups[id]){sec.style.display='none';return;}
+  const g=score.groupMetrics.find(x=>x.gid===id);if(!g){sec.style.display='none';return;}
+  sec.style.display='block';el.replaceChildren();
+  const rows=[
+    ['Members',`${g.targetCount} (${g.childCount} children)`],
+    ['Empty connector cells',`${g.emptyCount} · norm ${fmt(g.emptyNorm)}`],
+    ['Mean distance',`${fmt(g.actualMean)} · ideal ${fmt(g.idealMean)}`],
+    ['90th-pct distance',`${fmt(g.actualP90)} · ideal ${fmt(g.idealP90)}`],
+    ['Perimeter',`${g.perimeter} · ideal ${g.idealPerimeter}`],
+    ['Bounding-box area',`${g.bboxArea} · sparsity ${fmt(g.sparsity)}`],
+  ];
+  for(const [a,b] of rows){const l=document.createElement('div');l.textContent=a;const v=document.createElement('div');v.className='v';v.textContent=b;el.append(l,v);}
+}
+// -----------------------------------------------------------------------------------
+
+function boundarySegments(mask){
+  const segs=[];
+  for(const ck of mask){
+    const [x,y]=parseKey(ck);
+    if(!mask.has(`${x},${y-1}`)) segs.push([[x,y],[x+1,y]]);
+    if(!mask.has(`${x+1},${y}`)) segs.push([[x+1,y],[x+1,y+1]]);
+    if(!mask.has(`${x},${y+1}`)) segs.push([[x+1,y+1],[x,y+1]]);
+    if(!mask.has(`${x-1},${y}`)) segs.push([[x,y+1],[x,y]]);
+  }
+  return segs;
+}
+function stitchLoops(segments){
+  const outgoing=new Map();
+  for(const [a,b] of segments){const ak=key(a);if(!outgoing.has(ak)) outgoing.set(ak,[]);outgoing.get(ak).push(b);}
+  const edgeKey=(a,b)=>`${key(a)}>${key(b)}`;
+  const unused=new Map(segments.map(([a,b])=>[edgeKey(a,b),[a,b]]));
+  const loops=[];
+  while(unused.size){
+    const first=[...unused.keys()].sort()[0];
+    let [start,nxt]=unused.get(first); unused.delete(first);
+    const loop=[start,nxt]; let cur=nxt; let safety=0;
+    while(key(cur)!==key(start)){
+      if(++safety>segments.length+10) throw new Error('Could not close boundary loop');
+      const candidates=(outgoing.get(key(cur))||[]).filter(b=>unused.has(edgeKey(cur,b))).sort((a,b)=>key(a).localeCompare(key(b)));
+      if(!candidates.length) throw new Error('Open boundary');
+      const b=candidates[0]; unused.delete(edgeKey(cur,b)); loop.push(b); cur=b;
+    }
+    loops.push(loop);
+  }
+  return loops;
+}
+
+function layoutBounds(){return boundsForEditor()}
+function cellToPx(x,y,b){return [LEFT+(x-b.xMin)*CELL_W, TOP+(y-b.yMin)*CELL_H]}
+function getOuterCornerRadius(){ return parseFloat(document.getElementById('cornerRadius')?.value || String(REGION_CORNER_R)); }
+function getInnerCornerRadius(){ return Math.max(8, getOuterCornerRadius()*0.58); }
+function cornerPath(loop,b){
+  // stitchLoops() returns closed loops with the starting corner repeated as the
+  // final point. Remove that duplicate before calculating radii; otherwise the
+  // first/last vertex has a zero-length neighbour and one corner stays square.
+  let clean=loop;
+  if(loop.length>1 && key(loop[0])===key(loop[loop.length-1])) clean=loop.slice(0,-1);
+  const pts=clean.map(([x,y])=>cellToPx(x,y,b));
+  const n=pts.length;
+  if(n<3) return `M ${pts[0][0]} ${pts[0][1]} `+pts.slice(1).map(([x,y])=>`L ${x} ${y}`).join(' ')+ ' Z';
+  // Preserve the strong V21 rounding on exterior corners, but tighten concave
+  // notches so the regions read as soft geometry rather than inflated bubbles.
+  let area2=0;
+  for(let i=0;i<n;i++){
+    const a=pts[i], q=pts[(i+1)%n]; area2 += a[0]*q[1]-q[0]*a[1];
+  }
+  const orientation=Math.sign(area2)||1;
+  const corners=[];
+  for(let i=0;i<n;i++){
+    const prev=pts[(i-1+n)%n], curr=pts[i], next=pts[(i+1)%n];
+    const lenIn=Math.hypot(curr[0]-prev[0], curr[1]-prev[1]);
+    const lenOut=Math.hypot(next[0]-curr[0], next[1]-curr[1]);
+    if(!lenIn || !lenOut){corners.push({c:curr,p1:curr,p2:curr});continue;}
+    const inVec=[curr[0]-prev[0],curr[1]-prev[1]], outVec=[next[0]-curr[0],next[1]-curr[1]];
+    const cross=inVec[0]*outVec[1]-inVec[1]*outVec[0];
+    const concave=Math.sign(cross)!==orientation && Math.abs(cross)>1e-9;
+    const desired=concave?getInnerCornerRadius():getOuterCornerRadius();
+    const d=Math.min(desired, lenIn*0.42, lenOut*0.42);
+    const vin=[(prev[0]-curr[0])/lenIn, (prev[1]-curr[1])/lenIn];
+    const vout=[(next[0]-curr[0])/lenOut, (next[1]-curr[1])/lenOut];
+    const p1=[curr[0]+vin[0]*d, curr[1]+vin[1]*d];
+    const p2=[curr[0]+vout[0]*d, curr[1]+vout[1]*d];
+    corners.push({c:curr,p1,p2});
+  }
+  let d=`M ${corners[0].p2[0]} ${corners[0].p2[1]}`;
+  for(let i=1;i<n;i++){
+    d += ` L ${corners[i].p1[0]} ${corners[i].p1[1]} Q ${corners[i].c[0]} ${corners[i].c[1]} ${corners[i].p2[0]} ${corners[i].p2[1]}`;
+  }
+  d += ` L ${corners[0].p1[0]} ${corners[0].p1[1]} Q ${corners[0].c[0]} ${corners[0].c[1]} ${corners[0].p2[0]} ${corners[0].p2[1]} Z`;
+  return d;
+}
+function segmentLineAttrs(seg,b){
+  const a=cellToPx(seg[0][0],seg[0][1],b),c=cellToPx(seg[1][0],seg[1][1],b);
+  return {x1:a[0],y1:a[1],x2:c[0],y2:c[1]};
+}
+
+function makeSvg(tag,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e}
+
+
+function snapshotState(){return {nodes:structuredClone(nodes),pinned:[...pinnedIds]};}
+function restoreState(s){
+  if(s && s.nodes){nodes=structuredClone(s.nodes);pinnedIds=new Set(s.pinned||[]);}
+  else{nodes=structuredClone(s);}
+  lastValidNodes=structuredClone(nodes);
+}
+function pushHistory(before){undoStack.push(before);redoStack=[];updateUndoButtons();}
+function syncActionButtons(){
+  const pin=document.getElementById('pinBtn'),fam=document.getElementById('optFamilyBtn'),all=document.getElementById('optAllBtn'),stop=document.getElementById('stopOptBtn');
+  pin.disabled=!selectedId||optimizing;
+  pin.textContent=selectedId&&pinnedIds.has(selectedId)?'Unpin selected':'Pin selected';
+  fam.disabled=!selectedId||!groups[selectedId]||optimizing;
+  all.disabled=optimizing||Object.keys(nodes).every(id=>pinnedIds.has(id));
+  stop.disabled=!optimizing;
+  document.body.classList.toggle('optimizing',optimizing);
+}
+function togglePin(id=selectedId){
+  if(!id||optimizing)return;
+  const before=snapshotState();
+  if(pinnedIds.has(id)){pinnedIds.delete(id);setStatus(`${people[id].name} unpinned.`);}else{pinnedIds.add(id);setStatus(`${people[id].name} pinned.`);}
+  pushHistory(before);autoSave();render();updateSidebar();
+}
+function optimizationTargets(mode){
+  if(mode==='family'){
+    if(!selectedId||!groups[selectedId])return [];
+    return [groups[selectedId].owner,...groups[selectedId].children].filter(id=>!pinnedIds.has(id));
+  }
+  return Object.keys(nodes).filter(id=>!pinnedIds.has(id));
+}
+function candidateScore(layout){
+  try{const masks=computeAllMasks(layout);return {masks,score:computeLayoutScore(layout,masks)};}catch{return null;}
+}
+function randChoice(xs){return xs[Math.floor(Math.random()*xs.length)];}
+function shuffled(xs){const a=[...xs];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const OPT_DIRS=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+function proposeCandidate(layout,targetIds){
+  const cand=structuredClone(layout), movable=targetIds.filter(id=>!pinnedIds.has(id));
+  if(!movable.length)return null;
+  const occ=occupiedMap(cand);
+  // Dense regions need swaps as well as empty-cell moves.
+  if(movable.length>1 && Math.random()<0.14){
+    const a=randChoice(movable), b=randChoice(movable.filter(x=>x!==a));
+    [cand[a].x,cand[b].x]=[cand[b].x,cand[a].x];
+    [cand[a].y,cand[b].y]=[cand[b].y,cand[a].y];
+    return cand;
+  }
+  const id=randChoice(movable), dir=randChoice(OPT_DIRS), step=Math.random()<0.12?2:1;
+  const nx=cand[id].x+dir[0]*step,ny=cand[id].y+dir[1]*step;
+  const occupant=occ.get(`${nx},${ny}`);
+  if(occupant && occupant!==id)return null;
+  cand[id].x=nx;cand[id].y=ny;
+  return cand;
+}
+async function optimizeLayout(mode){
+  if(optimizing)return;
+  const targetIds=optimizationTargets(mode);
+  if(!targetIds.length){setStatus(mode==='family'?'Select an unpinned boundary owner first.':'Everything is pinned.',true);return;}
+  optimizing=true;optimizerAbort=false;syncActionButtons();
+  const progress=document.getElementById('optimizerProgress');
+  const before=snapshotState();
+  let current=structuredClone(nodes),eval0=candidateScore(current);
+  if(!eval0){optimizing=false;syncActionButtons();setStatus('Current layout could not be scored.',true);return;}
+  const startScore=eval0.score.total;
+  let currentScore=startScore,bestScore=startScore,best=structuredClone(current),accepted=0,validTried=0;
+  const iterations=mode==='family'?2200:7000;
+  const startTemp=mode==='family'?.65:1.15,endTemp=.015;
+  progress.textContent=`Optimizing ${mode==='family'?people[selectedId].name+' family':'all unpinned'} · ${fmt(startScore,1)}…`;
+  for(let i=0;i<iterations && !optimizerAbort;i++){
+    const proposal=proposeCandidate(current,targetIds);if(!proposal)continue;
+    const ev=candidateScore(proposal);if(!ev)continue;validTried++;
+    const next=ev.score.total,delta=next-currentScore;
+    const t=i/(iterations-1),temp=startTemp*Math.pow(endTemp/startTemp,t);
+    // Anneal for most of the run, then finish greedily.
+    const accept=delta<=0 || (t<.82 && Math.random()<Math.exp(-delta/Math.max(.001,temp)));
+    if(accept){current=proposal;currentScore=next;accepted++;if(next<bestScore-.0001){bestScore=next;best=structuredClone(proposal);}}
+    if(i%150===0){progress.textContent=`${mode==='family'?'Family':'All'} · ${i}/${iterations} · best ${fmt(bestScore,1)} · accepted ${accepted}`;await new Promise(r=>setTimeout(r,0));}
+  }
+  optimizing=false;syncActionButtons();
+  if(bestScore<startScore-.01){
+    nodes=best;lastValidNodes=structuredClone(nodes);pushHistory(before);autoSave();render();updateSidebar();
+    progress.textContent=`${optimizerAbort?'Stopped':'Done'} · ${fmt(startScore,1)} → ${fmt(bestScore,1)} (${fmt(bestScore-startScore,1)})`;
+    setStatus(`Optimization improved score ${fmt(startScore,1)} → ${fmt(bestScore,1)}.`);
+  }else{
+    progress.textContent=`${optimizerAbort?'Stopped':'Done'} · no improvement found from ${fmt(startScore,1)}`;
+    setStatus('Optimizer found no better valid layout.');
+  }
+}
+
+function render(){
+  let masks;
+  try{masks=computeAllMasks(nodes);currentMasks=masks;lastValidNodes=structuredClone(nodes);}
+  catch(err){setStatus(err.message,true);nodes=structuredClone(lastValidNodes);masks=computeAllMasks(nodes);currentMasks=masks;}
+  const b=layoutBounds();
+  const cols=b.xMax-b.xMin+1, rows=b.yMax-b.yMin+1;
+  const showPosterKey=document.getElementById('showPosterKey')?.checked !== false;
+  const panelX=PAGE_MARGIN, panelY=PAGE_MARGIN+HEADER_H;
+  const panelW=PANEL_PAD_X*2+DIAGRAM_GUTTER_X*2+cols*CELL_W;
+  const panelH=PANEL_PAD_Y*2+DIAGRAM_GUTTER_Y*2+rows*CELL_H;
+  const W=PAGE_MARGIN*2+panelW;
+  const keyY=panelY+panelH+KEY_GAP;
+  const H=keyY+(showPosterKey?KEY_PANEL_H+KEY_GAP:0)+FOOTER_H+PAGE_MARGIN;
+  const diagramH=TOP+rows*CELL_H;
+  svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.replaceChildren();
+  applyPalette('jewel');
+  renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey);
+
+  // grid (debug only; off by default for styling review)
+  const showGrid=document.getElementById('showGrid')?.checked === true;
+  if(showGrid){
+    for(let x=b.xMin;x<=b.xMax+1;x++){
+      const [px]=cellToPx(x,b.yMin,b); const major=x===0;
+      svg.append(makeSvg('line',{x1:px,y1:TOP,x2:px,y2:TOP+rows*CELL_H,class:`grid${major?' major':''}`}));
+      if(x<=b.xMax){const t=makeSvg('text',{x:px+CELL_W/2,y:TOP-9,class:'axis-label','text-anchor':'middle'});t.textContent=x;svg.append(t)}
+    }
+    for(let y=b.yMin;y<=b.yMax+1;y++){
+      const [,py]=cellToPx(b.xMin,y,b); const major=y===0;
+      svg.append(makeSvg('line',{x1:LEFT,y1:py,x2:LEFT+cols*CELL_W,y2:py,class:`grid${major?' major':''}`}));
+      if(y<=b.yMax){const t=makeSvg('text',{x:LEFT-9,y:py+CELL_H/2+3,class:'axis-label','text-anchor':'end'});t.textContent=y;svg.append(t)}
+    }
+  }
+
+  // macro-level fills. Instead of trying to encode every immediate-parent region
+  // by alpha overlap, use a small number of broader clans/eras so the eye reads
+  // the big structure first and the family boundaries second.
+  const fillOpacity=parseFloat(document.getElementById('fillOpacity')?.value || '0.32');
+  const setbackScale=parseFloat(document.getElementById('setbackScale')?.value || '0');
+  const showFills=document.getElementById('showFills')?.checked !== false;
+  const showBoundaries=document.getElementById('showBoundaries')?.checked !== false;
+  const order=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);
+  const macroMasks=computeMacroMasks(masks);
+  if(showFills){
+    // Draw larger regions first. Each macro zone is a single union-of-cells path.
+    const macroOrder=Object.keys(MACRO_GROUPS).sort((a,bid)=>macroMasks[bid].size-macroMasks[a].size);
+    for(const mid of macroOrder){
+      const def=MACRO_GROUPS[mid];
+      const loops=stitchLoops(boundarySegments(macroMasks[mid]));
+      for(const loop of loops){
+        const d=cornerPath(loop,b);
+        svg.append(makeSvg('path',{d,fill:def.color,'fill-opacity':fillOpacity,class:'macro-region','data-macro':mid}));
+        const inset=Math.max(0,def.setback*setbackScale);
+        if(inset>0){
+          svg.append(makeSvg('path',{d,class:'macro-setback','data-macro':mid,stroke:'#faf9f5','stroke-width':2*inset}));
+        }
+      }
+    }
+  }
+
+  // immediate-family shading on top of the macro fills. Use the macro hue, but
+  // only as a neutral darkening layer so generation remains dominant.
+  const showFamilies=document.getElementById('showFamilies')?.checked !== false;
+  const familyOpacity=parseFloat(document.getElementById('familyOpacity')?.value || '0.40');
+  const parentCueMode=document.getElementById('parentCueMode')?.value || 'numbers';
+  const familyMarkerMode=parentCueMode==='numbers'?'numbers':'off';
+  if(showFamilies){
+    const setbackInfo=computeFamilySetbackLevels(masks);
+    const familyOrder=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);
+    const BASE_FAMILY_INSET=3.0, FAMILY_INSET_STEP=2.25;
+    const SHIFT_SCALE = 0.9 * setbackScale;
+    for(const gid of familyOrder){
+      const mid=familyMacroId(gid), macroDef=MACRO_GROUPS[mid] || MACRO_GROUPS.primordial;
+      const d=pathStringForMask(masks[gid],b);
+      const level=setbackInfo.level[gid] || 0;
+      const inset=BASE_FAMILY_INSET + level*FAMILY_INSET_STEP;
+      const shift=familyShiftForLevel(level, SHIFT_SCALE);
+      appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);
+    }
+    if(familyMarkerMode!=='off'){
+      for(const gid of FAMILY_OWNER_ORDER){
+        const marker = familyMarkerMode==='labels' ? makeFamilyPill(gid,b) : makeFamilyBadge(gid,b);
+        svg.append(marker);
+      }
+    }
+  }
+
+  // boundary strokes
+  if(showBoundaries){
+    for(const gid of order){
+      const loops=stitchLoops(boundarySegments(masks[gid]));
+      for(const loop of loops){
+        svg.append(makeSvg('path',{d:cornerPath(loop,b),stroke:STYLES[gid].color,class:'boundary','data-group':gid}));
+      }
+    }
+
+    // Where two or more boundaries occupy the exact same grid edge, the whole
+    // paths above necessarily paint over one another. Mask that edge and redraw it
+    // as an electrical-wire style alternating stripe pattern. This scales to 3+
+    // owners without choosing a visually privileged colour.
+    for(const run of sharedBoundaryRuns(masks)){
+      const gids=run.gids,d=roundedRunPath(run.points,b);
+      svg.append(makeSvg('path',{d,class:'shared-underlay',fill:'none'}));
+      const dash=8,gap=dash*(gids.length-1);
+      gids.forEach((gid,i)=>{
+        svg.append(makeSvg('path',{d,fill:'none',stroke:STYLES[gid].color,class:'boundary shared-stripe','data-group':gid,'data-shared-groups':gids.join(','),'stroke-dasharray':`${dash} ${gap}`,'stroke-dashoffset':`${-i*dash}`}));
+      });
+    }
+  }
+
+  // nodes
+  for(const [id,n] of Object.entries(nodes)){
+    const [cx,cy]=cellToPx(n.x,n.y,b);
+    const x=cx+NODE_INSET_X,y=cy+NODE_INSET_Y,w=CELL_W-2*NODE_INSET_X,h=CELL_H-2*NODE_INSET_Y;
+    const classes=['person'];
+    if(ownerIds.has(id)){ classes.push('owner'); if((document.getElementById('parentCueMode')?.value||'numbers')==='bold') classes.push('owner-bold'); }
+    if(pinnedIds.has(id)) classes.push('pinned');
+    if(drag?.id===id) classes.push('dragging');
+    const g=makeSvg('g',{class:classes.join(' '),'data-person':id,transform:`translate(${x},${y})`});
+    const rect=makeSvg('rect',{class:'node',x:0,y:0,width:w,height:h});
+    const treatment=document.getElementById('textTreatment')?.value || 'a';
+    const text=makeSvg('text',{class:`label text-${treatment}`,x:w/2,y:h/2});text.textContent=people[id].name;
+    text.setAttribute('style',`font-family:${currentTypeface()}`);
+    g.append(rect,text);
+    if(pinnedIds.has(id)){const mark=makeSvg('circle',{class:'pin-mark',cx:w-7,cy:7,r:3});g.append(mark);}
+    svg.append(g);
+    if(treatment==='c'){
+      const bb=text.getBBox();
+      const backing=makeSvg('rect',{class:'label-backing',x:bb.x-5.5,y:bb.y-2.2,width:bb.width+11,height:bb.height+4.4,rx:5.5,ry:5.5});
+      g.insertBefore(backing,text);
+    }
+
+    g.addEventListener('pointerdown',e=>beginDrag(e,id));
+    g.addEventListener('mouseenter',()=>{if(drag)return;hoveredId=id;applyFocusClasses();updateSidebar();});
+    g.addEventListener('mouseleave',()=>{if(drag)return;hoveredId=null;applyFocusClasses();updateSidebar();});
+    g.addEventListener('click',e=>{e.stopPropagation();selectedId=selectedId===id?null:id;applyFocusClasses();updateSidebar();});
+  }
+  if(showPosterKey) renderPosterKey(svg,b,W,keyY);
+  renderPosterFooter(svg,W,H);
+  const score=computeLayoutScore(nodes,currentMasks);
+  updateScorePanel(score);
+  updateSelectedFamilyMetrics(score,selectedId||hoveredId);
+  applyFocusClasses();
+}
+
+function applyFocusClasses(){
+  const focusId=selectedId||hoveredId;
+  const rel=focusId?relationInfo(focusId):{parents:[],children:[]};
+  const related=new Set(focusId?[focusId,...rel.parents,...rel.children]:[]);
+  svg.querySelectorAll('.person').forEach(el=>{
+    const id=el.dataset.person;
+    el.classList.remove('dim','selected','child','parent','hover');
+    if(focusId&&!related.has(id))el.classList.add('dim');
+    if(id===selectedId)el.classList.add('selected');
+    if(id===hoveredId)el.classList.add('hover');
+    if(focusId&&rel.children.includes(id))el.classList.add('child');
+    if(focusId&&rel.parents.includes(id))el.classList.add('parent');
+  });
+
+  svg.querySelectorAll('.boundary').forEach(el=>{
+    const gid=el.dataset.group;
+    el.classList.remove('dim','emph');
+    if(focusId){
+      if(gid===focusId||rel.parents.includes(gid))el.classList.add('emph');
+      else el.classList.add('dim');
+    }
+  });
+  svg.querySelectorAll('.family-region, .family-marker').forEach(el=>{
+    const gid=el.dataset.group;
+    el.classList.remove('dim','emph');
+    if(focusId){
+      if(gid===focusId || rel.parents.includes(gid)) el.classList.add('emph');
+      else el.classList.add('dim');
+    }
+  });
+}
+
+function beginDrag(e,id){
+  if(optimizing)return;
+  e.preventDefault();e.stopPropagation();
+  selectedId=id; hoveredId=id;
+  drag={id,startX:e.clientX,startY:e.clientY,startNode:structuredClone(nodes[id]),before:snapshotState(),moved:false,lastCell:[nodes[id].x,nodes[id].y]};
+  svg.setPointerCapture(e.pointerId);render();updateSidebar();
+}
+svg.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const rect=svg.getBoundingClientRect(), b=layoutBounds();
+  const sx=svg.viewBox.baseVal.width/rect.width, sy=svg.viewBox.baseVal.height/rect.height;
+  const px=(e.clientX-rect.left)*sx, py=(e.clientY-rect.top)*sy;
+  const gx=Math.floor((px-LEFT)/CELL_W)+b.xMin;
+  const gy=Math.floor((py-TOP)/CELL_H)+b.yMin;
+  if(gx===drag.lastCell[0]&&gy===drag.lastCell[1]) return;
+  const occ=occupiedMap(nodes); const target=occ.get(`${gx},${gy}`);
+  if(target && target!==drag.id){setStatus(`That square is occupied by ${people[target].name}.`,true);return;}
+  const old=structuredClone(nodes[drag.id]); nodes[drag.id].x=gx;nodes[drag.id].y=gy;
+  try{computeAllMasks(nodes);drag.lastCell=[gx,gy];drag.moved=true;lastValidNodes=structuredClone(nodes);setStatus(`${people[drag.id].name} → (${gx}, ${gy})`);render();updateSidebar();}
+  catch(err){nodes[drag.id]=old;setStatus('Move rejected: '+err.message,true);}
+});
+svg.addEventListener('pointerup',e=>{
+  if(!drag) return;
+  const d=drag; drag=null; hoveredId=null;
+  if(d.moved){pushHistory(d.before);autoSave();}
+  render();updateSidebar();
+});
+svg.addEventListener('pointercancel',()=>{if(drag){restoreState(drag.before);drag=null;render();updateSidebar();}});
+svg.addEventListener('click',()=>{selectedId=null;hoveredId=null;applyFocusClasses();updateSidebar();});
+
+function nudgeSelected(dx,dy){
+  if(!selectedId) return;
+  const before=snapshotState(), n=nodes[selectedId], nx=n.x+dx, ny=n.y+dy;
+  const occ=occupiedMap(nodes), target=occ.get(`${nx},${ny}`);
+  if(target&&target!==selectedId){setStatus(`Blocked by ${people[target].name}.`,true);return;}
+  n.x=nx;n.y=ny;
+  try{computeAllMasks(nodes);pushHistory(before);lastValidNodes=structuredClone(nodes);autoSave();setStatus(`${people[selectedId].name} → (${nx}, ${ny})`);render();updateSidebar();}
+  catch(err){restoreState(before);setStatus('Move rejected: '+err.message,true);}
+}
+
+window.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault(); if(e.shiftKey) redo(); else undo(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault(); redo(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault(); saveLayout(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='o'){e.preventDefault(); document.getElementById('importFile').click(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='e'){e.preventDefault(); downloadPosterSvg(); return;}
+  if(e.key.toLowerCase()==='p'&&selectedId&&!e.ctrlKey&&!e.metaKey){e.preventDefault();togglePin();return;}
+  if(optimizing)return;
+  if(e.key==='Escape'){selectedId=null;hoveredId=null;applyFocusClasses();updateSidebar();return;}
+  const dirs={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+  if(dirs[e.key]&&selectedId){e.preventDefault();nudgeSelected(...dirs[e.key]);}
+});
+
+function centerOnChaos(){
+  const el=svg.querySelector('[data-person=\"chaos\"]');if(!el)return;
+  const box=el.getBBox();
+  wrap.scrollTo({left:Math.max(0,box.x+box.width/2-wrap.clientWidth/2),top:Math.max(0,box.y+box.height/2-wrap.clientHeight/2),behavior:'smooth'});
+}
+document.getElementById('centerBtn').onclick=centerOnChaos;
+const fillOpacityInput=document.getElementById('fillOpacity');
+const fillOpacityVal=document.getElementById('fillOpacityVal');
+if(fillOpacityInput){fillOpacityInput.addEventListener('input',()=>{fillOpacityVal.textContent=Number(fillOpacityInput.value).toFixed(2);render();updateSidebar();});}
+const showFillsInput=document.getElementById('showFills');
+if(showFillsInput){showFillsInput.addEventListener('change',()=>{render();updateSidebar();});}
+const showBoundariesInput=document.getElementById('showBoundaries');
+if(showBoundariesInput){showBoundariesInput.addEventListener('change',()=>{render();updateSidebar();});}
+const showFamiliesInput=document.getElementById('showFamilies');
+if(showFamiliesInput){showFamiliesInput.addEventListener('change',()=>{render();updateSidebar();});}
+const familyOpacityInput=document.getElementById('familyOpacity');
+const familyOpacityVal=document.getElementById('familyOpacityVal');
+if(familyOpacityInput){familyOpacityInput.addEventListener('input',()=>{familyOpacityVal.textContent=Number(familyOpacityInput.value).toFixed(2);render();updateSidebar();});}
+const familyMarkerModeInput=document.getElementById('familyMarkerMode');
+if(familyMarkerModeInput){familyMarkerModeInput.addEventListener('change',()=>{render();updateSidebar();});}
+const showGridInput=document.getElementById('showGrid');
+if(showGridInput){showGridInput.addEventListener('change',()=>{render();updateSidebar();});}
+const cornerRadiusInput=document.getElementById('cornerRadius');
+const cornerRadiusVal=document.getElementById('cornerRadiusVal');
+if(cornerRadiusInput){cornerRadiusInput.addEventListener('input',()=>{cornerRadiusVal.textContent=String(cornerRadiusInput.value);render();updateSidebar();});}
+const parentCueModeInput=document.getElementById('parentCueMode');
+if(parentCueModeInput){parentCueModeInput.addEventListener('change',()=>{render();updateSidebar();});}
+const setbackScaleInput=document.getElementById('setbackScale');
+if(setbackScaleInput){setbackScaleInput.addEventListener('input',()=>{document.getElementById('setbackScaleVal').textContent=`${Number(setbackScaleInput.value).toFixed(2)}×`;render();updateSidebar();});}
+const textTreatmentInput=document.getElementById('textTreatment');
+if(textTreatmentInput){textTreatmentInput.addEventListener('change',()=>{render();updateSidebar();});}
+const typefaceModeInput=document.getElementById('typefaceMode');
+if(typefaceModeInput){typefaceModeInput.addEventListener('change',()=>{render();updateSidebar();});}
+const paletteModeInput=document.getElementById('paletteMode');
+if(paletteModeInput){paletteModeInput.addEventListener('change',()=>{render();buildMacroLegend();buildFamilyKey();updateSidebar();});}
+const showPosterKeyInput=document.getElementById('showPosterKey');
+if(showPosterKeyInput){showPosterKeyInput.addEventListener('change',()=>{render();updateSidebar();});}
+
+
+function undo(){if(!undoStack.length||optimizing)return;redoStack.push(snapshotState());restoreState(undoStack.pop());updateUndoButtons();autoSave();render();updateSidebar();setStatus('Undid action.');}
+function redo(){if(!redoStack.length||optimizing)return;undoStack.push(snapshotState());restoreState(redoStack.pop());updateUndoButtons();autoSave();render();updateSidebar();setStatus('Redid action.');}
+function updateUndoButtons(){document.getElementById('undoBtn').disabled=!undoStack.length||optimizing;document.getElementById('redoBtn').disabled=!redoStack.length||optimizing;syncActionButtons();}
+document.getElementById('undoBtn').onclick=undo;document.getElementById('redoBtn').onclick=redo;document.getElementById('pinBtn').onclick=()=>togglePin();document.getElementById('optFamilyBtn').onclick=()=>optimizeLayout('family');document.getElementById('optAllBtn').onclick=()=>optimizeLayout('all');document.getElementById('stopOptBtn').onclick=()=>{optimizerAbort=true;setStatus('Stopping optimizer…');};
+document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-poster-design-v25');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout.');};
+
+function exportObject(){
+  const xs=Object.values(nodes).map(n=>n.x),ys=Object.values(nodes).map(n=>n.y);
+  return {grid:{...grid,x_min:Math.min(...xs)-1,x_max:Math.max(...xs)+1,y_min:Math.min(...ys)-1,y_max:Math.max(...ys)+1},nodes:structuredClone(nodes),pinned_ids:[...pinnedIds]};
+}
+async function saveLayout(){
+  const text=JSON.stringify(exportObject(),null,2);
+  if(window.showSaveFilePicker){
+    try{const h=await showSaveFilePicker({suggestedName:'layout.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(text);await w.close();setStatus('Saved layout.json.');return;}catch(e){if(e.name==='AbortError')return;}
+  }
+  const blob=new Blob([text],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='layout.json';a.click();URL.revokeObjectURL(a.href);setStatus('Downloaded layout.json.');
+}
+document.getElementById('saveBtn').onclick=saveLayout;
+document.getElementById('baselineBtn').onclick=()=>{const s=computeLayoutScore(nodes,currentMasks);baselineScore=s.total;updateScorePanel(s);setStatus('Current layout set as score baseline.');};
+document.getElementById('importFile').addEventListener('change',async e=>{
+  const f=e.target.files?.[0];if(!f)return;
+  try{const incoming=JSON.parse(await f.text()); if(!incoming.nodes)throw new Error('No nodes field');
+    const missing=Object.keys(nodes).filter(id=>!incoming.nodes[id]);if(missing.length)throw new Error('Missing nodes: '+missing.join(', '));
+    const before=snapshotState(); nodes=structuredClone(incoming.nodes);pinnedIds=new Set((incoming.pinned_ids||[]).filter(id=>nodes[id]));computeAllMasks(nodes);lastValidNodes=structuredClone(nodes);pushHistory(before);autoSave();render();updateSidebar();setStatus(`Imported ${f.name}.`);
+  }catch(err){setStatus('Import failed: '+err.message,true);} finally{e.target.value='';}
+});
+function buildStandaloneSvg(){
+  const clone=svg.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+  clone.setAttribute('role','img');
+  clone.setAttribute('aria-labelledby','poster-export-title poster-export-description');
+  clone.removeAttribute('aria-label');
+  const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];
+  clone.querySelectorAll('*').forEach(el=>transient.forEach(name=>el.classList.remove(name)));
+  const style=makeSvg('style',{});
+  style.textContent=Array.from(document.querySelectorAll('style')).map(el=>el.textContent).join('\n');
+  const title=makeSvg('title',{id:'poster-export-title'});
+  title.textContent='Greek Theogony';
+  const description=makeSvg('desc',{id:'poster-export-description'});
+  description.textContent='A modern visual map of ancient Greek gods, their generations, immediate families and parent relationships.';
+  clone.insertBefore(description,clone.firstChild);
+  clone.insertBefore(title,clone.firstChild);
+  clone.insertBefore(style,clone.firstChild);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(clone);
+}
+function prepareExportBuffer(){
+  const buffer=document.getElementById('svgExportBuffer');
+  if(buffer) buffer.textContent=buildStandaloneSvg();
+}
+function downloadPosterSvg(){
+  const text=buildStandaloneSvg();
+  const buffer=document.getElementById('svgExportBuffer');
+  if(buffer) buffer.textContent=text;
+  const blob=new Blob([text],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='greek_theogony_poster_v25_9.svg';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),0);
+  setStatus('Downloaded greek_theogony_poster_v25_9.svg.');
+}
+function autoSave(){try{localStorage.setItem('greek-poster-design-v25',JSON.stringify(exportObject()));}catch{}}
+function restoreAutoSave(){try{const raw=localStorage.getItem('greek-poster-design-v25');if(!raw)return;const obj=JSON.parse(raw);if(obj.nodes){const candidate=obj.nodes;computeAllMasks(candidate);nodes=structuredClone(candidate);pinnedIds=new Set((obj.pinned_ids||[]).filter(id=>nodes[id]));lastValidNodes=structuredClone(nodes);setStatus('Restored your browser-saved layout.');}}catch{}}
+
+function updateSidebar(){
+  const id=selectedId||hoveredId;
+  const name=document.getElementById('personName'),coord=document.getElementById('personCoord'),parents=document.getElementById('parents'),children=document.getElementById('children'),owned=document.getElementById('owned'),pinState=document.getElementById('pinState');
+  if(!id){name.textContent='Nothing selected';coord.textContent='Click or drag a figure';parents.innerHTML='<span class="empty">—</span>';children.innerHTML='<span class="empty">—</span>';owned.innerHTML='<span class="empty">No boundary</span>';pinState.textContent='Select a figure to pin it.';document.getElementById('familyMetricsSection').style.display='none';syncActionButtons();return;}
+  const rel=relationInfo(id);name.textContent=people[id].name;coord.textContent=`(${nodes[id].x}, ${nodes[id].y}) · placement: ${nodes[id].placement_group}`;
+  fillChips(parents,rel.parents);fillChips(children,rel.children);
+  if(groups[id]){owned.innerHTML=`<strong>${groups[id].children.length}</strong> direct child${groups[id].children.length===1?'':'ren'} · <span style="color:${STYLES[id].color}">boundary owner</span>`;}else owned.innerHTML='<span class="empty">No boundary in current debug set</span>';
+  pinState.innerHTML=pinnedIds.has(id)?'<strong>Pinned</strong> · optimizer will not move this figure.':'Unpinned · optimizer may move this figure.';syncActionButtons();
+  if(Object.keys(currentMasks).length){updateSelectedFamilyMetrics(computeLayoutScore(nodes,currentMasks),id);}
+}
+function fillChips(el,ids){el.replaceChildren();if(!ids.length){el.innerHTML='<span class="empty">None</span>';return;}for(const id of ids){const s=document.createElement('span');s.className='chip';s.textContent=people[id].name;el.append(s)}}
+function buildLegend(){const el=document.getElementById('legend');for(const id of Object.keys(groups).sort((a,b)=>people[a].name.localeCompare(people[b].name))){const sw=document.createElement('span');sw.className='swatch';sw.style.background=STYLES[id].color;const l=document.createElement('span');l.textContent=people[id].name;el.append(sw,l)}}
+function buildMacroLegend(){const el=document.getElementById('macroLegend');if(!el)return;applyPalette(document.getElementById('paletteMode')?.value||'jewel');el.replaceChildren();for(const def of Object.values(MACRO_GROUPS)){const sw=document.createElement('span');sw.className='swatch macro-swatch';sw.style.background=def.color;const l=document.createElement('span');l.innerHTML=`<strong>${def.label}</strong><div style="font-size:10px;color:#8a8d86;line-height:1.35">${def.members.length} figures</div>`;el.append(sw,l)}}
+function buildFamilyKey(){
+  const el=document.getElementById('familyKey');
+  if(!el)return;
+  el.replaceChildren();
+  for(const gid of FAMILY_OWNER_ORDER){
+    const idx=FAMILY_INDEX[gid];
+    const row=document.createElement('div');row.className='family-key-row';
+    const badge=document.createElement('div');badge.className='family-key-badge';badge.textContent=String(idx);const mid=familyMacroId(gid);badge.style.background=(MACRO_GROUPS[mid]||MACRO_GROUPS.primordial).color;badge.style.color='#fff';badge.style.borderColor='rgba(20,20,18,.12)';
+    const meta=document.createElement('div');
+    const childCount=groups[gid].children.length;
+    meta.innerHTML=`<strong>${people[gid].name}</strong><div class="family-key-meta">${childCount} child${childCount===1?'':'ren'}</div>`;
+    row.append(badge,meta);el.append(row);
+  }
+}
+function wrapSvgText(group, text, x, y, width, lineHeight, className, styleText=''){
+  const words=text.split(/\s+/);
+  const t=makeSvg('text',{x,y,class:className});
+  if(styleText) t.setAttribute('style', styleText);
+  group.append(t);
+  let line=[];
+  let lines=[];
+  function setSingleLine(arr){
+    while(t.firstChild) t.removeChild(t.firstChild);
+    const sp=makeSvg('tspan',{x,dy:0});
+    sp.textContent=arr.join(' ');
+    t.append(sp);
+    return sp.getComputedTextLength ? sp.getComputedTextLength() : 0;
+  }
+  for(const word of words){
+    const test=line.concat(word);
+    const len=setSingleLine(test);
+    if(len>width && line.length){
+      lines.push(line.join(' '));
+      line=[word];
+    }else{
+      line=test;
+    }
+  }
+  if(line.length) lines.push(line.join(' '));
+  while(t.firstChild) t.removeChild(t.firstChild);
+  lines.forEach((ln,i)=>{const sp=makeSvg('tspan',{x,dy:i===0?0:lineHeight});sp.textContent=ln;t.append(sp);});
+  return lines.length;
+}
+function renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey){
+  svg.append(makeSvg('rect',{class:'poster-page',x:0,y:0,width:W,height:H,rx:2,ry:2,fill:'#fbfaf6'}));
+  const kicker=makeSvg('text',{class:'poster-header-kicker',x:PAGE_MARGIN,y:PAGE_MARGIN+14});
+  kicker.textContent='A MODERN MAP OF ANCIENT GREEK GODS';
+  svg.append(kicker);
+  const title=makeSvg('text',{class:'poster-header-title',x:PAGE_MARGIN,y:PAGE_MARGIN+76});
+  title.textContent='Greek Theogony';
+  svg.append(title);
+  svg.append(makeSvg('image',{class:'poster-header-logo',x:W-PAGE_MARGIN-60,y:PAGE_MARGIN+10,width:60,height:40,href:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAEACAMAAACNqVFVAAAAbFBMVEVMaXH5wwD80gn4yQX3ywb5ywb4ywX/2gv90ADwxwX+2wv4wQD81Az+3BL2wQDkqwDZoAD/1gD/2AD+1QD4wAD2vQD6wgD/3yvyuQD/3iL/4TT/4AH/3BfkqwDrswH+yQDQlwHdpAG+fgD/6jP9NTRaAAAAEXRSTlMAu51mGU00/f793OB8wIrTpiWYNAcAAAAJcEhZcwAACxIAAAsSAdLdfvwAACAASURBVHic7X0Jd6Ja0y4yI2rCKIpM+v//411P1Z5Bk+6TpN/13VR3J8acA1i1a5487xd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4Rd+4f9HCE+Aw+kjOACCIIji8M/vEcdx5ELAXx2Ior+4fLhx+WfwV4/Pz3l4CUCS7/v+LvrDq++rtKqqNE1T+lrxD/iKl/w1FTBNU9tmu9Pn7xFG/nFPF+dLC1CvC/wjqKoyrcoizXaHP8BRGPjHTD4efwr5k3qN5xe/mtI0y0/xH11/n6VpUT6BvuwZxPey7APvz+A0NTWgwbemafCCX+PPGup2Stv89CkkBbus6MuC8TCpr5PxJ534/XRKu3keqzQtiubwyWeP/LQsC77GRBea6Jt6KUD8NpvnuavSPt19ksTRMe178fifAH+XptXe+0OIgf2WaNDyN36tXxIx9FeQZ0rzjwkd7PH0mn8MUMQQ2AcU4zx3RVm/vTWT/5knD3dlydfRRKQXkrTWG2ladfN9btMqH6buMzwc4fkV7woOLsCxmoP5PfBv1e8879T3nz08GnZT3dZT2lr4d6Gxf2q7Nj29vmx8vNzwoAU+Q7VBBQP3aVqAy6uqLNN75L2P9ScoEO/71fUUwtdQVUVZplVRvnnx0uUf84Df94xdV1YmSVIVyQYcg2Of/IF8ExBNdT3tTvlEFBBEeEGLum6mXRjn6UskBefL7UaPhTNTaulvS2lCDSGnSnvI1PkeeadumD5ksDgpSbw/FxA2GYoqy9KqKut3L1iG9iMKh8fLDWBh+Ia/+JMk+NXNgr7vb0n/Kd51YDdNO8+LQYFPMsB08rzgpaA4PPj59QeoqpJZVat2pfyrqszm+5Lcbtl9nu/zMnx4RGMcQxzPwjAXmJzrs4/flMv9PldVOd/f5nkZPxBC4V5+gI/gwn8uF9/Hj3/OAJ4XTBM+Lomil2dfkaHNY+9UN+lTeXd4XC77y4U+Ax2XhAE0KEtiZ5MURdUDPZfL5X6f53lZhrF9LeHivbokrskCQslkgXR5A/7F/X6fyzLjO4yvWSA8Pi6Xx4VBoRovCdf458Dj6HnH8+X4F/j3wryd/DjY5oBNejRtl9dd07RP6B1fz/so9MXzK15WOCN5rKhQFEVSJsOcPS4DsDPPUdB9wALHPkmiSAsHacrSRek7EwXMVZa4W5ktcwoRN89vcdB13auz6j8u5+PhePkAzurP5bI/BPvr409tUHG7tJ7aF6d/9TaM0WaaWoiuDQj31+vR8+Lz+Xx2TtENolOhrQSWYGMn/e1xflyZAYbA896al1rgcLldfM872pfjayZlCYKAwkUB9AMSstNZxM2RF751r1gsepzP+5A/wPlifAyBdX7PgcfjfN3/uZsHiAn5k6WFXwI5BKcob7exdHhcr9fjYf/gD6DBlJ2aIZKkz4YxO58fQM+yjCcQoN0mLkG4v90u+8C3r6c1ZVIlJbEYswTMq3TM+iQhBhgCL3xr6vzF5fHcQXy8Ctxu4VvD9Yp/+LCPP7dBGXZTPeXRqTUM0acugcA/6e162voU8RXweIAM8iOcDSooqaTwRhrgfH4APcsyDLu3cWya5zLCh3hWMnlDM1osAVpABY+3JAWLDcP7W9d1z69/eDBW8QFeYv5MqCeID/jhb1QwIJpqnGU/1Qh/RQDSArnnhc2moPAfV8I94d/6BBeTDCa+IBiYAeZlGMama5oOptY2xOaFhFYEKdgo2abHHQS4LXyHpmnb59cP+cnl2TYRbuGe/uAjXq+kgh+Pv7FBGfIJjyMIQEhvtUm06aA17e6wa5sNFojxPGEYSAo4RDizDDWQd7tcxmG4XIkB5mUYx7F537Ug8Tb4j/MlCg9PNOOGiXK5XZJhvNxuYABQOD+9uP7hcX34Xrx/0OmWyJaiRh58Jog8aNcguF4ffxiHMyCY6uZ0MsxQ+bVdEaCVYaIpndqmnqItBjjIcyROyHVFBU0E0l+QVxfJAGNz8sK8rp98nvB8xlmLwVG4xvkjUwVW4vn8uJxHFnFwAuKufSKDwv2DrBloMoV0xrb+rs4+A3+APw4DGTfNpxohFUfuMOrXBBCKoM3bemUIMeIPvn/dhLM8S4b5kC3Z9ao0ABgg8rxd+8zRg4iGlSt0PFHS+EZmirBdpPrMlgzf6A6gcOh5eTttq8wA8nN/iPYsR7UgEt+l5DdJcDw+rnTs/hpOE/CZgwIrgbMdI2qaOsD/5voCZAJJFWyj/qrPjCVP5/t9fFzPwgUbu66GRdC0264AbBTGvSvVLHPFslzu9/vlfGYjaxgQajqwHbEBhEv9AQx5I/WuoQb4/B+J769/Z4MyxBTg8XZTY8mg5wQAvUIICuecwgcwlPBrOLOGgIJ8PMb7vAgCdHXbwtJ6YuSer0cDJx8ChBsRYFZ3aDqKum/JoOh6fexBBH1UhBIQt5OUoGcXBAi94L+oYB0QihSuXxKAEgVdG3gR08GA4HF9HGPjAzzH/lV+vQzDFQxAp5MI0HXd1D45onvwerRXwvkJ1uW5pZtk8/K4CgagOzTN9ITAUGGRpwQQ3cOxhEwmYApcD/vr9W9tUAagPvIOhhZ4CSBA3e7yumlsUXp8wB0kOfpJGjxIgz2yu4n/pjmBGzc+U0QI8o5kq8sT6nCDRL1AES5/PT8WMMAgWCzfbcsgcmLo+kr+2Lbomr/o8UkO/SfYTW2+y8jycU78tm8Mb6xt26m2WADoERLxszAOGb7p0wloYQdR1NWFI7HYwUa7ei0VpcQ9fcnoBqRjhmHAHZouguWXraU2VNhjfyATgoXMC/QT9R/HCP/1X4aBNART3aabeZknIgjQBUFOPpyBnuv1+MQC2oDzY0QY9EoawBBAbcBHYvWYEf4vOtFSzgj5bAhqVo+sX3APuNlgMcUATQ391VlPrlWY9uLpyweqRvDj34aBjFsjGpojL+OCMEbXDEBC9EDKw2BgWBDXT8Njud8XYQIpAjRdm0cBfI1NL+Oh7XOFb2WuK3oI8U13mGGDQgOPQgO0Jy+qNzIaxADS/jEYy8C4jIBKHngcQLb/ZIMynNK6jbw4+0w0TnAAJWZMUY3nP34e+2f8G+fL45FZEogUTFs3zSrrFoPlD6whtRiQ2lDaJlr+4OdsmbMrVLC6A/kwGeIp7rEFBx8O2oO3Iynyi3I0iMLXI57nv6lgQJhNwORuMsXOZpC6kUKoboIgb/VBwkkgJ97EsOEwWiAtCNJh0gTi809/KBziYsh/nK8h7qOR70hl5atKEtGJPl8Xg8JN0zVtu2EHwQY9CCfYOfnCyaOIluHiSRviv9mg4sNNk+9FzAEfpmZUjUrbkERVNqiyIISFYuD/bFBDSoxxhJSwGIC1S50HQeNKaWB+rwlgId5ymIT0x7fLBd8vyssTd2hzv1vJIBFGISdbB3Jl9ErGTnQyBhHoCCz/H8JAGuK2nvKstfK/6wwBxYIkA8AbmNpOogmYP8YcjuYTaESzrlIrqjDimVTwcj4/cDwlehpCEAUrT6Z+kVGI8/4gohCvgQnyyPgOgy3imhpZ1UkdHUFfemrfX19M4l3GnZgceJjQiy//KQxkALLCKLsyTvyTUhU+/hQP2gW7ViRPIpx87cHLc26aKTKAKD/YTBaKPJ76fDYdUH+aWtsVgPVPuafPoJ/vSHc44w5SxBF9YWAFU9NGrpMNJW8KndeBvus+9iJSxF8BiImiQKU1o6EcEbX4QNTQMSN7Xtg1HLg0EwFKhzl/z5ZDf85mikIYGoB0AAnp3a6tayvxH13O5z3lngzR/IoEZ+j4e3Y+O3fAk5+i3WTLIESZrkch3j6MsspQ7hHH6r+rYHqAfILWi5zzvzJDhQTCNwoICVkaIioSB/vXaSQLxGmznTBZBDmhaNJKOBxRfBD6tjX4NEkr7kDfTCNX3AFpcNsOCi7nc+TFezd1pF/ya0r/CAIwS36FCgYcyPUJm7XUdyWQqhptd6dd0zX4HEhkCBNCBgg+gEtGeixbMQBzQYM6DUNIxJeLSATIALRlFkoiaGJcz+cbUKTuYMi4pmsRkjNl0PFB8YS9Rj8l2OQ/I/+pyLI/0rN8hQoGILh5iMH527LfyAUoaKeaA3MUBz1G8cpCcbGukYQ4tGQARQDNA/UhRsWMVSxCiQBliCh1qFMBqliEjmZ2n5EJWDYI0OZhbEU74tv5fPZD1DTZ9QPPSrIuF2iAy+XvqoE2wU9RJ8oE0IHRzay8hK5rxrzr3mCD2vrRFQuXlfy8wwtGqJKQYx1PkfcPSCiK44FSL5UF00aJRLwhtWVaBiReoGmsQKuQcAdoeaM4wsf/pLCvssyvSLD3vPByufzXMJBdKt22jR0QWhHAkEBN17XvYfg2jtHxgdSigW7jmG7C+bzcoSAXSz5LGcSB7mDS4YiAUovb13pyA9zhdrksM4JwJgEQj97B9dFuPOjLp0Tl8mVKX1aVyTd1Vegx8C+X/xwGcgpUTuGBiuSkBfSSAzo22LslP58RF2R5vIGMy1qpnc9Uo2KLB4F9oV+aulMy6Hi5HKPj56wTRQF8S+gOWsYx38LMgjMsZVBwO1+Oka41EgWV+osuO6JiSxZCOBRfpYJlqbSKR3xGBHVdlwfh+zhDn0YsJl7BjUtZ+Qvhx2IAqX6ZBu3UTsrPjpLLJSKOV5cRFzJ+kAS2SiMGDkNzGIglEOv4SRjSkr5wsjcqi57A7bbn6suvsUGtAhWrVv0jAnTdMCwLniTyIqdkR5sQFyE2pfi8XZb7nIEBbAlEGFJkoLwJi1h8WMQ5DCRLw0TWBVk2y+VyyeY5u90UixkE4OuTKy8Sk3FyuV0OcbDGfpEkRYnq05IqHzUB9qEX7S+okfxCgDN28En6UKHclkXk4H8ch3EeCCN7xQCWErtsKbD0fr9nl8uoXVTgXehIIYUQLxB+NnjrtvcPfIeVmnR1JtFhvt+z24WUvIqDaj+jafM4UjLI72+XW6+xXyZlUqDGlIp9UYOtO8NAEyaAd7zcvsoGZQhRakL2NxGAdYCigGxSUjQAysZxeJ9Txoo6mZ+A+X7HVy7FMj0woSWbrn0jP5vOKNVhQcy4nPQC7vd7wndQKlgTl1Evsz4oNzVOvkS07IrhbyVxAhMD/9UxOJ7PX2eDMpxSYDmbWpcD2mcsMDbv3nt/S8DtFiT6byJNBzYlGLLsdiMLUQeJTTMUXwMvYjXv7XH+gaXVPZ7/mAyjuANuseIAWQcC+gZ9khz3vUQ+YZn6wUTvgaSBaHAABVBvfbncvs4G1ZZoE3n+tIV5E/9sTIABxjfv2PfLfdYoSFwj4ma9REEu2F0eT8v/klYKvRobZNA9L+rRfRLbJ17ZJHwzA//8E5qGbmYiwMA+yyBVVXDse+Sye67lVdgWbR+KGIIAEEf98UiK+AttUAZmyjATLLAF6owKFbC89Wh9uJuG2gpS+8dlyZIkYQaQuJFGkFTDeLOemq6LvB0hKHZ4Slrouv3DqHlf5rHkOzABBAdYFGjrluKuUZmgwdfvKwgaBbIDkuggScLMgcc59MlfdEV+BNFUd7EX18+sILN7mPE/zFlflek89KVjP1Rol6jQIEYl+/r9Prvf72nZsw2q8K+vK+yrrsn9vGtPIVB7jKkjgzvkXJvQ/pLwHTKQwYmDmhTo2jxv0Szj91V/jCPqoUI/AUt81WjjiqCirID5oO+TL2cAZgFKzks18IQAhKQRDDBT+6w2EsQfNMCYjRKFOD8gwHi/38syNdJUUkAL1hIEQPXX2L35fXLre8b8Ew6ziF9S19m9TOgOlg9my6AwzJFPSgnvSVmVJrapDXBLB+Cz7gM/+buuyI8AeYq0naQh9MwMZVENBliGvir7vqR+IGmuEaqpQ4t7bA0Zis9aVkNW9myDuuffUDBdE3lh3i1Vmez3/W0T6SC2sFvIPOSG46LKlqzvh5cE4HBEvTuAg/l8FBUe2xZBpiGEk4bvPJjgL9qCP4Ywb2WlLneOqSCoSwAlgcoi9X3gQD0pMQRZ0KJpDqCPEw1WqEqtgkUiUisXKYLeovdhWcpyDzmRJH1SsqIkQ4VpzQYivYIIZwLQ+IYSdzB4zCVAk0fxWz0uWdHv4x2eV8t/5gAl/fl3bAAVVbn392VVQhF8A5wmHI04e2IFWWIaEmgpq/7N83I69nhc2XwnhGih2yGFU1POc1agOdjNUwnSMkXEuyMo3CPwuO81j3HvlzymhBx+kwlQLUNaFb19B3kP7caQFbGMZVUijMKdm6bC1cKH3mMVURZVH3gRvn2tEyZBFAVSitjyw0wKiE8kVHD/FgWp9lpkZ7+yIiqJJqJGP0AFF6VQkEoEaS9AE2AcxnHBmfPDg+Ax42waVxV/CUsp7jCXFSSQ9rPXHMBW9ILD4McHfQnHCjKJQv2XZYrSjO9iAIjFNg+jzTCEQwBSwaRsp1SggVAszqU04Cr9mnpHkSkvBQMMKwdJi6CRvIz3scdpTpJe2+aq2Vu+Fvfg/yKFUTz3RWX42WsRJO7wNuN/6zPZyb9BAEFwwWn4BMfoUIIPvgdiNMM/dQIMApAGGPuqF8JHuezigaX0rBSSGGsppMqKAWwZJJy8cQjDpExx7EoWAer0m18UmsRrugOUvFEMtMEA4zjG3g4KuCL5Y8obfWVbN5Bo7fE0X1OM8nyCChtCbj2EwQFAzzCnZZllQgPqo2OIoEKdVn6HxhyVRWqUiijLR3vC4vrjEsJGGemAEgUM5KgJBZrQ/DsoYQyGMO9gexpCAHVDGGOiC/SXqXylH2ApYRaAbOFBkn69EyYhogKViKcXuKxg8C+r4BIVzpIA5tnRBCh0XAVDA0YIdaNUxLVBNQMMw/C+L8vufl+MCIE8l66TJM9qlaVllbKMUwW/jqUrNcD7DhMk3qCBNc/atpAFUPJRBBvoO5wwp2FG1okqA1RRQEugjKIQs7Se5SE0fJiC1LCUpKQBBrKEhHwwD6UIQxgEmOFlIH3fq0s7HGAqBnqNkRxDn7KMM6qxJAVMHh6WqirH+3uOKISFc+dICResYOMzKqtvccIkBBOi8JFITT7RwYIBijJdYAmRdIGGck4PIyrVEogIQMeT40DOuTQ0PBiALj3OUPW2kNMH3hQdNHtF30G5GQb+NZfhAwx9UZQD6Gte13x+MxiHp+j3sQex+B1OmIQwn6aDFEEG6g38j5IBeBaAgQ7b5pEWYqVNxnG2bNC1bWjgH3EODMdzBIHtXUusSQ4YZ2Xlai9DB7u1EU0+BjSGODmWlLOsIPLxxLtltU++zwZlOEykhIUIWnGAtFDAAFVGs5gkAYwIIrljSgkX4gxBQRalLIheKwCHAYayqLrUVgBa1mkqGJFjGk5mu3ni2o4Lxl5kmVY9HyBD3Bj3MP2DUtoQ32eD6syYO8SGHl9pACIAGGC43xdthWupb5hxlSACTk8K/VjZNqijgrWJNSxzWvTDHefU9ZG0FSQJL3RNBZvGuoPEv8UB6gNAY9jzixwaKx3Afw/RsazKr08E2HBK62kXH0wrSA2yVI+/zKXwqoyjqA+mJkMlD2e5D4NlqIpKFaSvkG/auMO89KQ0QICVCBJKUjkd9Cot5/ucFYUZB3Xxrz4BPgA7beaR2WQ1qQOkCv5gaOF/hrimORAiHmGTQFsoI0z0mTWYaaSoj6Pc1orfh+nw1lVl9v5OTuqGBjYlEGl3GKxkkdhmkHk3zRJFgWz/WJY6CmGS13ABiAHwAbJ5Zh2m/AhXBAmjjj/BEYmA4jttUAYfBSrUumcSwJRAUJAUhuQouvX4G45YQR7SPoqPiB153vv4QgVTEGIYyPgpe3J8XNVo2CaGB1tV1XK/g8VWBFAcwKUERABgntxCU9laXGaHo/HqeNiX32qDMkRt2+5UTNr1wdgEGjCZlZ9ey2IDJSYBUo4SIQpdFek7CLCBf+0FMAOMmFxroX8lGAxvmEOWPRxz4eaZZUBSBkkve2QBV/HlFbPKO5ipSf2SEwHfa4MK2E1tOrUoj9j0AchEL8vlvqSWMpQSyCZAJWXoHjP7yuX+/i6Swdv4FzbWXBXI9q81gPL0XJEBJQ8/WzGAK+CMMAfHi8TlDQdAKNw19lGcdYTP/M02KEOA05/tqFraDcOxgF56ErgLOWHW6VnpgELoYN+L0qJKMThs6KQGsOtc1PkcFqSZs/t8H0w3VXOAZgJ1gvtjOI9kg9oSSJW8m/hfFh5nOZCJJU0p+z5Gfow0wMELIUK/JxHgQE6TzAKzLMsiwJwh4EsWiqkDXgXjqtjz9pAPQM+b9IzWxY6SAAj0zTCyNg7j2hUAAXzvfk8rqOCVmydifvr65ITNqA7QV7NebdhEMUpYvjEOasIhRaVuWItKXSOGop0wioSacnjDDygMDeHHh6pIgnkZ3lB2uMpRaRMICFp6COgxtSSQCnnq2JuBsHSHA10uW3EOURitTSxKXnZCwGn5o9iAE8D6t2VRHqNT/51x0NVEV/QtWQSwGIAS8TpmsjJVTGIUNGO8QAGI9z52754XO16wQ4AFOgZeqnSDXTIYHCc9YehIZEjj00oD2ASACkN8r2ITyKbo84wYVHDx7U6YhBPGR2zYQNIJg4IcRCLJtoKU2WkSoCr6nvzUyIvGkccfa+96zQCIdFfzPCJdshIFtv6V38r9ES5tGXjxk0CfyQBVIWwIgwDrexg3KmFDsDPzIxBTQkZ1DtsqeB5ZQSJMY8V/TPQIHVBwIiA9nFL2ZMK3rqGaKKkDVKmFPKDCRlnoDhsE2CBJURRp7J3KtOze45MYy2GJNzOMSEY0lWgLAWfw7JqNGXrfC+D3/IANyoBBlu3Oz2wKCAaoChqFrapY1xaE7TJVODgoQUMU69B2GMPewrc2+cuQEMRiaKU3DHIG5TbZGgAMQGEC2KBI5q9UvOAAGWVCVo7DKJ8DpGDC9LvjoO70ApqIYnGAypMUJYqftAlnIMU4p8oS6neh5wsLIhwxDuKEEiQT/VYYaEBWsRpXToBLZfO1H+1hOM3LqHPAfPVa1ZuqKBPCpmRDGM9q+dfuXUo/9n/KBmXYTehPQes2MYEuByULEYFZHYVQ8R5NAssRqyChExnG9Vv0pqAIjPMMK/zTHVBetWIAgREzeiyFCFRqmiDM9HZ6FxJoxQHCx8ug3CkRIP9nTQE+8KYOYKB1PT9jgzKgTTSKZcuY4gCcH8o4YUa/q4Sl6WMIHwLCpgrjxtTd7RLASgT0RYXA6bMTr/I/igBclNUfvbelwcitlsZyaOIaQYhlRjnZfB81e2kGlldzbgwLC8GU700EOLBDMEIuWkJLtiwG4lQwol5G2t20SSwrqIJ8DnwcUWlC79pmF+3UcBathIUFxCp4Hem2csIGJaqi3CNZnvaBdxprjGJGE57NXdoJnseSVLBO9ZgmhFmAoe79Q4mA9Si5tk3Fcgd8CuEi8UTyxbAgHE9YfyaGAh12faXCuGgBlkrY4gCBoKXnSP0TDbAhp6HkT6RjwqHJowjdF5YIIgJIJxthUEsFb1hBFsV/Ihe/BsSjJ8y6djRARkm/TD6+5QNLhaxkaEXMQdWXxuPnE51OMYxan1KVCCiqigp/nyJd10EwhnZheCyJxd5rNF8IBnCL+USUCU+oP4E2GBy5oz5hvw+Ri/+WgugPksMoEZ8EAViAziVSo7oa2gglFutQREUESHZ76/EPU1N3UcyensUApCPFnronKlg5vyauyjQpOVMSwwRt60kymKthyAaFT2tUcaj6VYfi6vewISgh9qOAeERgEYDD9OW4sH3o6gDpEphZ4grYgQozHz/MaiwjO6W2CJIiui/TAUEgJ1CmXrrI4rCIlBC7qWn92J/cYj5tg5bpMjq10OZPNqmJvJwI+EEblOGUtnngKxEkzw91AMEoMAngHE/tCVe9Hx3BxpGbcyNnT3fd6DABKfmNOLSFFePn/hgfELRgFosmdLeykWWef+mEUSZDeJEOZbfvVe6jA1p7fpoBOB6BxAw+B9ejsw0qnXhDBFlWqEGAgk2HfWmHcaO2bn1/HWgSNmjJqQYX16ZYkGXpAFiH3MpHkLd14MVMADy5rQKWvuC9VrbnYqgDrgTWeln08P2sDWrEI2r4rIoBgPkRSDKjDU5gwPBhqgoNLlDBh9VoEAzIMQMRSkRXRUY55ycnfhW07wMvTgvFYphn6osxtG6QgxIBuLzlZNtM7BTiFSXms5Y/bIMa0xRjSFVBAArTCwVpWP6WH2yZoQXaJf39qpQggoOB6TiGCNKJAGrCWuPb/tlwo9KjyWIobEpbGntmRBGFBKI8Ay5vqF1HgtovkPk4Hn8sEeDAjmR1TCJIhunHJaWKfQPtprCwRFCFglaEolcmdI7JFOEJ59SWQAgTjEjurnGyTRDRdWYgCHt6Jxr858TRRbkppY6liDGb29x3mALc1Pb9xShbENHYqkBywGJqANsMNcWz6QmXFKYvViY0D56mIXWKAeiEUphgnYu3CGD6TFWPWpHKZDEUNtHsUTuMKDJhJaf6twwHeeZtC/SAT/DDTpgCTFPcsRLmaj5u8jIMRFv82+8jERB7QUkbd20Icwg3iGuLAPNYOrn4tYWicQfEUY4hIV9YgT9hCAEWI5j4V5kMlct+wlPi0vwhywBx6OInilGedQ5PU9qqcla4qBI7KocqxI75cXD4SQWHXuzYoAz+1GY59x+Yfjb67Ob7XatgjZA1uogAmKZY2QhCd4MIJDoMgIea77CELEdrdQ8VmEAKJk7+hQ3KEOZT0+aHXUtNkajmE+25Fjq2GED4AeUxODo2qO5GQ7hPexniDlakfgsMI0vJCAdBOXqspBY2GIAyGX2GRJsy4Z4mAQQH7A8/VoyyBYeU4hG7VmTCUEhgGQ9GPsCwqVVAqOr7HlHKNewo55YDTbocLi2Qi+coBMdiVsfSjl1KFWzfIUAutSXyqkzeKDIZfIJspBsmhE0GtvmqH00E2BDmLSacnlqq16dMpDNWRIUc+YjMVAAAIABJREFUrM/CWCp5esCmCY0tigdiMTPXJu/wEnQAtip3ux7RMvepxY5M6UMaLU+yGm7L9lwRQKT6/40NynCizuG84+PJUWL7VMqeQufs4FdpHCNMv21B7CYMnmYnQ7l5nGp4JYH0HSDhkIvfMNJ5J4W8uI5C0KgQsiFWMSbT8tQvI2pJ+hdOmCmru6YeRwzmKLJZWxBaILjYlz1uwHzwNIwbYGtBzLkenWoYXoWBVkTA0Q/6tZEeZ6LE3kkF97LabmU16Jelffn439mgDH6KD9F2iM9zQbqtctfV0fIz0Mk5Pq3nxsTwHeIcRsEsAsvjB+iX96ebJEG0WTHuT1MeIOtmEIB6wmTfsXVF67HND5Ecvr0p70OIMLiq272hY4s81CdGv/tpOBB07J+HcdGK005Tq23QskpRf/YBGHcgHbllpKPNM52QmdGpfpBXNRy4H8I8PewL02yQPv2HNqiA3dTVgRdyrRTySLYBsWoahQfAvExd688fP85aXgOh+46X+5K9wr3lpSJLu4cK3roDpA9NSZeTjXhEAhrFlQOzzWpiLgJVA8Fs+oc2KEPQdmOMGS3IZCOft0qUr2w6mh7RZ/MIC+J5GNdP0ZMcy2Qbq8iNOLQN2uDqjxhks30HJJ79MEQNnkj1o4sbTpgTy3OvalBiH4d++S9tUAF505xQmZ3N8z1zpwSwx6vjKMq5IZ9/2HTCJMS8EzevKc4hwgQizrF9+oX+5KZFEanfvkOYt2kAOhh5Bu4hM40HmxiSu0Wsl5zsb+9K/QSc2nHYcZssz4Fzz439jnAyUd5/z14PF0S0NT5AStDoj6qsXjnBq/BQic1ZxZM7wH6Ow92kyxGrshzRkbE68TbLqXqt/ggb95/aoAxhLk0gqyXPyohtxYLKcSxfh3GDqUbZCzEAjEQK1L9EvsY/KN3v9yIXv/HUWTvVXS0ZQGYyLEfRoajTE1P21T55Rt8fhVOHKMRAuXiNbM2+JgF4cASr4HIjEWAB+cGIRHAiYJjX5XBPpghQlIA48ukdeCcFcwBlMrIh204Db+eEy31C0/n+OQN4XryMZbnE73eaL+go4Sd9wuWI4XDFB6UEBwypC+M3OGFSyTsHfgP1ggAHjI5ZpxokUDjaP+Uk39AUeb9DDm2IICeCwpqmP4bx/sersZ7AO9IkXoDONquYQ3KA9Un4Jyr+K8os+nB3TYC+VTE4YN0Xv0EGvieMk0OfvjDSefJO0IhUHnLxMg66Lnl0HRqZi/+5joBXcEAxWU7DETUHmEl5IzUv+JeDauW4vb5dgT+1b178RsUKZaZSDR9QQNignv8k0soQ8OijeqSub4xLQ+/x+gZuVlUQ4OTU8/1LgLENDSlHv7lPv47t8nSsMpvH1ycoxghPyrVRE5YzdOglGcqjn76c3gYNcwpynn6JrnL4weZD6ideqwbW8P+gGmsLor6oRoRoVCnWigCGJCI7ncoLq35Y0JL3Cnat7FtfyAl+niOxQfStv7RREOuYmhEznzB7Toy+1ZhWaDcenq4tR9P88yiEgGNP0zjFk29lae2fSmATHXApxnK8ZoGo7kYVKF5lSrZAKMoF1RmvJ2cg1No13YhM88hd2ZvXs5KcYjhNekRj/793wgCozB5sH1I/rNAB1i94QndalOM8ju0HUnRXN+9BTyO3Ua72MQGID1lj27n4jWtPXZNH70tFl8eYXPMiG6/VRyiX9wgC7n/ABiVboEzGUcSYnQo487Hl2zzAHHNL3t/HbrW82oag6d52fVlVsub3E/jHbDIi8Qc2StQ2tKMeE7p1sd0qhbG+K0wmxLn/B5wwFH2U5KO6p8T6yfFUq3HpyjJ7x4ig9vWAo/ANo2NYpH8C/SrbmQ7ZxxXjOXbIU8COnDYjzrDtiHFCBqNZMwRO/xecMLJB++Ph+IIAbooGQSMYHcsbtwW//hinYeirfhjkfPgPCYAvfVl8Znpb0I5jeOiTVRpmqyzFDEdT3OV/wwZFYWoSIhz9AQG0/EyHjMa0zsvubezU2u0nEC8pdQXzYI7P6YByGKm47QMTywvzcXzbXxJMt7NSee5tDMXGwyCJHf8nbFAoSG7RsXzGNQHkJxCz5GiA+Yj9LWLt9lNA7Tf/LyqazSfxKQWEUVYOy0cy4tQs4+2WUEG6IfxdU84utUEHwYBlPd7/AiDnVB6DvTqflhI2/AArETDLLSVd1zrrw1eAtKVSwZscYMdvMBqaETqPHw3Qiwes1Euyee6selA7qCKceimZyIbIyv8VJ6wyFKSYUOscHbusANNu8fg0uKcJwl1LaZfnd2C3TY0ueXrwDUJQhX+Zz8MH+gVhptvtRmJlHdNe6wCh4Kl2AiUv/wOAGUURdnyoB9wSQSYJoIBTnp23wAZFVPLVRzn2JSbAyojMZ3QALy0pg7eh+0gNx9kNG3o2S1HMoJZFHZ4K33z3fMrPAAZgRLBE5WffnhJqJGrp2bEtiRigi71Da26vXkGc0PAt1817hX+a2Itw6PvYfaBfaAGZLCbYuLRpgCryU8yozJYP2esH4EgBWWUCbShh950UYXdoYuzI6LCyrq6nFx8FIV+RCFh5SJsEgQqexzLtT9E8YtnSS/D7Wyam29kiyDpGRjyuKFOqnejH5X+ABXA8y/1hr6PE3HytD4/jh1FpGzRARrusG2yen6Y6fepSYoFOmQ7Daj7DMxAquK/SGdP/PjCxwn2SqOFw2+EHSwcIFTyXRbos479nAViIhovqqlz9lmEFcfCRl4nXGBazy6dJL3B3AIVnSgNvix/XZEcYguaDDsOb2Lj6FGA9l+TlrdxF89gYNh1dfinL7m0YEcf4pxAnRb8/OtFCMynszEcnoCUrvMq3wcbMABVYKBHZBGwkiny9xOIT0aCyT1EjMM9D5PntK/1CRnSCeaIrv2vbEaNv0GJV/+4FY/2Rhvlu8HuMAqNFl/o5t/wAyRoV9ocQG88YnVdjYAMtSn9miQY9AmpKyX8MVZlmWB2EAblvFHF+JSciVE7HM+2QcOuZdGBRThbkXAavBswiLxw61G//Qwj3FO89PCGAooLuzyihgjHElhfl1bw8Oc6nFsXKG3CkDta4+gMCwGRCvHhexgAD0Ggp7QsjOkRKWyLanDFiJ2RkMUE2Y05CNbx7QddN/zYaRKXxEYKJRjGONR9LjeYQxij5kJj7TwQQE0tyLMhNN1kgRrn1Pjga9YLPZRDfFtn+uSxoSUP3Rns5n36AGAXFfvyelsSXFGeW17INUGFbVGLNSpHNwxuNnvunzhgwjxWpJgpsK8jeFsA+JPLrNL0WDFDDCG2namrb+JmSV9PPNJZfcAD52bSlZBgatCE1T5hLmLgFpKIqGFZn3tBmAvWCA2ZiYfBX17a80/tfQYBEjK4V1szqHEtJEzphZZYKJ2ygpQOAaRfkU7rBzWFSUhOQvty6dt8lCMf1IeOWsWl30XP9QpeninTDfLPEjnkPtQ0QswI5jhXsWvRJ/zOAAI2DrcCD+gi2VuCdOHKHiGSAmpu9t5yxA4nok6oXVCuVn0KJPWHwNogBmiaikSJP5ASGLNHSgo1owyoWJAOhZVmmMHGXLpBlS/8IyIIQy76fn0kjFEEZgKzgNWoLbNCaoYnRc792xkTdjaHkP4Tqfh9wOzqhDQ+mqZ+oSrF0M1LzZc1xfCYva59A9PBVJEEjTF55HUj8VkB7rB+Ge7dj5Wk+QCYCKqB/GcgJq6UISts1CwSGkv8Q8/SFsv2Z2MXXYS9zjCnL2aacCDDrOcZdnmyJMWcNkiTlebR0kIah5h6nZ+z17RAn1CNCKthxxFbkkHt6FhGFwARzOAGNpECKtUwrZwyJgN5QM0/Ej6kiEChGucssboAWp/pJpAOyp08xLm1NACmTDGmKZhJKzFUpLwHCxMK63tJdPxiF2CgXt7JHBv7JiEbpB5wwSCA5urBG1zS6wfK1jEsSZ1PbMx0g79CnbOUqHTPBytpSlcgz8HZtp6fEvY10wvA3HdOi7GjXboOxgm37hL2+HUI0p2Fapov85+XpYrAL8e8yivV7NX3DENisTW17Ec0tMbZSyK5K42iaPKcFlJyTQ0YW4hwQb2HQbqpKXD46yBUSvCzJ+CDma/EZqJIAExs5kNvUeRxlNHnlH8CBohCIVVroUBSwFBg3BQzziDPKDNDRZHQA0MQz+myFhkCTUvKWRfgEqMkLO7A7yDhBYe7H3lCVGLHBBc6aAA4HmEEtUBlxaGyCIAao1dCbf2KJCgsiTlwW2EI9OQKiJ4wsdJjoPDa74fUPsFP8tJ1iR8b5gsSubLDDf4oAXO9FTtjS8aQVBCIwAC3aKicLxLp4LPDbMh7se4p5tBRmZQLs6NpPA4nfCTAdiiMGhThYMESQ+hURgKIQtEYNs9k6xn5DPAA1sMNiuMq3vaSiRI+RTWFHz5t4Mhaik46hCzcHzKVZqUqUk1WJTx9gc5SCqwQ4z4DEDa1bbzD/tT35E9PhXxWkb/kADgHkB0RtIdpceF28HB9fS1UwITEzGQoNgSboyM3yk01BROvKxa5U2ECCAinU8CrtzJfHdu1VxMoKf0oicyETrUYQqSRcnLZ5bbDXtwMMlCMNG3tieComVhwgppuKNWpyO0atdHHd5tkEXWDIuOiUbKPe0ZAMXDFuuHnS0653PAnWAJpzKG0Ic47d5icRr2ldeUkHCBxMkO+yf+GMIUoce4f1Ll/3c6izVY4DCtKpFkIyAOthnqINjRYZyWEUPPJQ70/VI5IPQHFisSpSztwFAbBxywnawMeLMGzM9FNWlo/5qeQqVjLiBAPUbR1hseDLqo7vKkgnJ944i8JU3K4LqmRPmGYAxQG1+CxsrkiFhv5SsrLcANxTM4gCxSrSKk8otAC2ETjO2JESPbEtKFdHyfgQcpifzQBAPVq+f9oSRRi38gPpQ5qesFueLgjATe4iSjwYK3Rq1sUNDKEoa6UzBiVf7qEj3RnpjhVk/JaV/EhxUHH66S7graa23LwIsn9/og8gHtA+9VZOmMQP9WiWNgPUCDMF7baj940QcxgXc0scTGx7ACyCaOKhZgAlIhohitocLrFQaAg0GX3Tms1crW/8jnvtKNCkIq18TPMMuDKsRbo8t5wZ4fKVH6B+wH+08AmiD2CYbxnFI362UQAm9N4cg24/9uotdMXzfnnBADyyWR3RmgfJYy+WsOkwggFrZexU5MtQNG8p4UwYAn1iNDQRFxZWY6jKOCnK44l9GPXITz+JYAYkbsQJMgRc3dZparPXtwNHiSPRzrARCzItFX76bKBBWvz4LIHE2W/Ms+r7E+kChAmOIWZd6RmMr2JAolShLFI6ocIJE3um6au/axsdt0QUAhX1Su68zjJQ2ow2A/IJ4jiiooB/+mFL9ECJctKPxUd+AJ8tGjRWpFyPu8AGojOkvWGpBUTUAFEILMlyJJAZ2naRhGx/pspdmLJkCZE7fKIr+0YxAUYumwRw6ezIo3S+L1xMYORSWQvs4MT/qCW676vyEB6oVcfGhi1KtSdciGIyenwRhrAJULOy9E4pykVPmOCMSQOrg/5EDFFHAJdcU6BPu3lEBIj/E+0NECcImX4K89k5a+OCNuH15WU5k1jfxeIfYyd+zhIlA6WvhATdlJzGKeWPls3SQFH451BEIyMSeNUFp67p2hPFf6gcbu0CuLEg4aiW6YJyNX1ClZNBvLULsbhHxi358lQIIeWoe3IcK4jyDAWZuAuFgTQLTHkc5dNPpgXYQNHbvi30mLEgTRJSYMJCX/QGZb2vUxzZiaYYvp0o2y+XlNjIXzMA34/GBYoT6jAA9gF1dVs3whmDG4/IsnhANVbTkjpOpW5ZZlVBxQRINCjnBXyAzeJPs27fAHj8/WlP4mezRmEdmECmnKMQiMMppCsl3JjrvEaMZir3MQsgVLJvoNsFSgRQ47dkAIV9XJjUQdeKbrRjXx5xeScK5ISgTQ4oeGEBTFxmAAOQTarz9uecMb8vsPSCq4HWO2LsCAr9FxCgHYo1Cf+8w055wo25TrBr32kwh4rUb+BdaRb9G0oEDCibpUirxr/cxYevJ+/UUql0nNCEB3l5SQBnDIXlX5Y8r4vdeCOGywRAPAJjMMOfq8fFuNKnq0YdT5iLyWaMlJMMoDmgdlZmj6F3IocfkfqehwKYnCZeuC2lcnUf6RihAczr4/yHXth1qGRAnoG2jhg6ij3h1SeRcyE4Di0quvUaZaUFeJlI8GNRCIw851oIN5K+oZfhBVBPGDtho0WAxlop23Vd4L0vYKt0Z0chFAEIKS6eyMzlgnQV6ZaYFxevI4xfrH0sE6iKCpNOzK2c4l52iludJOrQURXdrgjC9Oxg+qGYKKx/SgQI3boVk7EsdfaCsarBkUAuATqez/qGtB9F6jewr165PdvoImMlr4xcGWUSOwLqbpfj+qFsOLAqKGXyyKgLMiOjFdW7sxOmdlwaNMh2tN/6J5yxQ19U/vFZT7/SCpoE0gISBoqMg9rLZAFyiDbatUYfuzEdrPNP26YpxTnYz6aLCR0j9QxB29TjMpz2fb+PTryLW7iSuipiuw+Hij/48gtMoJUQaqep+hlLVNSqwU40I+kG+h1PGBO6QwyCEZkwFQIyZE9n4R+VW3dOBKxpvGV6oWUFGyyNMMFqIT2vq33D7DnOxaO3jXsjhSDlNlVldKl7lkVZDQiksI83rI6/kEOn3fQTlmjQp1ypYBx4x2+0VrjwijydCl7FQU0CyAndVfoeb2RihFWKqJtz/klHikATq+DGZbGuw1CQmCoLy1MYWxzA0R66h12aSG9wqp9FKDHABvppp+NGceW3RCES34cNujkXfcMoxfkkF/UlATrNAEWVpil0pCHoHFLYOQIQQDZ+Cwag62v00+XR0/g+J1VV9Aky8jjvaoys4Ia1DuBhfrPIMzxjAAQidj9giUbUECDWqAlx81wHiJ9hzXBHhs7FmwTo9D5rWtWJBiOBcY4SGJY/iyArS0ZbXzIZaBIM4CgZXpU3nIL7UKa8KtUdLSjsH0O1MY/IxXp8gjYZABywQ6Pb8063rwKYhnucISOSrjnWOTsCXSma3DmIIhhAEkAzQKe3xKD0eGAFLF0N49paB8gJ0rg6dKToOTDOv2Pg0vhdFO4eT6kz3FHoAOIJyQciwEHL4pG4YTfeiII6WjjPp/rbLVEsizh4GFcqPr3wXhxH2GQB+KicyRaJjC0OIJBLMsrx/i47AjYdAUcscUG6CMMZEsglAPjrvpRpGXmB6f3KiJBEvZ0CKvpxwWwdLgYyMmGOCEJNDbaLf68l6vPecVku7gwhkKffNFqqPsA83er0ZlQDuRzQWVssymo++aRsXZ1I77F0UjY8B4op2y+9DMUBJv7FmqSsKMd7SI39hgjSDRo6/SPeoVQwOWF0+Q0CtJICfvDd3QJUxhehrN6QnvYBFVJJRQzgNI8YUX8azfNpmaGdwQCwQdGBIs7jigd0/EOefyrZl+VqIg4qS+5sAhB/oTvkjVnYIIDwhLcIIMb1ysu7mBcM0BLqg/T12JGvmI9bJse9spVtxBsEUCjC/4DRXiE4AE2FmxzQ6ROKUVSIrlkU1XjZcMKKNMME3pUEsk0gdXnKMygPRhx8oQPWZigVE2BDpsplryIRCMaJLs/4e7sFeLadMzrPkvcGAcQJFp8VFtyHBBh4S8yQwkrZzDYzYahEXN2TasYRadXJ5if4H5aZN/3prkca9cv5ANcMFVSgrLQoBhKZMIcDCP1ggSBERvsbLVHMJvMjn0wIcbqfiSBJj/JI87RwfhaVCbMI0Jn7xOeRJsCq+Z10KoVNyhOV1PtKys0YaS+iEMMT9CsfD97akNr9ME4wzjxZVVENUErw8TjTWa8I0NJOPgKkZr6zQIW7yo0YwYfh6P5IJhNiBG/G8dTJ4MYUQLwLkSO/ht9rXVscUyWp5QRYo95riwD68khO95iyr7MwYpqFE3qi39FglBTpgMHNxRt0kDyAvJiqLPumTJiH5eAG9jdSktqtFE2UsCBOXjTAGVUhMkWHzjCBsEpwwOgYqQMkqtWKR/lPGuvcNfcJBpCXR5cad2ezGSo/hsMBTP4Ky+vv5ISJarst9IMTmAF2YaAqy74eEL4q9z7FCFTybpsAetNoGJUoRhkDz3uDvWmLIBmDkCcUcRoIXXXeBdJhnRv41z+D1BAS1HdsyLhtDZBhVFqWYUS9tkOtr5YSZtlzH3qRS92yQZkAzAKUkXnRFv4F5YgyEaCxvQ5FCN1ADNCXSVJU6fsyvEXBCPzretDVCV1oRHrKoV/CsTz4CgwKiB9pjoFwwp4ygFjVuVBDntgXz+qL6MBxLfbJtNAjNsaSFcqlKi/Y1AHSA6C/MIRQffRtBSp+XyS+j1ljm/LeFp882nS/Q1d5v/PeRgQhOrSFyZJxqQQ6iwH64b6QEyAP+ZoA8iV9zRbUvHNTpHYCnmiArO+zJRPpIfmYa09Y+nvkxuO/4CAH+EsLfaV+TSXcticfavj0jYmAQO7x0xxgEUA5YvghwrbytAy8UwMGFsVwSgcoE2hUNihkLpKvJpItoKpg/TvEKftS9Bx0rwiwIMzaU1zTbErVmnhthkLDwzPXJu6GC6wlEKBK8eO3WKLolwhoeIMjbpToV8dfJmLQwwe14XnhOI7NIc6RzTN1gJLQYl08VZhnvUJ1kuAfg36nV1SgOHTfc6BJVKRb6Dc1ANaTqFV/tg4wgnGmfAW9FiomEApmJf+lCNKQoUbrGyxRGp23PxwSKxAs/YBqrYSRSPIxB4PmZ793GB8ZYDu2rAW1VOTI+9yhUsc+UUjX0BMNzHeIAn2a9n3yLsqlVsffujyVemEXjUa6ocgkB5jqH+VwadlTyxnKyTY9AKoLkoCEwOlb0gIok+WdILoc9IkbIAlAi/XEioOow4BBIoBsSXJslAHbsknJG0i+3ZLkhj/0HX/FF0GCvij7pN9573DzrAoXVwPoy8tQc7XmAOX6ScOLiiN5sIKQQEoNmLpY+mFti0AEFsR9fVoAs+1QyeHUDBvawFm/wqNp2BXwsCWg3p1yUa/sxOFGU0cS2oFyA+yf6B0ixX6XllXSn+I3NH6vJBBHWeWmwqrsqYdMKF5h9Ghi2MoFlljCKhganvC/4gBDJwsK4Owfpm/oW+XJNDS2xCWAmzKRLNz7sQ+hzdwY1F07Na2IEVuZgFGuEkwSlN/cPglJcgu8IC172KDoinxlAtHlEdfk+btUD2oKIskBoh2BhwLFAWokScPLvvItHWCEg9q2zXO0xH65M3bkreBggXIt9F0RxCRAD6La4RLm2LqdZ6yGpQjSXioY4IZtstkmti/in/jKL7Eib3+jZCeZuSv0W05YcqOR5wliS0YqRmSVWAkb5hZ5/feyhA26ZQIZHGDKIAxnmb6eBWI8kh/TujarkYEy52tPjCKWPnoQ1S5rf+pq6pWTZmjnECBJbrfxPjOCLzf+I15dLuKl+hFv3Pan4+WWzPMcROMHDDBDlYzzctNBCBWFkC41iX8hhuAGH4O8hxOGC5APubJA1VeTCHlw+vK+VapjpYrujY4Y8x1mDz5Z2HOmVxzETdOFtMfaJsAobdA+kQddIFpgXbx0Qb2Z3Yd3bPrRNe4m/hV/CUWSJAlwy2SQrgsHpbXwIRqwwu6z+e0dAzYtAdRuSiCiA8UjfN2M8yWAqQ0C/UalyAbw56H/iFscjR0uuwnrcuAKWDpglDoyuY0dn34TxZvI5/f3R/zy/D4vb6EXtHaEw1Hw8+12yzKypmA+KQIY+kDnhNnAhelblj2Gv76JKKIrgiQdTEO0xnCQU/q1NVqopjzExAYqAEf/NkLFLILK8hRg06ixZgsrxHc5eQIOBwxkJEIDzMQAW+d8A0LPv1zOx3BehvdTvo1/pQFuGJE+axu2LIuEIz8UdCMdYIRAin4fooMJ+cvQe+eOtiegY0HEAW0WBShQOXz5ZBrqCLDNULs+1qidFbPwzDVbOPwTQua2FTQiTLDMSQkdOQPjtw+wf+Zv6HI8ny+B9z4OaHB9UuzL6+JvN7q84AAJdNgTVARRJlo62HD48AGwinW5L28nLYCU1LF1saECqE5UGKRfyQApcvGyeEllUvXaD92wJ+Q/ekztNVuHqena3cngAH1Cl/52uw1zJqT+NtLP/Ad/AfvD8XwGGcZx7PKd3WujvGDC/3DBloYZ23pgvkqHjn6yQbh7t6TfnfZlsn+b57GlRMbm2beUMMekafxa/aVDhJCELxNfTEfUnrApfDj6poVQufcTZ9Urxkfu4KmbHDAqEXFzEQ5syx8l7iXyz+fL4/F4nB8HLHrrxg4F+uxkS/w3NgMo21X41bZXh389kUYyCfnkFz9alnHEZCC7KUZGgXRASEogkkhB/JVpAd7Sw+PSnO5Eq53BDKaIqIVti53INgg0AVQiYO6TW5Zp7J/pC38VBNCYF9/94+N8PYPFTk3HY9KFs7RSwcuGNy1/NgId0r8j2NORiBFJ7/IogBO/8gAskqiwNE0pjaavSwsc+yrxOQoHJ37VG6wStfqHEuW7q1WvcVd3EUKiUlooAmRJn93vizz8CsmMdvGTFj7n8/lx9Lzj+UEsFo/dGHs+7CBHCQsFk0EDzKnj2L2EOISNdfS8oBuxBOXEYawnFJDSh5MzHJH7sgIVzLaT02utrhKzhF5oAc5jEOahOFx/HE5AK5UwOaoje0lJQpF6KedNUeMefEmAgxceH2c+ZLu6yd8mywloHAZAYJkUO8s6/iL9DHb9TOoA85fbLSAB1wZeiEffOvkGA3BsFDDtdqDEF1mi2AquBxSbzYSqSJBSSCYBYAr35WrPXNBili3TgLSkitQnqEbJWNi7591WvQzX8/l4fIANAFHToRxhshP9JgPABso+Y9vKXwbh8QxDy/NObZOddiQ3X4ClA+ppojlpX2KJYrYdcpEUKTFwL8xQQ+5LVxLjdE+HpFgv0oQl2u7iQJawqEDZAAAKAklEQVQEqWqRBF6w0LGrs7+G6xUa+HF+yDu81V2dBxBCyhQyohAyhvF5UFyGh+7QP15Pr7CvdQDToq7r06u9OH8CNNuOq/nMXXMa59oM1fWclPne2HUsZmziPAkJNFKgskgyIsAnkE+n/7E/HB/Xh7pD0FKcA+rFEEHSwjIMK6gVJrRxK2FzqS/yLle+vI/Tz7OMnsogQwTJ+oj4a9ICNNsOy7tFslr3j3P62ugF0PF0lEJsLnMP87ajVhKjJWaZswKLv0gAfRIegReehQrm69biumsTCJolW/jqTIHNSxrvPo7h4Xy+MgNQFAtT5w6TkvFOQsbkAGaB59Ni/6ocMUB5mxErV0Wg1MAm7B9WAXDr+6MXwJ/cXIgxtXnkUzzILIhOkKsl1HyGCNfzNfLC81WoYHHdXXBam0BQMI/LZZ7v2aepC8KG5+v1Ki+/I76NdfTHtYYsESQt0Shrv8ISRU9YhG/qyNMZX4t9WS9VFDzrcHvXcYxx5m3TGn7qnPUVdKSUEbZ4cBCPP/h79Y9kierrdu00kRq249DLfD6fEQZ6djn8dX9x9f3rVfNX1KLL+yS0gCaCnZdkMih5lOP1f7dEI7hf++hAQ9KVoe8Ui1MqQ1fy9H6IIq5t4kP6tFkO717aoH1ZIlTJbu+WBbpG0OMKFWxaubupa+rdjpWAGYdeHqDAPOKbxLegIgi5Alz++nhcr8bld1ONYgeN6ydWkIqPUjiCJvLHXzAcTjTlCQIoR0zXiOs4Omtl9CA+23UctV2dx8CXZIAR5XPSRGE7SHm+K1oQBq/X/fVqMQD8a9ooRdrFIsDlen5cH4T2J7D6BdB/NS8fTLxw8YUlanEAvcwP2IvzHy3ROCmRVjH6l4kAmhkUC+hcHo8SghzahLzGxJKTIMAyzxXWUy+rIJwkw5ZAirzD46psUIIwp2lMh9SpxwUDLMvFwPNTQkj0H6MDvtmBXPKuXpiiKw5Aedz2Xpw/AbFDR0SBZPrIiAVZQSBOpfoYxIOE6jbw4DDIIPaShh5RiDvMUEGD8zO7XOpIuKmPq2PlnqY2D+GwmqUuy5xdH+M83y+fwj0T4OB5x8dV2KDqocWg9KcEkFVCUjngv8denOC/JgIOsIQsD8BMAnBxq07mURwaiYCn9w3zps7zWjDAMld9n873u45PqpjA2nfSHHB8mCcUEHdNm7MjYDDA/Lg+kIv/DOYVB4SRzQBkO0CYoAXskxzQ1u0hwn7A3X+1QY+h6ErdGuEs2gAMLQDZf+JGjieA7DzWqzH+F8r7ZRkUgay6WtdE2CR4XI/XM8VBTdhNDewrw8WGCfS4Xs/jnEGq/wENDBtUPvS0Q0BInfcNHWDrZ4RGaJbZfylQoR06SKE6KxY3QFVzlEc/2XTCJMS0XDDwG47T9GXfF2L4Dac7k6JKkgT/iCIiQKzYAQR4GE6YBGSF2yYnD0NWI86wZh6kVD+N/JUKpofGvDkqbX2uhK0MgehYmp5saPwcxDS3h4q57cltolXOGuAjOYBqCTadMAm7qWkjL3wbFyQCinIYKu75sEAQxEhUCSIcwwPU8/oO+dTmMRjMCMM9rtch+7PDH/mgmitCsYNjmtIX4VCeHWdqBWqYebpE7hOA6bWRT1WHYjaNObHB/U5WaBJgHvC2EyYhmuDXeCAAKqGxGKrCeI40TfU3SQUGrstlaQQdSZF6F04T7KvIiAJBA4z3+/gHHMAq+GGpYH5ozPUNtDfwSgfItzge4f8XG5QH64ixzLI9VAfkLCsI559UdvWSARAzq/MA9bQz2kZp8ZdNAOBffDMKH7lS/eaHERImG89bN+3BO7VmFOJ6xUj7PyNAuNbwxF/Uif3MF3A5oJUjbGCc/SUBREpFEEBG/y1VbDY1UEF6jP/tNQNQdr5tMZ2S2uXKQiJ+StdgyiTcnQvVt++AJTS5qYKB0Wymb5+Ho2uDMgSEyY8IYHAAWMJHoehfW6J7LPoLfNlMpWWQkgyyu1yPkdnHcfJaA4jY5di9vc/YSJSCtwT6Ec2h7wr9BhXU3e1yIwMi5AOmppVOMIkeWwMLf5j9afIMbN+A8gxGGMh86HbaHeCRSWheiyCQJIXa+Nu0AKpQSAkLcaOHZGgCmIwgNLBbC7EFp6kbh9h7xxyA+9wBzZMCPHSKryYlQAvQSSyjeWLa5W3TneIT4x8MQAEIO97Glqzr3HFs6Pw4Rj7IsnWCDmmDcSh6AanDApwYtjkAg9Xrv7VEjwgpoLSBpb/sLNTGEPcsqpZR+AA71ZHxEsK8GefQy/uUtl/T+VfYN0ihCVBUxA20CoU0zSawGg7fYAEhDHe7LPclMbK/utrUTAAbrh7qrVc2qHxoWKGIuH5OCZM7jPF6f5kWQEF0EB97Ld9VN6FOQ4pqIEGDNOQNwx9fPGq64f29TNNqmO8jYR27JOGfZfyDTRBTIfTlU5kad5DTJ6B/me9pklR32t9dFgksqQI9SnIxeZkklfA1VDcOsvDxBdV2WwD5PyHxKTjArRSyQxG82QEFKusNWp8CrDhAOFpsWVc1cZyIEWJfto7yqzQKj/1n8A+vqa0hUYpSyn6iAFxHUGGbAoS8fv+CoXdTk791HTyM+9gXaK7AqBnDt+CrSN0uJxXQJj3QpN/vb7dncSwk3GLYQ+burVc6gFb8+FPzN32rvGaLayG4/8hs6pQpAaeku0o+iX/Pi7IiTdNsGJX4YcRTiwNeSzZQwolI0Cf+KwEXISswnN6XGSOEIEKrTAdMtDvD81y4IJfKy+g1ydw+eSrh4nyqD2HUEZZfEcAIyWGQWfM3MVEMZSoT3rPIPQDq0XknjCpIYfLwJ9h/Pvwd7tIqxWQUPvYS+ardkEggzz9r5qJM/Q/om09iNuI9rbDanI9Nqg+94ADBB3JUU1WhRHefoKnthQ6L87Tt5Ck3FnBtxYLEf0T7Af+GBUgFc/bRMHn0pglzLI0wgIr94Y8IHe2mQgkgBUr42Oo4LcoqP3zIXsHUdW8hpoMWE5qIB9bjTEBW9u5XZWb1QZyjmOCF2R7uaopGcOZTl8MbGLc6aWg1lL9r/3zfapxt+EKiu0oqAT3QpKzSo/8xdtZ3CU7+Ls/zTEBdZ1km2qxsFZDlu8OnjDmkJsdhJJtpmOeRCCCv49BasRYToshPWZF+YETHp7yRjPkxpGmRQWuk5R+zQKgg1hBFEf5pED/F8X/J+4QWGLeL40h8Dz99fchpMhZJ7Aj2Sl3OIh0zZS6XYcP2x5GbODqc/N1nwPdPPo5NGHzu9PyfgHgH5Jd9uYwk41n+Sy+CXGvWATLkJ+aGpmj7TvN/sRn4/xrEweF0Op3e330BO/z5xHk9BT+9kvMXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfuEXfsH7Pwj/D2c/oxCaScjqAAAAAElFTkSuQmCC",preserveAspectRatio:'xMidYMid meet'}));
+  svg.append(makeSvg('line',{class:'poster-header-rule',x1:PAGE_MARGIN,y1:panelY-17,x2:W-PAGE_MARGIN,y2:panelY-17}));
+  svg.append(makeSvg('rect',{class:'poster-main-panel',x:panelX,y:panelY,width:panelW,height:panelH,fill:'#ffffff'}));
+}
+
+function renderPosterFooter(svg,W,H){
+  const y=H-PAGE_MARGIN-FOOTER_H+22;
+  svg.append(makeSvg('line',{class:'poster-footer-rule',x1:PAGE_MARGIN,y1:y,x2:W-PAGE_MARGIN,y2:y}));
+  const left=makeSvg('text',{class:'poster-footer-left',x:PAGE_MARGIN,y:y+30});
+  left.textContent='DRDIMG.COM';
+  svg.append(left);
+  const right=makeSvg('text',{class:'poster-footer-right',x:W-PAGE_MARGIN,y:y+30,'text-anchor':'end'});
+  right.textContent='GREEK THEOGONY · EDITION 01 · 27 AUG 2026';
+  svg.append(right);
+}
+
+function renderPosterKey(svg,b,W,keyY){
+  const y=keyY;
+  const outerX=PAGE_MARGIN, outerW=W-PAGE_MARGIN*2;
+  const padX=30, padTop=44, gap=40;
+  const keyW=Math.round((outerW-gap)*.67), noteW=outerW-keyW-gap;
+  const macroIds=['primordial','night','titan','olympian'];
+  const macroLabels={primordial:'Primordials',night:'Underworld',titan:'Titans',olympian:'Olympians'};
+  const colGap=24;
+  const colW=(keyW-padX*2-colGap*3)/4;
+  const rowPitch=30;
+  const keyRowsTop=y+padTop+42;
+
+  const keyG=makeSvg('g',{class:'poster-key'});
+  keyG.append(makeSvg('line',{class:'poster-lower-rule',x1:outerX,y1:y,x2:outerX+outerW,y2:y}));
+  svg.append(keyG);
+
+  const headingFont="font-family: Georgia, 'Times New Roman', serif";
+  const bodyFont='font-family:'+currentTypeface();
+  for(let ci=0;ci<macroIds.length;ci++){
+    const mid=macroIds[ci], def=MACRO_GROUPS[mid], x=outerX+padX+ci*(colW+colGap);
+    const head=makeSvg('text',{x,y:y+padTop+12,class:'poster-key-group'});
+    head.textContent=macroLabels[mid];
+    head.setAttribute('style',headingFont);
+    keyG.append(head);
+    const owners=FAMILY_OWNER_ORDER.filter(gid=>familyMacroId(gid)===mid);
+    owners.forEach((gid,ri)=>{
+      const yy=keyRowsTop+ri*rowPitch;
+      keyG.append(makeSvg('circle',{cx:x+12,cy:yy-5.2,r:12,fill:def.color,stroke:'rgba(20,20,18,.10)','stroke-width':.7}));
+      const num=makeSvg('text',{x:x+12,y:yy-5.2,dy:'.35em','text-anchor':'middle',fill:'#fff','font-size':'11.5px','font-weight':'800'});
+      num.textContent=String(FAMILY_INDEX[gid]);
+      num.setAttribute('style',bodyFont+';dominant-baseline:auto');
+      keyG.append(num);
+      const name=makeSvg('text',{x:x+33.5,y:yy,class:'poster-key-row-name'});
+      name.textContent=people[gid].name;
+      name.setAttribute('style',bodyFont);
+      keyG.append(name);
+    });
+  }
+
+  const noteX=outerX+keyW+gap, noteG=makeSvg('g',{class:'poster-note'});
+  noteG.append(makeSvg('line',{class:'poster-lower-divider',x1:noteX-gap/2,y1:y+30,x2:noteX-gap/2,y2:y+KEY_PANEL_H+KEY_GAP-8}));
+  svg.append(noteG);
+  const heading=makeSvg('text',{x:noteX+padX,y:y+padTop+12,class:'poster-key-note-head'});
+  heading.textContent='A different kind of family tree';
+  heading.setAttribute('style',bodyFont);
+  noteG.append(heading);
+  const firstY=y+padTop+52;
+  const lines=wrapSvgText(noteG,'Greek divine descent refuses the neat branches of a standard family tree. This map keeps a loose chronology but groups each immediate family, so parthenogenesis, repeated parenthood and incestuous lines of descent are easier to see.',noteX+padX,firstY,noteW-padX*2,20,'poster-key-note',bodyFont);
+  const dividerY=firstY+Math.max(1,lines)*20+8;
+  noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
+  wrapSvgText(noteG,'* Numbered badges mark parents. Colour marks broad generations; darker fields mark immediate families. Source: working genealogy assembled from classical traditions; accounts vary.',noteX+padX,dividerY+25,noteW-padX*2,15,'poster-key-note','font-family:'+currentTypeface()+';font-size:10.5px;font-weight:520;fill:#77746d');
+}
+
+function setStatus(msg,error=false){statusEl.textContent=msg;statusEl.classList.toggle('error',error);clearTimeout(setStatus.t);setStatus.t=setTimeout(()=>{statusEl.classList.remove('error')},2200)}
+
+restoreAutoSave();buildLegend();buildMacroLegend();buildFamilyKey();render();updateSidebar();updateUndoButtons();syncActionButtons();requestAnimationFrame(()=>{centerOnChaos();prepareExportBuffer();});
+</script>
+</body>
+</html>

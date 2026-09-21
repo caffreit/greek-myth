@@ -1,0 +1,236 @@
+{
+  "version": "27.0",
+  "label": "Extended theogony collective-groups prototype",
+  "people": [
+    {
+      "id": "nereus",
+      "name": "Nereus",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "gaia", "kind": "parent", "boundary_include": true },
+        { "parent_id": "pontus", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The truthful Old Man of the Sea, son of Gaia and Pontus."
+    },
+    {
+      "id": "doris",
+      "name": "Doris",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "oceanus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "tethys", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Oceanid wife of Nereus and mother of the Nereids; included as a named exception rather than expanding the Oceanids."
+    },
+    {
+      "id": "nereids",
+      "name": "Nereids",
+      "role": "collective",
+      "member_lines": ["Thetis · Amphitrite", "Galatea · · ·"],
+      "relations": [
+        { "parent_id": "nereus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "doris", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The fifty sea-nymph daughters of Nereus and Doris. Thetis is the mother of Achilles; Amphitrite is Poseidon's wife; Galatea appears in the story of Polyphemus."
+    },
+    {
+      "id": "hecatoncheires",
+      "name": "Hecatoncheires",
+      "role": "collective",
+      "member_lines": ["Cottus · Briareus", "Gyges"],
+      "relations": [
+        { "parent_id": "gaia", "kind": "parent", "boundary_include": true },
+        { "parent_id": "uranus", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The three Hundred-Handers, children of Gaia and Uranus, whose strength helps Zeus win the Titanomachy."
+    },
+    {
+      "id": "elder_cyclopes",
+      "name": "Elder Cyclopes",
+      "role": "collective",
+      "member_lines": ["Brontes · Steropes", "Arges"],
+      "relations": [
+        { "parent_id": "gaia", "kind": "parent", "boundary_include": true },
+        { "parent_id": "uranus", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The primordial Cyclopes, children of Gaia and Uranus, who forge Zeus's thunderbolt. Distinct from Polyphemus and the later Cyclopes."
+    },
+    {
+      "id": "erinyes",
+      "name": "Erinyes",
+      "role": "collective",
+      "member_lines": ["Alecto · Megaera", "Tisiphone"],
+      "relations": [
+        { "parent_id": "gaia", "kind": "blood_origin", "boundary_include": true },
+        { "parent_id": "uranus", "kind": "blood_origin", "boundary_include": true }
+      ],
+      "notes": "The Furies, born when the blood of the castrated Uranus falls upon Gaia."
+    },
+    {
+      "id": "gigantes",
+      "name": "Gigantes",
+      "role": "collective",
+      "member_lines": ["earthborn Giants", "Gigantomachy · · ·"],
+      "relations": [
+        { "parent_id": "gaia", "kind": "blood_origin", "boundary_include": true },
+        { "parent_id": "uranus", "kind": "blood_origin", "boundary_include": true }
+      ],
+      "notes": "The earthborn Giants, sprung from Uranus's blood and later defeated by the Olympians in the Gigantomachy."
+    },
+    {
+      "id": "moirai",
+      "name": "Moirai",
+      "role": "collective",
+      "member_lines": ["Clotho · Lachesis", "Atropos"],
+      "relations": [
+        { "parent_id": "nyx", "kind": "parent", "boundary_include": true },
+        { "parent_id": "zeus", "kind": "variant_parent", "boundary_include": false },
+        { "parent_id": "themis", "kind": "variant_parent", "boundary_include": false }
+      ],
+      "notes": "The Fates. This layout uses Hesiod's Nyx genealogy; Hesiod later also calls them daughters of Zeus and Themis."
+    },
+    {
+      "id": "keres",
+      "name": "Keres",
+      "role": "collective",
+      "member_lines": ["violent death-spirits", "· · ·"],
+      "relations": [
+        { "parent_id": "nyx", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Female spirits of violent death, daughters of Nyx in Hesiod."
+    },
+    {
+      "id": "nemesis",
+      "name": "Nemesis",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "nyx", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Goddess of retribution and indignation, daughter of Nyx in Hesiod."
+    },
+    {
+      "id": "eris",
+      "name": "Eris",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "nyx", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Goddess of strife, daughter of Nyx in Hesiod."
+    },
+    {
+      "id": "hesperides",
+      "name": "Hesperides",
+      "role": "collective",
+      "member_lines": ["Aegle · Erytheia", "Hesperia · · ·"],
+      "relations": [
+        { "parent_id": "nyx", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Nymph guardians of the golden apples. This layout uses Hesiod's tradition that they are daughters of Nyx."
+    },
+    {
+      "id": "eurybia",
+      "name": "Eurybia",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "gaia", "kind": "parent", "boundary_include": true },
+        { "parent_id": "pontus", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Ancient sea goddess, daughter of Gaia and Pontus, included to carry the ancestry of Perses and Hecate."
+    },
+    {
+      "id": "perses",
+      "name": "Perses",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "crius", "kind": "parent", "boundary_include": true },
+        { "parent_id": "eurybia", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Titan son of Crius and Eurybia; father of Hecate."
+    },
+    {
+      "id": "asteria",
+      "name": "Asteria",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "coeus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "phoebe", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Titan goddess, daughter of Coeus and Phoebe; mother of Hecate."
+    },
+    {
+      "id": "hecate",
+      "name": "Hecate",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "perses", "kind": "parent", "boundary_include": true },
+        { "parent_id": "asteria", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Goddess of magic, crossroads, ghosts, and night; daughter of Perses and Asteria."
+    },
+    {
+      "id": "muses",
+      "name": "Muses",
+      "role": "collective",
+      "member_lines": ["nine daughters", "Calliope · · ·"],
+      "relations": [
+        { "parent_id": "zeus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "mnemosyne", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The nine goddesses of poetry, music, and the arts, daughters of Zeus and Mnemosyne. Calliope is the usual mother of Orpheus."
+    },
+    {
+      "id": "horae",
+      "name": "Horae",
+      "role": "collective",
+      "member_lines": ["Eunomia · Dike", "Eirene"],
+      "relations": [
+        { "parent_id": "zeus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "themis", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Goddesses of order, justice, peace, and the seasons, daughters of Zeus and Themis."
+    },
+    {
+      "id": "eurynome",
+      "name": "Eurynome",
+      "role": "deity",
+      "relations": [
+        { "parent_id": "oceanus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "tethys", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "Oceanid mother of the Charites by Zeus, included as a named exception rather than expanding the Oceanids."
+    },
+    {
+      "id": "charites",
+      "name": "Charites",
+      "role": "collective",
+      "member_lines": ["Aglaea · Euphrosyne", "Thalia"],
+      "relations": [
+        { "parent_id": "zeus", "kind": "parent", "boundary_include": true },
+        { "parent_id": "eurynome", "kind": "parent", "boundary_include": true }
+      ],
+      "notes": "The three Graces, daughters of Zeus and Eurynome."
+    }
+  ],
+  "nodes": {
+    "nereus": { "x": -4, "y": 0, "placement_group": "pontus" },
+    "doris": { "x": -5, "y": 0, "placement_group": "nereus" },
+    "nereids": { "x": -5, "y": 1, "placement_group": "nereus_doris" },
+    "hecatoncheires": { "x": -5, "y": 2, "placement_group": "uranus" },
+    "elder_cyclopes": { "x": -4, "y": 2, "placement_group": "uranus" },
+    "erinyes": { "x": -5, "y": 3, "placement_group": "uranus_blood" },
+    "gigantes": { "x": -4, "y": 3, "placement_group": "uranus_blood" },
+    "moirai": { "x": 1, "y": -6, "placement_group": "nyx" },
+    "keres": { "x": 2, "y": -6, "placement_group": "nyx" },
+    "nemesis": { "x": 3, "y": -6, "placement_group": "nyx" },
+    "eris": { "x": 4, "y": -6, "placement_group": "nyx" },
+    "hesperides": { "x": 4, "y": -5, "placement_group": "nyx" },
+    "eurybia": { "x": 4, "y": -1, "placement_group": "pontus" },
+    "perses": { "x": 5, "y": -1, "placement_group": "eurybia" },
+    "asteria": { "x": 5, "y": -2, "placement_group": "coeus_phoebe" },
+    "hecate": { "x": 6, "y": -2, "placement_group": "perses_asteria" },
+    "muses": { "x": -4, "y": 5, "placement_group": "zeus_mnemosyne" },
+    "horae": { "x": -4, "y": 4, "placement_group": "zeus_themis" },
+    "eurynome": { "x": 6, "y": 5, "placement_group": "oceanus_tethys" },
+    "charites": { "x": 6, "y": 6, "placement_group": "zeus_eurynome" }
+  }
+}
