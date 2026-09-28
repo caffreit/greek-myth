@@ -1,0 +1,175 @@
+{
+  "placement_anchors": {
+    "clymene": "iapetus",
+    "leto": "zeus",
+    "metis": "zeus",
+    "maia": "zeus",
+    "semele": "zeus"
+  },
+  "depths": {
+    "chaos": 0,
+    "eros": 1,
+    "gaia": 1,
+    "tartarus": 1,
+    "erebus": 1,
+    "nyx": 1,
+    "pontus": 2,
+    "ourea": 2,
+    "uranus": 2,
+    "echidna": 2,
+    "typhon": 2,
+    "thaumas": 3,
+    "phorcys": 3,
+    "ceto": 3,
+    "themis": 3,
+    "mnemosyne": 3,
+    "hyperion": 3,
+    "theia": 3,
+    "crius": 3,
+    "iapetus": 3,
+    "coeus": 3,
+    "phoebe": 3,
+    "oceanus": 3,
+    "cronus": 3,
+    "tethys": 3,
+    "rhea": 3,
+    "aphrodite": 3,
+    "aether": 2,
+    "hemera": 2,
+    "charon": 2,
+    "hypnos": 2,
+    "thanatos": 2,
+    "moros": 2,
+    "hestia": 4,
+    "demeter": 4,
+    "hera": 4,
+    "hades": 4,
+    "poseidon": 4,
+    "zeus": 4,
+    "helios": 4,
+    "selene": 4,
+    "eos": 4,
+    "clymene": 3,
+    "atlas": 4,
+    "prometheus": 4,
+    "epimetheus": 4,
+    "metis": 4,
+    "athena": 5,
+    "leto": 4,
+    "apollo": 5,
+    "artemis": 5,
+    "maia": 4,
+    "hermes": 5,
+    "semele": 4,
+    "dionysus": 5,
+    "ares": 5,
+    "hephaestus": 5,
+    "hebe": 5,
+    "persephone": 5,
+    "nereus": 3,
+    "doris": 4,
+    "nereids": 5,
+    "hecatoncheires": 3,
+    "elder_cyclopes": 3,
+    "erinyes": 3,
+    "gigantes": 3,
+    "moirai": 2,
+    "keres": 2,
+    "nemesis": 2,
+    "eris": 2,
+    "hesperides": 2,
+    "eurybia": 3,
+    "perses": 4,
+    "asteria": 4,
+    "hecate": 5,
+    "muses": 5,
+    "horae": 5,
+    "eurynome": 4,
+    "charites": 5
+  },
+  "level_widths": [
+    0,
+    1,
+    1,
+    2,
+    2,
+    2
+  ],
+  "radii": [
+    0,
+    1,
+    2,
+    4,
+    6,
+    8
+  ],
+  "ring_bands": [
+    {
+      "inner": 0,
+      "outer": 0
+    },
+    {
+      "inner": 1,
+      "outer": 1
+    },
+    {
+      "inner": 2,
+      "outer": 2
+    },
+    {
+      "inner": 3,
+      "outer": 4
+    },
+    {
+      "inner": 5,
+      "outer": 6
+    },
+    {
+      "inner": 7,
+      "outer": 8
+    }
+  ],
+  "initial_level_bounds": [
+    {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    {
+      "left": -1,
+      "right": 1,
+      "top": -1,
+      "bottom": 1
+    },
+    {
+      "left": -2,
+      "right": 2,
+      "top": -2,
+      "bottom": 2
+    },
+    {
+      "left": -4,
+      "right": 4,
+      "top": -4,
+      "bottom": 4
+    },
+    {
+      "left": -6,
+      "right": 6,
+      "top": -6,
+      "bottom": 6
+    },
+    {
+      "left": -8,
+      "right": 8,
+      "top": -8,
+      "bottom": 8
+    }
+  ],
+  "starting_layout": "layout15.json",
+  "routing_repairs": [],
+  "figures": 79,
+  "routed_fields": 33,
+  "family_distance_cost": 671.5344174324217
+}

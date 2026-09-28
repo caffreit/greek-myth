@@ -58,8 +58,11 @@ for (const name of ['Nereids','Hecatoncheires','Elder Cyclopes','Erinyes','Gigan
 for (const heroId of ['heracles','perseus','theseus','achilles','odysseus','jason','atalanta','orpheus','bellerophon','oedipus','aeneas','asclepius','medea','circe','ariadne','helen','daedalus','icarus']) {
   if (ids.has(heroId)) throw new Error(`Hero ${heroId} leaked into the extended theogony.`);
 }
-for (const requiredText of ['Greek Theogony, Extended','EXTENDED PROTOTYPE','role-collective','Collective beings stay collective']) {
+for (const requiredText of ['Greek Theogony, Extended','EXTENDED PROTOTYPE','role-collective',"g.lastChild.textContent='P'",'How to read the family map','marks a parent']) {
   if (!html.includes(requiredText)) throw new Error(`Generated HTML is missing ${requiredText}.`);
+}
+for (const obsoleteText of ['numbered badge','Numbered badges mark parents','num.textContent=String(FAMILY_INDEX[gid])']) {
+  if (html.includes(obsoleteText)) throw new Error(`Generated HTML still contains obsolete numbered-key text: ${obsoleteText}.`);
 }
 
 const mainScript = html.match(/<script>\n([\s\S]*)<\/script>/)?.[1];

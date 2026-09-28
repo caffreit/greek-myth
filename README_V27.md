@@ -4,6 +4,8 @@ V27.0 branches from the untouched 59-figure V25.9 theogony and adds 20 figures o
 
 The prototype now contains 79 nodes, 27 visible family fields, and four large regions: Primordials, Night / underworld, Titans, and Olympians.
 
+Parents are marked with a `P` badge. The connected family region contains that figure's direct children; overlapping parent regions identify children shared by both parents. The poster key uses four colour swatches for the broad groups rather than a numbered parent index.
+
 ## Additions
 
 - Divine races: Hecatoncheires, Elder Cyclopes, Erinyes, Gigantes

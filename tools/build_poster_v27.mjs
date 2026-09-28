@@ -127,10 +127,46 @@ html = replaceOnce(
   'embedded extended-theogony model'
 );
 html = replaceOnce(html, /const FAMILY_OWNER_ORDER = \[.*?\];/, `const FAMILY_OWNER_ORDER = ${JSON.stringify(familyOrder)};`, 'family owner order');
-html = replaceOnce(html, 'const KEY_GAP = 20, KEY_PANEL_H = 276, FOOTER_H = 72;', 'const KEY_GAP = 20, KEY_PANEL_H = 374, FOOTER_H = 72;', 'poster key height');
+html = replaceOnce(html, 'const FAMILY_INDEX = Object.fromEntries(FAMILY_OWNER_ORDER.map((id,i)=>[id,i+1]));\n', '', 'obsolete numbered family index');
+html = replaceOnce(html, 'const KEY_GAP = 20, KEY_PANEL_H = 276, FOOTER_H = 72;', 'const KEY_GAP = 20, KEY_PANEL_H = 220, FOOTER_H = 72;', 'poster key height');
 html = replaceOnce(html, 'const EDIT_PAD_X = 0, EDIT_PAD_Y = 0;', 'const EDIT_PAD_X = 1, EDIT_PAD_Y = 1;', 'extended routing margin');
 html = replaceOnce(html, "if((p.relations||[]).some(r=>r.parent_id===id && r.boundary_include)) children.push(p.id);", "if((p.relations||[]).some(r=>r.parent_id===id)) children.push(p.id);", 'interactive child relations');
 html = replaceOnce(html, "const classes=['person'];", "const classes=['person',`role-${people[id].role||'deity'}`];", 'person role classes');
+html = replaceOnce(html, '<select id="parentCueMode"><option value="numbers" selected>numbered badge</option></select>', '<select id="parentCueMode"><option value="numbers" selected>P · parent marker</option></select>', 'parent marker control');
+html = replaceOnce(html, 'Family overlays use the macro hue. Parents are marked with a coloured numbered badge keyed to the poster legend.', 'A P badge marks each figure whose family region contains their direct children.', 'family key help');
+
+const oldFamilyBadge = `function makeFamilyBadge(gid,b){
+  const idx=FAMILY_INDEX[gid], a=familyMarkerAnchor(gid,nodes,b);
+  const mid=familyMacroId(gid), badgeColor=(MACRO_GROUPS[mid]||MACRO_GROUPS.primordial).color;
+  const g=makeSvg('g',{class:'family-marker family-badge','data-group':gid,transform:\`translate(\${a.x},\${a.y})\`});
+  g.append(makeSvg('circle',{cx:0,cy:0,r:10.5,fill:badgeColor}), makeSvg('text',{x:0,y:0,dy:'.35em','dominant-baseline':'auto'}));
+  g.lastChild.textContent=String(idx);
+  return g;
+}`;
+const newFamilyBadge = `function makeFamilyBadge(gid,b){
+  const a=familyMarkerAnchor(gid,nodes,b);
+  const mid=familyMacroId(gid), badgeColor=(MACRO_GROUPS[mid]||MACRO_GROUPS.primordial).color;
+  const g=makeSvg('g',{class:'family-marker family-badge','data-group':gid,transform:\`translate(\${a.x},\${a.y})\`});
+  g.append(makeSvg('circle',{cx:0,cy:0,r:10.5,fill:badgeColor}), makeSvg('text',{x:0,y:0,dy:'.35em','dominant-baseline':'auto'}));
+  g.lastChild.textContent='P';
+  return g;
+}`;
+html = replaceOnce(html, oldFamilyBadge, newFamilyBadge, 'parent badge renderer');
+
+html = replaceOnce(
+  html,
+  /function buildFamilyKey\(\)\{.*?\n\}/s,
+  `function buildFamilyKey(){
+  const el=document.getElementById('familyKey');
+  if(!el)return;
+  el.replaceChildren();
+  const row=document.createElement('div');row.className='family-key-row';row.style.gridColumn='1 / -1';
+  const badge=document.createElement('div');badge.className='family-key-badge';badge.textContent='P';badge.style.background='#555750';badge.style.color='#fff';badge.style.borderColor='rgba(20,20,18,.12)';
+  const meta=document.createElement('div');meta.innerHTML='<strong>Parent</strong><div class="family-key-meta">The connected family region contains their direct children.</div>';
+  row.append(badge,meta);el.append(row);
+}`,
+  'interactive family key'
+);
 
 const oldNodeText = `    const text=makeSvg('text',{class:\`label text-\${treatment}\`,x:w/2,y:h/2});text.textContent=people[id].name;
     text.setAttribute('style',\`font-family:\${currentTypeface()}\`);
@@ -164,50 +200,48 @@ if (keyStart < 0 || keyEnd < 0) throw new Error('Could not find poster key funct
 const posterKeyFunction = String.raw`function renderPosterKey(svg,b,W,keyY){
   const y=keyY;
   const outerX=PAGE_MARGIN, outerW=W-PAGE_MARGIN*2;
-  const padX=30, padTop=40, gap=38;
-  const keyW=Math.round((outerW-gap)*.69), noteW=outerW-keyW-gap;
+  const padX=30, padTop=34, gap=38;
+  const keyW=Math.round((outerW-gap)*.48), noteW=outerW-keyW-gap;
   const macroIds=['primordial','night','titan','olympian'];
-  const colGap=22;
-  const colW=(keyW-padX*2-colGap*(macroIds.length-1))/macroIds.length;
-  const rowPitch=25;
-  const keyRowsTop=y+padTop+39;
   const keyG=makeSvg('g',{class:'poster-key'});
   keyG.append(makeSvg('line',{class:'poster-lower-rule',x1:outerX,y1:y,x2:outerX+outerW,y2:y}));
   svg.append(keyG);
   const headingFont="font-family: Georgia, 'Times New Roman', serif";
   const bodyFont='font-family:'+currentTypeface();
+  const keyHeading=makeSvg('text',{x:outerX+padX,y:y+padTop+10,class:'poster-key-note-head'});
+  keyHeading.textContent='Colour groups';
+  keyHeading.setAttribute('style',headingFont);
+  keyG.append(keyHeading);
   for(let ci=0;ci<macroIds.length;ci++){
-    const mid=macroIds[ci], def=MACRO_GROUPS[mid], x=outerX+padX+ci*(colW+colGap);
-    const head=makeSvg('text',{x,y:y+padTop+10,class:'poster-key-group'});
-    head.textContent=def.label;
-    head.setAttribute('style',headingFont);
-    keyG.append(head);
-    const owners=FAMILY_OWNER_ORDER.filter(gid=>familyMacroId(gid)===mid);
-    owners.forEach((gid,ri)=>{
-      const yy=keyRowsTop+ri*rowPitch;
-      keyG.append(makeSvg('circle',{cx:x+10,cy:yy-4.5,r:10.5,fill:def.color,stroke:'rgba(20,20,18,.10)','stroke-width':.7}));
-      const num=makeSvg('text',{x:x+10,y:yy-4.5,dy:'.35em','text-anchor':'middle',fill:'#fff','font-size':'10.5px','font-weight':'800'});
-      num.textContent=String(FAMILY_INDEX[gid]);
-      num.setAttribute('style',bodyFont+';dominant-baseline:auto');
-      keyG.append(num);
-      const name=makeSvg('text',{x:x+27.5,y:yy,class:'poster-key-row-name'});
-      name.textContent=people[gid].name;
-      name.setAttribute('style',bodyFont+';font-size:13px');
-      keyG.append(name);
-    });
+    const mid=macroIds[ci], def=MACRO_GROUPS[mid];
+    const col=ci%2, row=Math.floor(ci/2);
+    const x=outerX+padX+col*(keyW-padX*2)/2;
+    const yy=y+padTop+55+row*46;
+    keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));
+    const name=makeSvg('text',{x:x+39,y:yy,class:'poster-key-row-name'});
+    name.textContent=def.label;
+    name.setAttribute('style',bodyFont+';font-size:14px;font-weight:620');
+    keyG.append(name);
   }
   const noteX=outerX+keyW+gap, noteG=makeSvg('g',{class:'poster-note'});
-  noteG.append(makeSvg('line',{class:'poster-lower-divider',x1:noteX-gap/2,y1:y+26,x2:noteX-gap/2,y2:y+KEY_PANEL_H-12}));
+  noteG.append(makeSvg('line',{class:'poster-lower-divider',x1:noteX-gap/2,y1:y+24,x2:noteX-gap/2,y2:y+KEY_PANEL_H-12}));
   svg.append(noteG);
   const heading=makeSvg('text',{x:noteX+padX,y:y+padTop+10,class:'poster-key-note-head'});
-  heading.textContent='Collective beings stay collective';
+  heading.textContent='How to read the family map';
   heading.setAttribute('style',bodyFont);
   noteG.append(heading);
   const firstY=y+padTop+48;
-  const lines=wrapSvgText(noteG,'The extended map adds the divine races and grouped goddesses that shape the wars of succession and the rule of Olympus. Dashed boxes represent a named group rather than a single individual.',noteX+padX,firstY,noteW-padX*2,19,'poster-key-note',bodyFont);
-  const dividerY=firstY+Math.max(1,lines)*19+10;
+  noteG.append(makeSvg('circle',{cx:noteX+padX+10,cy:firstY-5,r:10.5,fill:'#555750',stroke:'rgba(20,20,18,.10)','stroke-width':.7}));
+  const parentMark=makeSvg('text',{x:noteX+padX+10,y:firstY-5,dy:'.35em','text-anchor':'middle',fill:'#fff','font-size':'10.5px','font-weight':'800'});
+  parentMark.textContent='P';
+  parentMark.setAttribute('style',bodyFont+';dominant-baseline:auto');
+  noteG.append(parentMark);
+  const lines=wrapSvgText(noteG,'marks a parent. The connected family region contains their direct children.',noteX+padX+31,firstY,noteW-padX*2-31,18,'poster-key-note',bodyFont);
+  const dividerY=firstY+Math.max(1,lines)*18+9;
   noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
-  wrapSvgText(noteG,'* Selected members appear inside collective boxes. Parentage varies across ancient sources. This prototype follows Hesiod where possible and marks alternative traditions in the interactive notes.',noteX+padX,dividerY+25,noteW-padX*2,15,'poster-key-note','font-family:'+currentTypeface()+';font-size:10.5px;font-weight:520;fill:#77746d');
+  const overlapLines=wrapSvgText(noteG,'Where two parent regions overlap, the enclosed figures are children of both. Darker fields show immediate families.',noteX+padX,dividerY+23,noteW-padX*2,17,'poster-key-note',bodyFont);
+  const footY=dividerY+23+Math.max(1,overlapLines)*17+12;
+  wrapSvgText(noteG,'* Dashed boxes represent named collectives. Parentage varies across ancient sources.',noteX+padX,footY,noteW-padX*2,14,'poster-key-note','font-family:'+currentTypeface()+';font-size:10.5px;font-weight:520;fill:#77746d');
 }
 `;
 html = html.slice(0, keyStart) + posterKeyFunction + html.slice(keyEnd);
