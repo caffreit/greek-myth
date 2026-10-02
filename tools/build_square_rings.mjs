@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 // A separate experiment derived from the current poster, including its genealogy.
 const source = await readFile('poster/layout_editor_greek_theogony_extended_v27_0.html', 'utf8');
+const savedLayout30 = JSON.parse(await readFile('data/layout30.json', 'utf8'));
 const people = JSON.parse(source.match(/const PEOPLE_RAW = (.*);\nconst INITIAL_LAYOUT/)[1]);
 const original = JSON.parse(source.match(/const INITIAL_LAYOUT = (.*);\nconst STYLES/)[1]);
 const sourceStyles = JSON.parse(source.match(/const STYLES = (.*);\nconst MACRO_GROUPS/)[1]);
@@ -122,7 +123,7 @@ function minimumCostAssignment(costs){
 }
 
 const layout15Bands=ringBands;
-const initialLevelBounds=ringBands.map(({outer})=>({left:-outer,right:outer,top:-outer,bottom:outer}));
+const initialLevelBounds=structuredClone(savedLayout30.level_bounds);
 for(let level=0;level<levels.length;level++){
   const ids=levels[level],sourceBand=layout15Bands[level],targetBand=ringBands[level];
   const desired=ids.map(id=>{
@@ -155,7 +156,18 @@ for(let level=0;level<levels.length;level++){
   }else assignment=minimumCostAssignment(costs);
   ids.forEach((id,index)=>Object.assign(nodes[id],slots[level][assignment[index]]));
 }
-const projectedLayout15=structuredClone(nodes);
+const savedIds=Object.keys(savedLayout30.nodes||{}),expectedIds=people.map(person=>person.id);
+const missingSavedIds=expectedIds.filter(id=>!savedLayout30.nodes?.[id]);
+const unknownSavedIds=savedIds.filter(id=>!byId[id]);
+if(missingSavedIds.length||unknownSavedIds.length)throw new Error(`layout30 coordinate mismatch. Missing: ${missingSavedIds.join(', ')}; unknown: ${unknownSavedIds.join(', ')}`);
+if(!Array.isArray(initialLevelBounds)||initialLevelBounds.length!==levels.length)throw new Error('layout30 has invalid level_bounds');
+for(const id of expectedIds)Object.assign(nodes[id],savedLayout30.nodes[id]);
+const inside=(point,bounds)=>point.x>=bounds.left&&point.x<=bounds.right&&point.y>=bounds.top&&point.y<=bounds.bottom;
+for(const id of expectedIds){
+  const level=depths[id],point=nodes[id];
+  if(!inside(point,initialLevelBounds[level])||(level>0&&inside(point,initialLevelBounds[level-1])))throw new Error(`${id} from layout30 is outside level ${level}`);
+}
+const projectedLayout30=structuredClone(nodes);
 score=cost();
 const occupied = new Set();
 for(const p of people) {
@@ -166,7 +178,7 @@ for(const p of people) {
     if(depths[rel.parent_id]>=depths[p.id]) throw new Error(`Ancestry reversal: ${p.id}`);
   }
 }
-const layout={...original,nodes,pinned_ids:[],grid:{origin_id:'chaos',x_min:-radii.at(-1),x_max:radii.at(-1),y_min:-radii.at(-1),y_max:radii.at(-1)}};
+const layout={...original,nodes,pinned_ids:[...(savedLayout30.pinned_ids||[])],grid:{...savedLayout30.grid},level_bounds:structuredClone(initialLevelBounds)};
 let html=source.replace(/const INITIAL_LAYOUT = .*;\nconst STYLES/,`const INITIAL_LAYOUT = ${JSON.stringify(layout)};\nconst STYLES`);
 const extraFamilyStyles={oceanus:{color:'#587899'},tethys:{color:'#7865a0'},crius:{color:'#645696'},phoebe:{color:'#815f9d'},mnemosyne:{color:'#7254a2'},themis:{color:'#8b639a'}};
 const squareStyles={...sourceStyles,...extraFamilyStyles};
@@ -350,10 +362,10 @@ function routingApi(currentScript){
 
 // Compression can box a family owner between unrelated occupied cells. Repair
 // only when the real router fails, and choose the valid same-level move or swap
-// with the least total displacement from the projected layout15 arrangement.
+// with the least total displacement from the saved layout30 arrangement.
 let api=routingApi(script),failures=api.inspect(nodes);
 const repairMoves=[];
-const displacement=layout=>Object.keys(layout).reduce((sum,id)=>sum+Math.abs(layout[id].x-projectedLayout15[id].x)+Math.abs(layout[id].y-projectedLayout15[id].y),0);
+const displacement=layout=>Object.keys(layout).reduce((sum,id)=>sum+Math.abs(layout[id].x-projectedLayout30[id].x)+Math.abs(layout[id].y-projectedLayout30[id].y),0);
 for(let pass=0;failures.length&&pass<12;pass++){
   const failedOwners=failures.filter(failure=>byId[failure.id]);
   const members=new Set(failedOwners.flatMap(failure=>[failure.id,...people.filter(person=>(person.relations||[]).some(relation=>relation.boundary_include&&relation.parent_id===failure.id)).map(person=>person.id)]));
@@ -395,5 +407,5 @@ api=routingApi(script);
 const fields=api.fields(nodes);
 await writeFile('poster/layout_editor_square_rings.html',html);
 await writeFile('data/layout.square_rings.json',JSON.stringify(layout,null,2)+'\n');
-await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout15.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
-console.log(`Built square-ring experiment from layout15: ${people.length} figures, level widths ${levelWidths.join('/')}, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);
+await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout30.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
+console.log(`Built square-ring experiment from layout30: ${people.length} figures, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);

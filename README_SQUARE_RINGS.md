@@ -18,7 +18,7 @@ node tools/analyze_boundary_layout.mjs data/layout20.json poster/layout_editor_s
 
 The report counts geometric crossing points and pairs of overlapping regions. It also checks whether an imported layout obeys the square-ring placement rule. A crossing count is an achieved value for that layout, not a proof of the minimum.
 
-The generator places all 79 figures in six concentric square levels. It starts with `layout15.json`, then checks collisions, outward ancestry, JavaScript syntax and successful routing of all 33 family fields before writing the experiment.
+The generator places all 79 figures in six concentric square levels. It starts with `data/layout30.json`, including its resized level boundaries, then checks collisions, outward ancestry, JavaScript syntax and successful routing of all 33 family fields before writing the experiment.
 
 Leto, Maia, Metis and Semele share Zeus's level; Clymene shares Iapetus's level. These are explicit layout assumptions because their ancestry is missing in the current dataset. They add no genealogy. Alternative parent traditions excluded from the visible boundaries do not determine the rings.
 
