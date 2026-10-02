@@ -193,29 +193,20 @@ const RING_BANDS=Object.freeze(${JSON.stringify(ringBands)});
 const LEVEL_NAMES=Object.freeze(${JSON.stringify(levelNames)});
 const INITIAL_LEVEL_BOUNDS=Object.freeze(${JSON.stringify(initialLevelBounds)});
 let levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);
-function insideLevelBoundary(x,y,bounds){
-  return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;
-}
-function belongsToLevel(level,x,y,bounds=levelBounds){
-  return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));
-}
+function insideLevelBoundary(x,y,bounds){return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;}
+function belongsToLevel(level,x,y,bounds=levelBounds){return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));}
 function validateLevelBounds(bounds,layout=nodes){
   if(!Array.isArray(bounds)||bounds.length!==LEVEL_NAMES.length)throw new Error('Invalid level_bounds field');
   for(let level=0;level<bounds.length;level++){
     const edge=bounds[level];
     if(!edge||!['left','right','top','bottom'].every(side=>Number.isInteger(edge[side])))throw new Error('Level '+level+' boundaries must use whole grid cells');
     if(edge.left>edge.right||edge.top>edge.bottom)throw new Error('Level '+level+' has an inverted boundary');
-    if(level){
-      const inner=bounds[level-1];
-      if(edge.left>=inner.left||edge.right<=inner.right||edge.top>=inner.top||edge.bottom<=inner.bottom)
-        throw new Error('Level '+level+' must remain at least one square outside level '+(level-1));
-    }
+    if(level){const inner=bounds[level-1];if(edge.left>=inner.left||edge.right<=inner.right||edge.top>=inner.top||edge.bottom<=inner.bottom)throw new Error('Level '+level+' must remain at least one square outside level '+(level-1));}
   }
   for(const [id,n] of Object.entries(layout)){
     const level=ANCESTRY_LEVELS[id];
     if(level===undefined)throw new Error('Unknown figure: '+id);
-    if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))
-      throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
+    if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
   }
   return bounds;
 }
@@ -270,8 +261,7 @@ html=html.replace('  // nodes\n',`  // Square contours mark ancestry depth, not 
     if(index>0&&index<levelBounds.length-1){
       for(const [side,hx,hy] of [['top',x+width/2,y],['right',x+width,y+height/2],['bottom',x+width/2,y+height],['left',x,y+height/2]]){
         const handle=makeSvg('circle',{cx:hx,cy:hy,r:12,class:'ring-guide ring-handle handle-'+side,'data-level':index,'data-side':side,tabindex:0,role:'button','aria-label':'Resize level '+index+' '+side+' boundary'});
-        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));
-        svg.append(handle);
+        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));svg.append(handle);
       }
     }
   });
@@ -282,17 +272,15 @@ html=html.replace('</style>',`/* Fit the complete poster width on initial load; 
 .ring-guide{pointer-events:none}
 .ring-handle{pointer-events:all;fill:#fffefa;stroke:#55564f;stroke-width:2;opacity:.9}
 .ring-handle:hover,.ring-handle:focus{fill:#55564f;stroke:#fffefa;outline:none}
-.handle-top,.handle-bottom{cursor:ns-resize}
-.handle-left,.handle-right{cursor:ew-resize}
+.handle-top,.handle-bottom{cursor:ns-resize}.handle-left,.handle-right{cursor:ew-resize}
 #ringAssignment{position:fixed;bottom:48px;left:14px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;pointer-events:none}
 .status{position:fixed;z-index:20;max-width:calc(100vw - 50px)}
 .experiment-controls{position:fixed;top:10px;left:10px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;display:flex;gap:12px}
 .layout-controls{position:fixed;top:10px;right:10px;z-index:20;display:flex;gap:8px;background:#fffefa;padding:6px;border:1px solid #d6d1c7;border-radius:8px}
 @media(max-width:650px){.layout-controls{top:54px}}
-.hide-parent-marks .family-badge{display:none}
 .hide-ring-guides .ring-guide{display:none}
 </style>`);
-html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-parent-marks',!this.checked)"> P badges</label><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
+html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
 // Move the existing controls out of the hidden development toolbar. Keeping
 // their IDs preserves the original save/import handlers and keyboard shortcuts.
 const saveControl='<button id="saveBtn">Save layout JSON</button>';
@@ -301,10 +289,23 @@ if(!html.includes(saveControl)||!html.includes(importControl)) throw new Error('
 html=html.replace(saveControl,'').replace(importControl,'');
 html=html.replace('<body>',`<body><div class="layout-controls" aria-label="Layout files">${saveControl}${importControl}</div>`);
 html=html.replace('<body>','<body><div id="ringAssignment" role="status"></div>');
+html=html.replace('      <select id="parentCueMode"><option value="numbers" selected>P · parent marker</option></select>\n','');
 html=html.replace('centerOnChaos();prepareExportBuffer();','prepareExportBuffer();');
 html=html.replace('restoreAutoSave();buildLegend();','buildLegend();');
 html=html.replace('Where two parent regions overlap, the enclosed figures are children of both. Darker fields show immediate families.','Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.');
 html=html.replace('* Dashed boxes represent named collectives. Parentage varies across ancient sources.','* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Dashed boxes are collectives.');
+replaceRequired("  const parentCueMode=document.getElementById('parentCueMode')?.value || 'numbers';\n  const familyMarkerMode=parentCueMode==='numbers'?'numbers':'off';",
+  "  const familyMarkerMode='off';");
+const markerHelpers=html;
+html=html.replace(/function familyMarkerAnchor[\s\S]*?(?=function masksOverlap)/,'');
+if(html===markerHelpers)throw new Error('Missing family marker helpers');
+replaceRequired(`  noteG.append(makeSvg('circle',{cx:noteX+padX+10,cy:firstY-5,r:10.5,fill:'#555750',stroke:'rgba(20,20,18,.10)','stroke-width':.7}));
+  const parentMark=makeSvg('text',{x:noteX+padX+10,y:firstY-5,dy:'.35em','text-anchor':'middle',fill:'#fff','font-size':'10.5px','font-weight':'800'});
+  parentMark.textContent='P';
+  parentMark.setAttribute('style',bodyFont+';dominant-baseline:auto');
+  noteG.append(parentMark);
+  const lines=wrapSvgText(noteG,'marks a parent. The connected family region contains their direct children.',noteX+padX+31,firstY,noteW-padX*2-31,18,'poster-key-note',bodyFont);`,
+  `  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,18,'poster-key-note',bodyFont);`);
 replaceRequired('function snapshotState(){return {nodes:structuredClone(nodes),pinned:[...pinnedIds]};}',
   'function snapshotState(){return {nodes:structuredClone(nodes),pinned:[...pinnedIds],levelBounds:structuredClone(levelBounds)};}');
 replaceRequired('  if(s && s.nodes){nodes=structuredClone(s.nodes);pinnedIds=new Set(s.pinned||[]);}\n  else{nodes=structuredClone(s);}',
@@ -317,38 +318,25 @@ replaceRequired("  const transient=['selected','hover','parent','child','dim','e
   "  clone.querySelectorAll('.ring-handle').forEach(el=>el.remove());\n  const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];");
 replaceRequired("svg.addEventListener('pointermove',e=>{\n  if(!drag) return;",`let boundaryDrag=null;
 function beginBoundaryDrag(e,level,side){
-  if(optimizing)return;
-  e.preventDefault();e.stopPropagation();
+  if(optimizing)return;e.preventDefault();e.stopPropagation();
   boundaryDrag={level,side,startX:e.clientX,startY:e.clientY,startBounds:structuredClone(levelBounds),before:snapshotState(),moved:false,lastDelta:null};
-  svg.setPointerCapture(e.pointerId);
-  setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
+  svg.setPointerCapture(e.pointerId);setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
 }
 svg.addEventListener('pointermove',e=>{
   if(!boundaryDrag)return;
   const rect=svg.getBoundingClientRect(),sx=svg.viewBox.baseVal.width/rect.width,sy=svg.viewBox.baseVal.height/rect.height;
   const horizontal=boundaryDrag.side==='left'||boundaryDrag.side==='right';
-  const delta=Math.round((horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H));
+  const delta=Math.round(horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H);
   if(delta===boundaryDrag.lastDelta)return;
-  const previousBounds=levelBounds;
-  boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
-  try{
-    levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);
-    boundaryDrag.moved=delta!==0;render();updateSidebar();
-    setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');
-  }catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
+  const previousBounds=levelBounds;boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
+  try{levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);boundaryDrag.moved=delta!==0;render();updateSidebar();setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');}
+  catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
 });
 svg.addEventListener('pointerup',e=>{
-  if(!boundaryDrag)return;
-  e.preventDefault();e.stopPropagation();
-  const change=boundaryDrag;boundaryDrag=null;
-  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}
-  else setStatus('Boundary unchanged.');
-  render();updateSidebar();
+  if(!boundaryDrag)return;e.preventDefault();e.stopPropagation();const change=boundaryDrag;boundaryDrag=null;
+  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}else setStatus('Boundary unchanged.');render();updateSidebar();
 });
-svg.addEventListener('pointercancel',()=>{
-  if(!boundaryDrag)return;
-  restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');
-});
+svg.addEventListener('pointercancel',()=>{if(!boundaryDrag)return;restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');});
 svg.addEventListener('pointermove',e=>{
   if(!drag) return;`);
 let script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];

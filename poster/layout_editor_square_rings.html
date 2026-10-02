@@ -91,18 +91,16 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 .ring-guide{pointer-events:none}
 .ring-handle{pointer-events:all;fill:#fffefa;stroke:#55564f;stroke-width:2;opacity:.9}
 .ring-handle:hover,.ring-handle:focus{fill:#55564f;stroke:#fffefa;outline:none}
-.handle-top,.handle-bottom{cursor:ns-resize}
-.handle-left,.handle-right{cursor:ew-resize}
+.handle-top,.handle-bottom{cursor:ns-resize}.handle-left,.handle-right{cursor:ew-resize}
 #ringAssignment{position:fixed;bottom:48px;left:14px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;pointer-events:none}
 .status{position:fixed;z-index:20;max-width:calc(100vw - 50px)}
 .experiment-controls{position:fixed;top:10px;left:10px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;display:flex;gap:12px}
 .layout-controls{position:fixed;top:10px;right:10px;z-index:20;display:flex;gap:8px;background:#fffefa;padding:6px;border:1px solid #d6d1c7;border-radius:8px}
 @media(max-width:650px){.layout-controls{top:54px}}
-.hide-parent-marks .family-badge{display:none}
 .hide-ring-guides .ring-guide{display:none}
 </style>
 </head>
-<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-parent-marks',!this.checked)"> P badges</label><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
+<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
 <div class="app">
   <div class="toolbar">
     <div class="title">Greek theogony, extended · poster design V27.0 <span style="font-size:10px;color:#777;font-weight:650;letter-spacing:.04em">SHAREABLE SVG EXPORT</span></div>
@@ -134,7 +132,6 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
       <span id="setbackScaleVal">0.00×</span>
       <input id="cornerRadius" type="range" value="17">
       <span id="cornerRadiusVal">17</span>
-      <select id="parentCueMode"><option value="numbers" selected>P · parent marker</option></select>
       <select id="textTreatment"><option value="a" selected>A · soft halo</option></select>
       <select id="typefaceMode"><option value="grotesk" selected>clean sans</option></select>
       <input id="showPosterKey" type="checkbox" checked>
@@ -631,31 +628,6 @@ function pathStringForMask(mask,b){
   return loops.map(loop=>cornerPath(loop,b)).join(' ');
 }
 function familyMacroId(gid){ return MEMBER_TO_MACRO[gid] || 'primordial'; }
-function familyMarkerAnchor(gid, layout=nodes, b=layoutBounds()){
-  const n=layout[gid];
-  const [cx,cy]=cellToPx(n.x,n.y,b);
-  const x=cx+CELL_W-NODE_INSET_X-10;
-  const y=cy+NODE_INSET_Y+10;
-  return {x,y};
-}
-function makeFamilyBadge(gid,b){
-  const a=familyMarkerAnchor(gid,nodes,b);
-  const mid=familyMacroId(gid), badgeColor=(MACRO_GROUPS[mid]||MACRO_GROUPS.primordial).color;
-  const g=makeSvg('g',{class:'family-marker family-badge','data-group':gid,transform:`translate(${a.x},${a.y})`});
-  g.append(makeSvg('circle',{cx:0,cy:0,r:10.5,fill:badgeColor}), makeSvg('text',{x:0,y:0,dy:'.35em','dominant-baseline':'auto'}));
-  g.lastChild.textContent='P';
-  return g;
-}
-function makeFamilyPill(gid,b){
-  const a=familyMarkerAnchor(gid,nodes,b);
-  const label=people[gid].name.toUpperCase();
-  const width=Math.max(44, label.length*6.6 + 16), height=18;
-  const g=makeSvg('g',{class:'family-marker family-pill','data-group':gid,transform:`translate(${a.x-width/2},${a.y-28})`});
-  g.append(makeSvg('rect',{x:0,y:0,width:width,height:height,rx:9,ry:9}), makeSvg('text',{x:width/2,y:height/2+0.5}));
-  g.lastChild.textContent=label;
-  return g;
-}
-
 function masksOverlap(a,b){
   const small=a.size<=b.size?a:b, large=a.size<=b.size?b:a;
   for(const k of small) if(large.has(k)) return true;
@@ -1181,29 +1153,20 @@ const RING_BANDS=Object.freeze([{"inner":0,"outer":0},{"inner":1,"outer":1},{"in
 const LEVEL_NAMES=Object.freeze(["Origin","Primordials","Primordial children","Titans and contemporaries","Olympians and younger Titans","Olympian children and contemporaries"]);
 const INITIAL_LEVEL_BOUNDS=Object.freeze([{"left":0,"right":0,"top":0,"bottom":0},{"left":-1,"right":1,"top":-1,"bottom":1},{"left":-2,"right":2,"top":-2,"bottom":2},{"left":-4,"right":4,"top":-4,"bottom":4},{"left":-6,"right":6,"top":-6,"bottom":6},{"left":-8,"right":8,"top":-8,"bottom":8}]);
 let levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);
-function insideLevelBoundary(x,y,bounds){
-  return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;
-}
-function belongsToLevel(level,x,y,bounds=levelBounds){
-  return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));
-}
+function insideLevelBoundary(x,y,bounds){return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;}
+function belongsToLevel(level,x,y,bounds=levelBounds){return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));}
 function validateLevelBounds(bounds,layout=nodes){
   if(!Array.isArray(bounds)||bounds.length!==LEVEL_NAMES.length)throw new Error('Invalid level_bounds field');
   for(let level=0;level<bounds.length;level++){
     const edge=bounds[level];
     if(!edge||!['left','right','top','bottom'].every(side=>Number.isInteger(edge[side])))throw new Error('Level '+level+' boundaries must use whole grid cells');
     if(edge.left>edge.right||edge.top>edge.bottom)throw new Error('Level '+level+' has an inverted boundary');
-    if(level){
-      const inner=bounds[level-1];
-      if(edge.left>=inner.left||edge.right<=inner.right||edge.top>=inner.top||edge.bottom<=inner.bottom)
-        throw new Error('Level '+level+' must remain at least one square outside level '+(level-1));
-    }
+    if(level){const inner=bounds[level-1];if(edge.left>=inner.left||edge.right<=inner.right||edge.top>=inner.top||edge.bottom<=inner.bottom)throw new Error('Level '+level+' must remain at least one square outside level '+(level-1));}
   }
   for(const [id,n] of Object.entries(layout)){
     const level=ANCESTRY_LEVELS[id];
     if(level===undefined)throw new Error('Unknown figure: '+id);
-    if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))
-      throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
+    if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
   }
   return bounds;
 }
@@ -1297,8 +1260,7 @@ function render(){
   // only as a neutral darkening layer so generation remains dominant.
   const showFamilies=document.getElementById('showFamilies')?.checked !== false;
   const familyOpacity=parseFloat(document.getElementById('familyOpacity')?.value || '0.40');
-  const parentCueMode=document.getElementById('parentCueMode')?.value || 'numbers';
-  const familyMarkerMode=parentCueMode==='numbers'?'numbers':'off';
+  const familyMarkerMode='off';
   if(showFamilies){
     const setbackInfo=computeFamilySetbackLevels(masks);
     const familyOrder=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);
@@ -1355,8 +1317,7 @@ function render(){
     if(index>0&&index<levelBounds.length-1){
       for(const [side,hx,hy] of [['top',x+width/2,y],['right',x+width,y+height/2],['bottom',x+width/2,y+height],['left',x,y+height/2]]){
         const handle=makeSvg('circle',{cx:hx,cy:hy,r:12,class:'ring-guide ring-handle handle-'+side,'data-level':index,'data-side':side,tabindex:0,role:'button','aria-label':'Resize level '+index+' '+side+' boundary'});
-        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));
-        svg.append(handle);
+        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));svg.append(handle);
       }
     }
   });
@@ -1445,38 +1406,25 @@ function beginDrag(e,id){
 }
 let boundaryDrag=null;
 function beginBoundaryDrag(e,level,side){
-  if(optimizing)return;
-  e.preventDefault();e.stopPropagation();
+  if(optimizing)return;e.preventDefault();e.stopPropagation();
   boundaryDrag={level,side,startX:e.clientX,startY:e.clientY,startBounds:structuredClone(levelBounds),before:snapshotState(),moved:false,lastDelta:null};
-  svg.setPointerCapture(e.pointerId);
-  setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
+  svg.setPointerCapture(e.pointerId);setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
 }
 svg.addEventListener('pointermove',e=>{
   if(!boundaryDrag)return;
   const rect=svg.getBoundingClientRect(),sx=svg.viewBox.baseVal.width/rect.width,sy=svg.viewBox.baseVal.height/rect.height;
   const horizontal=boundaryDrag.side==='left'||boundaryDrag.side==='right';
-  const delta=Math.round((horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H));
+  const delta=Math.round(horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H);
   if(delta===boundaryDrag.lastDelta)return;
-  const previousBounds=levelBounds;
-  boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
-  try{
-    levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);
-    boundaryDrag.moved=delta!==0;render();updateSidebar();
-    setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');
-  }catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
+  const previousBounds=levelBounds;boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
+  try{levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);boundaryDrag.moved=delta!==0;render();updateSidebar();setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');}
+  catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
 });
 svg.addEventListener('pointerup',e=>{
-  if(!boundaryDrag)return;
-  e.preventDefault();e.stopPropagation();
-  const change=boundaryDrag;boundaryDrag=null;
-  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}
-  else setStatus('Boundary unchanged.');
-  render();updateSidebar();
+  if(!boundaryDrag)return;e.preventDefault();e.stopPropagation();const change=boundaryDrag;boundaryDrag=null;
+  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}else setStatus('Boundary unchanged.');render();updateSidebar();
 });
-svg.addEventListener('pointercancel',()=>{
-  if(!boundaryDrag)return;
-  restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');
-});
+svg.addEventListener('pointercancel',()=>{if(!boundaryDrag)return;restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');});
 svg.addEventListener('pointermove',e=>{
   if(!drag) return;
   const rect=svg.getBoundingClientRect(), b=layoutBounds();
@@ -1740,12 +1688,7 @@ function renderPosterKey(svg,b,W,keyY){
   heading.setAttribute('style',bodyFont);
   noteG.append(heading);
   const firstY=y+padTop+48;
-  noteG.append(makeSvg('circle',{cx:noteX+padX+10,cy:firstY-5,r:10.5,fill:'#555750',stroke:'rgba(20,20,18,.10)','stroke-width':.7}));
-  const parentMark=makeSvg('text',{x:noteX+padX+10,y:firstY-5,dy:'.35em','text-anchor':'middle',fill:'#fff','font-size':'10.5px','font-weight':'800'});
-  parentMark.textContent='P';
-  parentMark.setAttribute('style',bodyFont+';dominant-baseline:auto');
-  noteG.append(parentMark);
-  const lines=wrapSvgText(noteG,'marks a parent. The connected family region contains their direct children.',noteX+padX+31,firstY,noteW-padX*2-31,18,'poster-key-note',bodyFont);
+  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,18,'poster-key-note',bodyFont);
   const dividerY=firstY+Math.max(1,lines)*18+9;
   noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
   const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.',noteX+padX,dividerY+23,noteW-padX*2,17,'poster-key-note',bodyFont);

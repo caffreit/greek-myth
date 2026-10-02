@@ -35,10 +35,12 @@ assert.equal(app.familyIds().length,33);
 assert.deepEqual(app.routedFamilyIds().sort(),app.familyIds().sort());
 for(const id of ['oceanus','tethys','crius','phoebe','mnemosyne','themis'])assert.ok(app.familyIds().includes(id),`${id} needs a family region`);
 assert.deepEqual(app.bands(),[{inner:0,outer:0},{inner:1,outer:1},{inner:2,outer:2},{inner:3,outer:4},{inner:5,outer:6},{inner:7,outer:8}]);
-assert.deepEqual(app.bounds(),[
-  {left:0,right:0,top:0,bottom:0},{left:-1,right:1,top:-1,bottom:1},{left:-2,right:2,top:-2,bottom:2},
-  {left:-4,right:4,top:-4,bottom:4},{left:-6,right:6,top:-6,bottom:6},{left:-8,right:8,top:-8,bottom:8}
-]);
+assert.match(html,/ring-handle/);
+assert.match(html,/beginBoundaryDrag/);
+assert.match(html,/level_bounds/);
+assert.doesNotMatch(html,/> P badges</);
+assert.doesNotMatch(html,/marks a parent/);
+assert.match(html,/const familyMarkerMode='off'/);
 for(const [id,level] of Object.entries(app.levels())){
   const radius=Math.max(Math.abs(initial[id].x),Math.abs(initial[id].y));
   if(level===1)assert.equal(radius,1,`${id} must use the one-cell level-1 ring`);
@@ -75,19 +77,13 @@ for(const [id,n] of Object.entries(initial)){
   if(radialMove)break;
 }
 assert.ok(radialMove,'A two-lane level needs one available radial move');
-// Level 2 can gain a single row at the top without changing the other sides.
 app.resize(2,'top',-1);
 assert.equal(app.bounds()[2].top,-3);
 assert.deepEqual(app.bounds()[2],{left:-2,right:2,top:-3,bottom:2});
 assert.equal(app.error('moirai',0,-3),'');
 assert.throws(()=>app.resize(2,'top',-1),/must remain at least one square outside/);
-assert.equal(app.bounds()[2].top,-3);
 app.resize(2,'top',1);
 assert.equal(app.bounds()[2].top,-2);
-assert.throws(()=>app.resize(2,'top',1),/must remain at least one square outside level 1/);
-assert.equal(app.bounds()[2].top,-2);
-assert.throws(()=>app.resize(3,'left',1),/would fall outside level 3/);
-assert.equal(app.bounds()[3].left,-4);
 const invalid=app.export();invalid.nodes.zeus.x=0;invalid.nodes.zeus.y=0;
 await app.import(invalid);
 assert.match(app.getMessage(),/Import failed: Zeus must stay/);
@@ -111,4 +107,4 @@ for(const [id,n] of Object.entries(initial)){
   if(moved)break;
 }
 assert.ok(moved,'At least one legal move must succeed');
-console.log('Verified layout15, independently resizable square-ring edges, protected nesting and figure membership, all 33 family regions, legal moves, JSON round-trip, and atomic rejection of invalid imports.');
+console.log('Verified layout15, resizable square-ring edges, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');

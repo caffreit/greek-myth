@@ -1,6 +1,6 @@
 # Square-ring experiment
 
-Open `poster/layout_editor_square_rings.html` directly in a browser, or through the local preview server. The top-left switches hide the P badges or the ring guides; the link returns to the current V27 poster. Browser zoom enlarges names for inspection.
+Open `poster/layout_editor_square_rings.html` directly in a browser, or through the local preview server. The top-left switch hides the ring guides; the link returns to the current V27 poster. Browser zoom enlarges names for inspection.
 
 Rebuild from the current V27 HTML:
 
@@ -24,9 +24,9 @@ Leto, Maia, Metis and Semele share Zeus's level; Clymene shares Iapetus's level.
 
 The rings express ancestry depth, not dates or the colour classifications. Some parent-child connections skip rings because the child must be outside both parents. All 33 figures used as visible parents receive fields, including Oceanus, Tethys, Crius, Phoebe, Mnemosyne and Themis.
 
-Editing is level-locked. Levels 1 and 2 begin one cell deep; Levels 3, 4 and 5 begin two cells deep. Dragging and arrow keys can move a figure within its assigned level, never to another ancestry level. The four dots on an intermediate boundary resize its top, right, bottom or left edge independently. Edges snap to whole grid squares. A change is refused if it crosses the next boundary or strands an assigned figure. This makes it possible, for example, to add one row to the top of Level 2 without enlarging its other three sides.
+Editing is level-locked. Levels 1 and 2 begin one cell deep. Levels 3, 4 and 5 begin two cells deep. Dragging and arrow keys can move a figure within its assigned level, never to another ancestry level. Four handles resize the top, right, bottom or left edge of each intermediate ring. Edges snap to whole grid squares and cannot cross an adjacent ring or strand an assigned figure.
 
-The six provisional labels describe mixed ancestry cohorts, not exclusive deity classes. Optimizer candidates obey the same assignments. Save layout JSON and Import layout remain at the top right. Saved files include `level_bounds`, so custom contours survive a round trip. Imports with invalid boundaries, off-level figures, collisions, missing figures or unknown IDs are rejected before replacing the current layout. Older layout files without `level_bounds` use the packaged square boundaries.
+The six provisional labels describe mixed ancestry cohorts, not exclusive deity classes. Optimizer candidates obey the same assignments. Save layout JSON and Import layout remain at the top right. Saved files include `level_bounds`, so resized rings survive export and import. Imports with invalid boundaries, off-level figures, collisions, missing figures or unknown IDs are rejected before replacing the current layout.
 
 Generated coordinates are in `data/layout.square_rings.json`. Placement assumptions and per-figure depths are recorded in `data/square_rings_report.json`. The original V27 poster and its layout remain separate. The experiment starts from its generated layout rather than restoring browser autosaves.
 
