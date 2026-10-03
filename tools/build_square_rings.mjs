@@ -180,8 +180,30 @@ for(const p of people) {
 }
 const layout={...original,nodes,pinned_ids:[...(savedLayout30.pinned_ids||[])],grid:{...savedLayout30.grid},level_bounds:structuredClone(initialLevelBounds)};
 let html=source.replace(/const INITIAL_LAYOUT = .*;\nconst STYLES/,`const INITIAL_LAYOUT = ${JSON.stringify(layout)};\nconst STYLES`);
+// Selected family routes, inspired by the companion metro map. Each owner has
+// one route colour; overlapping parent regions still show shared ancestry.
+const branchGroups={
+  origins:{label:'Origins',color:'#8C607D',setback:4,members:['chaos','eros','tartarus']},
+  primordial:{label:'Earth & sky',color:'#D94E64',setback:4,members:['cronus','gaia','uranus','ourea','aphrodite']},
+  monsters:{label:'Giants & monsters',color:'#596C78',setback:5,members:['echidna','typhon','hecatoncheires','elder_cyclopes','gigantes']},
+  night:{label:'Night & underworld',color:'#D8A21B',setback:8,members:['erebus','nyx','aether','hemera','charon','hypnos','thanatos','moros','erinyes','moirai','keres','nemesis','eris','hesperides']},
+  sea:{label:'Sea',color:'#258B9B',setback:5,members:['pontus','thaumas','phorcys','ceto','nereus','eurybia']},
+  ocean:{label:'Ocean & nymphs',color:'#3265A8',setback:6,members:['oceanus','tethys','doris','nereids','eurynome','charites']},
+  light:{label:'Sun, moon & dawn',color:'#BD5875',setback:7,members:['hyperion','theia','helios','selene','eos']},
+  iapetus:{label:'Prometheus & Atlas',color:'#735BCB',setback:7,members:['iapetus','clymene','atlas','prometheus','epimetheus']},
+  hecate:{label:'Magic & prophecy',color:'#667E4C',setback:7,members:['crius','coeus','phoebe','perses','asteria','hecate']},
+  olympian:{label:'Olympians',color:'#E8793F',setback:9,members:['rhea','themis','mnemosyne','hestia','demeter','hera','hades','poseidon','zeus','athena','metis','ares','hebe','persephone','hephaestus','apollo','artemis','leto','hermes','maia','dionysus','semele','muses','horae']}
+};
+const branchMembers=Object.values(branchGroups).flatMap(group=>group.members);
+if(branchMembers.length!==people.length||new Set(branchMembers).size!==people.length||expectedIds.some(id=>!branchMembers.includes(id)))throw new Error('Family routes must cover every figure exactly once');
+const branchFor=Object.fromEntries(Object.entries(branchGroups).flatMap(([branch,group])=>group.members.map(id=>[id,branch])));
+html=html.replace(/const MACRO_GROUPS = [\s\S]*?;\n\n\nconst PALETTES/,`const MACRO_GROUPS = ${JSON.stringify(branchGroups,null,2)};\n\n\nconst PALETTES`);
+const routeColors=Object.fromEntries(Object.entries(branchGroups).map(([id,group])=>[id,group.color]));
+function softenedColors(amount){return Object.fromEntries(Object.entries(routeColors).map(([id,color])=>[id,id==='night'?color:'#'+[1,3,5].map(start=>Math.round(parseInt(color.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('')]));}
+const routePalettes={jewel:{label:'Family routes',colors:routeColors},editorial:{label:'Soft family routes',colors:softenedColors(.2)},fresco:{label:'Pale family routes',colors:softenedColors(.35)}};
+html=html.replace(/const PALETTES = [\s\S]*?;\nconst TYPEFACE_STACKS/,`const PALETTES = ${JSON.stringify(routePalettes,null,2)};\nconst TYPEFACE_STACKS`);
 const extraFamilyStyles={oceanus:{color:'#587899'},tethys:{color:'#7865a0'},crius:{color:'#645696'},phoebe:{color:'#815f9d'},mnemosyne:{color:'#7254a2'},themis:{color:'#8b639a'}};
-const squareStyles={...sourceStyles,...extraFamilyStyles};
+const squareStyles=Object.fromEntries(Object.entries({...sourceStyles,...extraFamilyStyles}).map(([id,style])=>[id,{...style,color:branchGroups[branchFor[id]].color}]));
 const visibleParents=[...new Set(people.flatMap(person=>(person.relations||[]).filter(relation=>relation.boundary_include).map(relation=>relation.parent_id)))];
 const missingStyles=visibleParents.filter(id=>!squareStyles[id]);
 if(missingStyles.length)throw new Error(`Visible parents without family styles: ${missingStyles.join(', ')}`);
@@ -205,6 +227,10 @@ const RING_BANDS=Object.freeze(${JSON.stringify(ringBands)});
 const LEVEL_NAMES=Object.freeze(${JSON.stringify(levelNames)});
 const INITIAL_LEVEL_BOUNDS=Object.freeze(${JSON.stringify(initialLevelBounds)});
 let levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);
+function ringGuideRect(edge,b){
+  const [x,y]=cellToPx(edge.left,edge.top,b);
+  return {x,y,width:(edge.right-edge.left+1)*CELL_W,height:(edge.bottom-edge.top+1)*CELL_H};
+}
 function insideLevelBoundary(x,y,bounds){return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;}
 function belongsToLevel(level,x,y,bounds=levelBounds){return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));}
 function validateLevelBounds(bounds,layout=nodes){
@@ -221,12 +247,6 @@ function validateLevelBounds(bounds,layout=nodes){
     if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
   }
   return bounds;
-}
-function resizedLevelBounds(level,side,delta,layout=nodes){
-  if(!Number.isInteger(level)||level<=0||level>=levelBounds.length-1)throw new Error('That boundary is fixed');
-  if(!['left','right','top','bottom'].includes(side)||!Number.isInteger(delta))throw new Error('Invalid boundary change');
-  const candidate=structuredClone(levelBounds);candidate[level][side]+=delta;
-  return validateLevelBounds(candidate,layout);
 }
 function ringMoveError(id,x,y,bounds=levelBounds){
   const level=ANCESTRY_LEVELS[id];
@@ -260,31 +280,25 @@ replaceRequired('    const a=randChoice(movable), b=randChoice(movable.filter(x=
 replaceRequired('const before=snapshotState(); nodes=structuredClone(incoming.nodes);pinnedIds=new Set((incoming.pinned_ids||[]).filter(id=>nodes[id]));computeAllMasks(nodes);',
   "const candidate=structuredClone(incoming.nodes),candidateBounds=incoming.level_bounds===undefined?structuredClone(INITIAL_LEVEL_BOUNDS):structuredClone(incoming.level_bounds);validateRingLayout(candidate,candidateBounds);if(incoming.pinned_ids!==undefined&&!Array.isArray(incoming.pinned_ids))throw new Error('Invalid pinned_ids');computeAllMasks(candidate);\n    const before=snapshotState();nodes=candidate;levelBounds=candidateBounds;pinnedIds=new Set((incoming.pinned_ids||[]).filter(id=>nodes[id]));");
 replaceRequired('  const id=selectedId||hoveredId;\n  const name=',
-  "  const id=selectedId||hoveredId;\n  if(id){const level=ANCESTRY_LEVELS[id];document.getElementById('ringAssignment').textContent=people[id].name+' · Level '+level+' · '+LEVEL_NAMES[level];}else document.getElementById('ringAssignment').textContent='Drag a boundary handle to resize one side by whole grid squares';\n  const name=");
+  "  const id=selectedId||hoveredId;\n  if(id){const level=ANCESTRY_LEVELS[id];document.getElementById('ringAssignment').textContent=people[id].name+' · Level '+level+' · '+LEVEL_NAMES[level];}else document.getElementById('ringAssignment').textContent='Drag a figure within its assigned ancestry level';\n  const name=");
 html=html.replace('  // nodes\n',`  // Square contours mark ancestry depth, not historical dates or deity classes.
+  // Guides run along cell edges, inside the gutter between figure boxes, so no
+  // box straddles two levels. Labels sit in the same gutter.
   levelBounds.forEach((edge,index)=>{
-    const [cellX,cellY]=cellToPx(edge.left,edge.top,b);
-    const x=cellX-CELL_W*.2,y=cellY-CELL_H*.2;
-    const width=(edge.right-edge.left+1.4)*CELL_W,height=(edge.bottom-edge.top+1.4)*CELL_H;
-    svg.append(makeSvg('rect',{x,y,width,height,rx:20,fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
-    const label=makeSvg('text',{x:x+20,y:y-8,fill:'#606159','font-size':15,class:'ring-guide'});
+    if(index===levelBounds.length-1)return;
+    const {x,y,width,height}=ringGuideRect(edge,b);
+    svg.append(makeSvg('rect',{x,y,width,height,rx:Math.min(NODE_INSET_X,NODE_INSET_Y),fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
+    const label=makeSvg('text',{x:x+CELL_W*.25,y,dy:'.35em',fill:'#606159','font-size':12,class:'ring-guide ring-label'});
     label.textContent='Level '+index+' · '+LEVEL_NAMES[index];
     svg.append(label);
-    if(index>0&&index<levelBounds.length-1){
-      for(const [side,hx,hy] of [['top',x+width/2,y],['right',x+width,y+height/2],['bottom',x+width/2,y+height],['left',x,y+height/2]]){
-        const handle=makeSvg('circle',{cx:hx,cy:hy,r:12,class:'ring-guide ring-handle handle-'+side,'data-level':index,'data-side':side,tabindex:0,role:'button','aria-label':'Resize level '+index+' '+side+' boundary'});
-        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));svg.append(handle);
-      }
-    }
+    const bb=label.getBBox();
+    svg.insertBefore(makeSvg('rect',{x:bb.x-5,y:bb.y,width:bb.width+10,height:bb.height,rx:4,fill:'#fff',class:'ring-guide'}),label);
   });
   // nodes
 `);
 html=html.replace('</style>',`/* Fit the complete poster width on initial load; browser zoom remains available. */
 #canvas{max-width:100%;height:auto}
 .ring-guide{pointer-events:none}
-.ring-handle{pointer-events:all;fill:#fffefa;stroke:#55564f;stroke-width:2;opacity:.9}
-.ring-handle:hover,.ring-handle:focus{fill:#55564f;stroke:#fffefa;outline:none}
-.handle-top,.handle-bottom{cursor:ns-resize}.handle-left,.handle-right{cursor:ew-resize}
 #ringAssignment{position:fixed;bottom:48px;left:14px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;pointer-events:none}
 .status{position:fixed;z-index:20;max-width:calc(100vw - 50px)}
 .experiment-controls{position:fixed;top:10px;left:10px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;display:flex;gap:12px}
@@ -326,31 +340,41 @@ replaceRequired("document.getElementById('resetBtn').onclick=()=>{const before=s
   "document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-square-rings-v1');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout and level boundaries.');};");
 replaceRequired('  return {grid:{...grid,x_min:Math.min(...xs)-1,x_max:Math.max(...xs)+1,y_min:Math.min(...ys)-1,y_max:Math.max(...ys)+1},nodes:structuredClone(nodes),pinned_ids:[...pinnedIds]};',
   '  return {grid:{...grid,x_min:Math.min(...xs,levelBounds.at(-1).left)-1,x_max:Math.max(...xs,levelBounds.at(-1).right)+1,y_min:Math.min(...ys,levelBounds.at(-1).top)-1,y_max:Math.max(...ys,levelBounds.at(-1).bottom)+1},nodes:structuredClone(nodes),pinned_ids:[...pinnedIds],level_bounds:structuredClone(levelBounds)};');
-replaceRequired("  const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];",
-  "  clone.querySelectorAll('.ring-handle').forEach(el=>el.remove());\n  const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];");
-replaceRequired("svg.addEventListener('pointermove',e=>{\n  if(!drag) return;",`let boundaryDrag=null;
-function beginBoundaryDrag(e,level,side){
-  if(optimizing)return;e.preventDefault();e.stopPropagation();
-  boundaryDrag={level,side,startX:e.clientX,startY:e.clientY,startBounds:structuredClone(levelBounds),before:snapshotState(),moved:false,lastDelta:null};
-  svg.setPointerCapture(e.pointerId);setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
-}
-svg.addEventListener('pointermove',e=>{
-  if(!boundaryDrag)return;
-  const rect=svg.getBoundingClientRect(),sx=svg.viewBox.baseVal.width/rect.width,sy=svg.viewBox.baseVal.height/rect.height;
-  const horizontal=boundaryDrag.side==='left'||boundaryDrag.side==='right';
-  const delta=Math.round(horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H);
-  if(delta===boundaryDrag.lastDelta)return;
-  const previousBounds=levelBounds;boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
-  try{levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);boundaryDrag.moved=delta!==0;render();updateSidebar();setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');}
-  catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
-});
-svg.addEventListener('pointerup',e=>{
-  if(!boundaryDrag)return;e.preventDefault();e.stopPropagation();const change=boundaryDrag;boundaryDrag=null;
-  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}else setStatus('Boundary unchanged.');render();updateSidebar();
-});
-svg.addEventListener('pointercancel',()=>{if(!boundaryDrag)return;restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');});
-svg.addEventListener('pointermove',e=>{
-  if(!drag) return;`);
+replaceRequired("  const macroIds=['primordial','night','titan','olympian'];",'  const macroIds=Object.keys(MACRO_GROUPS);');
+replaceRequired("keyHeading.textContent='Colour groups';","keyHeading.textContent='Groups';");
+replaceRequired('Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.', 'Read ancestry from the centre outwards. Rings mark generations. Colours identify groups of related figures; overlapping regions show shared parentage.');
+html=html.replace('Locked poster layout · Jewel Modern palette.','Locked poster layout · Family route colours.');
+html=html.replace('>jewel modern<','>family routes<').replace('>cool editorial<','>soft family routes<').replace('>fresco modern<','>pale family routes<');
+replaceRequired("  applyPalette('jewel');", "  applyPalette(document.getElementById('paletteMode')?.value||'jewel');");
+replaceRequired('  for(const mid of Object.keys(MACRO_GROUPS)) MACRO_GROUPS[mid].color=p.colors[mid];',
+  '  for(const mid of Object.keys(MACRO_GROUPS)) MACRO_GROUPS[mid].color=p.colors[mid];\n  for(const [gid,style] of Object.entries(STYLES))style.color=p.colors[MEMBER_TO_MACRO[gid]];');
+// Thematic groups can occupy disconnected areas; family routing remains strict.
+replaceRequired('  if(endKey===null) throw new Error(`Could not route boundary from ${start}`);',
+  '  if(endKey===null){if(options.allowDisconnected)return [start];throw new Error(`Could not route boundary from ${start}`);}');
+replaceRequired('    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b);',
+  '    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b,{allowDisconnected:true});');
+replaceRequired('  const macroMasks=computeMacroMasks(masks);\n  if(showFills){',
+  '  if(showFills){\n    const macroMasks=computeMacroMasks(masks);');
+// Larger poster legend text, with enough height for wrapped explanatory notes.
+replaceRequired('KEY_PANEL_H = 220','KEY_PANEL_H = 380');
+const keyStart=html.indexOf('function renderPosterKey(');
+const keyEnd=html.indexOf('function setStatus(',keyStart);
+let keyMarkup=html.slice(keyStart,keyEnd);
+keyMarkup=keyMarkup.replace('const padX=30, padTop=34, gap=38;', 'const padX=30, padTop=40, gap=38;')
+  .replace("const bodyFont='font-family:'+currentTypeface();", "const bodyFont='font-family:'+currentTypeface()+';font-size:20px';")
+  .replace("keyHeading.setAttribute('style',headingFont);", "keyHeading.setAttribute('style',headingFont+';font-size:26px');")
+  .replace("heading.setAttribute('style',bodyFont);", "heading.setAttribute('style',bodyFont+';font-size:26px');")
+  .replace('padTop+55+row*46','padTop+70+row*58')
+  .replace('font-size:14px;font-weight:620','font-size:22px;font-weight:620')
+  .replace('const firstY=y+padTop+48;', 'const firstY=y+padTop+60;')
+  .replace("noteW-padX*2,18,'poster-key-note'", "noteW-padX*2,26,'poster-key-note'")
+  .replace('Math.max(1,lines)*18+9','Math.max(1,lines)*26+12')
+  .replaceAll('dividerY+23','dividerY+31')
+  .replace("noteW-padX*2,17,'poster-key-note'", "noteW-padX*2,25,'poster-key-note'")
+  .replace('Math.max(1,overlapLines)*17+12','Math.max(1,overlapLines)*25+17')
+  .replace("noteW-padX*2,14,'poster-key-note'", "noteW-padX*2,23,'poster-key-note'")
+  .replace('font-size:10.5px;font-weight:520','font-size:17px;font-weight:520');
+html=html.slice(0,keyStart)+keyMarkup+html.slice(keyEnd);
 let script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];
 new Function(script);
 function routingApi(currentScript){

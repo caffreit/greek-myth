@@ -89,9 +89,6 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 /* Fit the complete poster width on initial load; browser zoom remains available. */
 #canvas{max-width:100%;height:auto}
 .ring-guide{pointer-events:none}
-.ring-handle{pointer-events:all;fill:#fffefa;stroke:#55564f;stroke-width:2;opacity:.9}
-.ring-handle:hover,.ring-handle:focus{fill:#55564f;stroke:#fffefa;outline:none}
-.handle-top,.handle-bottom{cursor:ns-resize}.handle-left,.handle-right{cursor:ew-resize}
 #ringAssignment{position:fixed;bottom:48px;left:14px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;pointer-events:none}
 .status{position:fixed;z-index:20;max-width:calc(100vw - 50px)}
 .experiment-controls{position:fixed;top:10px;left:10px;z-index:20;background:#fffefa;padding:8px 12px;border:1px solid #d6d1c7;border-radius:8px;font-size:12px;display:flex;gap:12px}
@@ -104,14 +101,14 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 <div class="app">
   <div class="toolbar">
     <div class="title">Greek theogony, extended · poster design V27.0 <span style="font-size:10px;color:#777;font-weight:650;letter-spacing:.04em">SHAREABLE SVG EXPORT</span></div>
-    <div class="hint">Locked poster layout · Jewel Modern palette.</div>
+    <div class="hint">Locked poster layout · Family route colours.</div>
     <button id="undoBtn" disabled>Undo</button>
     <button id="redoBtn" disabled>Redo</button>
     <label class="fill-control" style="font-size:11px;color:#666;display:flex;gap:5px;align-items:center">Palette
       <select id="paletteMode" class="design-select">
-        <option value="jewel" selected>jewel modern</option>
-        <option value="editorial">cool editorial</option>
-        <option value="fresco">fresco modern</option>
+        <option value="jewel" selected>family routes</option>
+        <option value="editorial">soft family routes</option>
+        <option value="fresco">pale family routes</option>
       </select>
     </label>
     
@@ -197,37 +194,45 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 <script>
 const PEOPLE_RAW = [{"id":"chaos","name":"Chaos","relations":[],"notes":"Central origin / anchor."},{"id":"eros","name":"Eros","relations":[{"parent_id":"chaos","kind":"parent","boundary_include":true}],"notes":"Upper-space seed."},{"id":"gaia","name":"Gaia","relations":[{"parent_id":"chaos","kind":"parent","boundary_include":true}],"notes":"Western branch owner."},{"id":"tartarus","name":"Tartarus","relations":[{"parent_id":"chaos","kind":"parent","boundary_include":true}],"notes":"Western branch owner."},{"id":"erebus","name":"Erebus","relations":[{"parent_id":"chaos","kind":"parent","boundary_include":true}],"notes":"Eastern branch owner."},{"id":"nyx","name":"Nyx","relations":[{"parent_id":"chaos","kind":"parent","boundary_include":true}],"notes":"Eastern branch owner."},{"id":"pontus","name":"Pontus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true}],"notes":"Owner of Pontus subgroup."},{"id":"ourea","name":"Ourea","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true}],"notes":"Kept close to Gaia."},{"id":"uranus","name":"Uranus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true}],"notes":"Owner of Uranus/Titan subgroup."},{"id":"echidna","name":"Echidna","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"tartarus","kind":"parent","boundary_include":true}],"notes":"Deliberate Gaia + Tartarus overlap in the current working structure."},{"id":"typhon","name":"Typhon","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"tartarus","kind":"parent","boundary_include":true}],"notes":"Deliberate Gaia + Tartarus overlap in the current working structure."},{"id":"thaumas","name":"Thaumas","relations":[{"parent_id":"pontus","kind":"parent","boundary_include":true}],"notes":"Pontus member in the current working structure."},{"id":"phorcys","name":"Phorcys","relations":[{"parent_id":"pontus","kind":"parent","boundary_include":true}],"notes":"Pontus member in the current working structure."},{"id":"ceto","name":"Ceto","relations":[{"parent_id":"pontus","kind":"parent","boundary_include":true}],"notes":"Pontus member in the current working structure."},{"id":"themis","name":"Themis","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"mnemosyne","name":"Mnemosyne","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"hyperion","name":"Hyperion","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"theia","name":"Theia","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"crius","name":"Crius","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"iapetus","name":"Iapetus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"coeus","name":"Coeus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"phoebe","name":"Phoebe","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"oceanus","name":"Oceanus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"cronus","name":"Cronus","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"tethys","name":"Tethys","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"rhea","name":"Rhea","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"Gaia + Uranus direct-child overlap."},{"id":"aphrodite","name":"Aphrodite","relations":[{"parent_id":"uranus","kind":"origin","boundary_include":true}],"notes":"Origin relation retained from the current working model; not being canon-checked yet."},{"id":"aether","name":"Aether","relations":[{"parent_id":"erebus","kind":"parent","boundary_include":true},{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Shared Erebus + Nyx membership; soft radial exception."},{"id":"hemera","name":"Hemera","relations":[{"parent_id":"erebus","kind":"parent","boundary_include":true},{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Shared Erebus + Nyx membership."},{"id":"charon","name":"Charon","relations":[{"parent_id":"erebus","kind":"parent","boundary_include":true},{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Shared Erebus + Nyx membership in the current working structure."},{"id":"hypnos","name":"Hypnos","relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Uses upper-right space."},{"id":"thanatos","name":"Thanatos","relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Uses upper-right space."},{"id":"moros","name":"Moros","relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Lower-right extension."},{"id":"hestia","name":"Hestia","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"demeter","name":"Demeter","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"hera","name":"Hera","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"hades","name":"Hades","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"poseidon","name":"Poseidon","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"zeus","name":"Zeus","relations":[{"parent_id":"cronus","kind":"parent","boundary_include":true},{"parent_id":"rhea","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Cronus + Rhea."},{"id":"helios","name":"Helios","relations":[{"parent_id":"hyperion","kind":"parent","boundary_include":true},{"parent_id":"theia","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Hyperion + Theia."},{"id":"selene","name":"Selene","relations":[{"parent_id":"hyperion","kind":"parent","boundary_include":true},{"parent_id":"theia","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Hyperion + Theia."},{"id":"eos","name":"Eos","relations":[{"parent_id":"hyperion","kind":"parent","boundary_include":true},{"parent_id":"theia","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Hyperion + Theia."},{"id":"clymene","name":"Clymene","relations":[],"notes":"Working parent node for the Iapetus branch; exact tradition to revisit when canon is frozen."},{"id":"atlas","name":"Atlas","relations":[{"parent_id":"iapetus","kind":"parent","boundary_include":true},{"parent_id":"clymene","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Iapetus + Clymene."},{"id":"prometheus","name":"Prometheus","relations":[{"parent_id":"iapetus","kind":"parent","boundary_include":true},{"parent_id":"clymene","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Iapetus + Clymene."},{"id":"epimetheus","name":"Epimetheus","relations":[{"parent_id":"iapetus","kind":"parent","boundary_include":true},{"parent_id":"clymene","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Iapetus + Clymene."},{"id":"metis","name":"Metis","relations":[],"notes":"Placed as parent node in the Zeus branch; wider ancestry deferred."},{"id":"athena","name":"Athena","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"metis","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Metis."},{"id":"leto","name":"Leto","relations":[],"notes":"Placed as parent node in the Zeus branch; wider ancestry deferred."},{"id":"apollo","name":"Apollo","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"leto","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Leto."},{"id":"artemis","name":"Artemis","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"leto","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Leto."},{"id":"maia","name":"Maia","relations":[],"notes":"Placed as parent node in the Zeus branch; wider ancestry deferred."},{"id":"hermes","name":"Hermes","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"maia","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Maia."},{"id":"semele","name":"Semele","relations":[],"notes":"Placed as parent node in the Zeus branch; wider ancestry deferred."},{"id":"dionysus","name":"Dionysus","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"semele","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Semele."},{"id":"ares","name":"Ares","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"hera","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Hera."},{"id":"hephaestus","name":"Hephaestus","relations":[{"parent_id":"hera","kind":"parent","boundary_include":true}],"notes":"Working Hesiod-style placement as Hera's child only; parentage to revisit when canon is frozen."},{"id":"hebe","name":"Hebe","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"hera","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Hera."},{"id":"persephone","name":"Persephone","relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"demeter","kind":"parent","boundary_include":true}],"notes":"Working genealogy; child of Zeus + Demeter."},{"id":"nereus","name":"Nereus","role":"deity","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"pontus","kind":"parent","boundary_include":true}],"notes":"The truthful Old Man of the Sea, son of Gaia and Pontus."},{"id":"doris","name":"Doris","role":"deity","relations":[{"parent_id":"oceanus","kind":"parent","boundary_include":true},{"parent_id":"tethys","kind":"parent","boundary_include":true}],"notes":"Oceanid wife of Nereus and mother of the Nereids; included as a named exception rather than expanding the Oceanids."},{"id":"nereids","name":"Nereids","role":"collective","member_lines":["Thetis · Amphitrite","Galatea · · ·"],"relations":[{"parent_id":"nereus","kind":"parent","boundary_include":true},{"parent_id":"doris","kind":"parent","boundary_include":true}],"notes":"The fifty sea-nymph daughters of Nereus and Doris. Thetis is the mother of Achilles; Amphitrite is Poseidon's wife; Galatea appears in the story of Polyphemus."},{"id":"hecatoncheires","name":"Hecatoncheires","role":"collective","member_lines":["Cottus · Briareus","Gyges"],"relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"The three Hundred-Handers, children of Gaia and Uranus, whose strength helps Zeus win the Titanomachy."},{"id":"elder_cyclopes","name":"Elder Cyclopes","role":"collective","member_lines":["Brontes · Steropes","Arges"],"relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"uranus","kind":"parent","boundary_include":true}],"notes":"The primordial Cyclopes, children of Gaia and Uranus, who forge Zeus's thunderbolt. Distinct from Polyphemus and the later Cyclopes."},{"id":"erinyes","name":"Erinyes","role":"collective","member_lines":["Alecto · Megaera","Tisiphone"],"relations":[{"parent_id":"gaia","kind":"blood_origin","boundary_include":true},{"parent_id":"uranus","kind":"blood_origin","boundary_include":true}],"notes":"The Furies, born when the blood of the castrated Uranus falls upon Gaia."},{"id":"gigantes","name":"Gigantes","role":"collective","member_lines":["earthborn Giants","Gigantomachy · · ·"],"relations":[{"parent_id":"gaia","kind":"blood_origin","boundary_include":true},{"parent_id":"uranus","kind":"blood_origin","boundary_include":true}],"notes":"The earthborn Giants, sprung from Uranus's blood and later defeated by the Olympians in the Gigantomachy."},{"id":"moirai","name":"Moirai","role":"collective","member_lines":["Clotho · Lachesis","Atropos"],"relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true},{"parent_id":"zeus","kind":"variant_parent","boundary_include":false},{"parent_id":"themis","kind":"variant_parent","boundary_include":false}],"notes":"The Fates. This layout uses Hesiod's Nyx genealogy; Hesiod later also calls them daughters of Zeus and Themis."},{"id":"keres","name":"Keres","role":"collective","member_lines":["violent death-spirits","· · ·"],"relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Female spirits of violent death, daughters of Nyx in Hesiod."},{"id":"nemesis","name":"Nemesis","role":"deity","relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Goddess of retribution and indignation, daughter of Nyx in Hesiod."},{"id":"eris","name":"Eris","role":"deity","relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Goddess of strife, daughter of Nyx in Hesiod."},{"id":"hesperides","name":"Hesperides","role":"collective","member_lines":["Aegle · Erytheia","Hesperia · · ·"],"relations":[{"parent_id":"nyx","kind":"parent","boundary_include":true}],"notes":"Nymph guardians of the golden apples. This layout uses Hesiod's tradition that they are daughters of Nyx."},{"id":"eurybia","name":"Eurybia","role":"deity","relations":[{"parent_id":"gaia","kind":"parent","boundary_include":true},{"parent_id":"pontus","kind":"parent","boundary_include":true}],"notes":"Ancient sea goddess, daughter of Gaia and Pontus, included to carry the ancestry of Perses and Hecate."},{"id":"perses","name":"Perses","role":"deity","relations":[{"parent_id":"crius","kind":"parent","boundary_include":true},{"parent_id":"eurybia","kind":"parent","boundary_include":true}],"notes":"Titan son of Crius and Eurybia; father of Hecate."},{"id":"asteria","name":"Asteria","role":"deity","relations":[{"parent_id":"coeus","kind":"parent","boundary_include":true},{"parent_id":"phoebe","kind":"parent","boundary_include":true}],"notes":"Titan goddess, daughter of Coeus and Phoebe; mother of Hecate."},{"id":"hecate","name":"Hecate","role":"deity","relations":[{"parent_id":"perses","kind":"parent","boundary_include":true},{"parent_id":"asteria","kind":"parent","boundary_include":true}],"notes":"Goddess of magic, crossroads, ghosts, and night; daughter of Perses and Asteria."},{"id":"muses","name":"Muses","role":"collective","member_lines":["nine daughters","Calliope · · ·"],"relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"mnemosyne","kind":"parent","boundary_include":true}],"notes":"The nine goddesses of poetry, music, and the arts, daughters of Zeus and Mnemosyne. Calliope is the usual mother of Orpheus."},{"id":"horae","name":"Horae","role":"collective","member_lines":["Eunomia · Dike","Eirene"],"relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"themis","kind":"parent","boundary_include":true}],"notes":"Goddesses of order, justice, peace, and the seasons, daughters of Zeus and Themis."},{"id":"eurynome","name":"Eurynome","role":"deity","relations":[{"parent_id":"oceanus","kind":"parent","boundary_include":true},{"parent_id":"tethys","kind":"parent","boundary_include":true}],"notes":"Oceanid mother of the Charites by Zeus, included as a named exception rather than expanding the Oceanids."},{"id":"charites","name":"Charites","role":"collective","member_lines":["Aglaea · Euphrosyne","Thalia"],"relations":[{"parent_id":"zeus","kind":"parent","boundary_include":true},{"parent_id":"eurynome","kind":"parent","boundary_include":true}],"notes":"The three Graces, daughters of Zeus and Eurynome."}];
 const INITIAL_LAYOUT = {"grid":{"origin_id":"chaos","x_min":-9,"x_max":9,"y_min":-9,"y_max":9},"nodes":{"chaos":{"x":0,"y":0,"placement_group":"core"},"tartarus":{"x":1,"y":1,"placement_group":"chaos"},"nyx":{"x":0,"y":-1,"placement_group":"chaos"},"erebus":{"x":1,"y":-1,"placement_group":"chaos"},"eros":{"x":-1,"y":0,"placement_group":"chaos"},"gaia":{"x":0,"y":1,"placement_group":"chaos"},"echidna":{"x":1,"y":2,"placement_group":"tartarus"},"moirai":{"x":-1,"y":-3,"placement_group":"nyx"},"hypnos":{"x":0,"y":-2,"placement_group":"nyx"},"thanatos":{"x":2,"y":-2,"placement_group":"nyx"},"moros":{"x":-1,"y":-2,"placement_group":"nyx"},"keres":{"x":1,"y":-3,"placement_group":"nyx"},"nemesis":{"x":1,"y":-2,"placement_group":"nyx"},"aether":{"x":2,"y":0,"placement_group":"erebus"},"charon":{"x":2,"y":1,"placement_group":"erebus"},"eris":{"x":2,"y":-3,"placement_group":"nyx"},"hemera":{"x":2,"y":-1,"placement_group":"erebus"},"hesperides":{"x":0,"y":-3,"placement_group":"nyx"},"uranus":{"x":0,"y":2,"placement_group":"gaia"},"pontus":{"x":-2,"y":-3,"placement_group":"gaia"},"ourea":{"x":-1,"y":2,"placement_group":"gaia"},"typhon":{"x":2,"y":2,"placement_group":"tartarus"},"eurybia":{"x":-3,"y":-3,"placement_group":"pontus"},"clymene":{"x":2,"y":-4,"placement_group":"iapetus"},"iapetus":{"x":3,"y":-4,"placement_group":"uranus"},"aphrodite":{"x":-2,"y":3,"placement_group":"uranus"},"phoebe":{"x":-3,"y":0,"placement_group":"uranus"},"coeus":{"x":-3,"y":-1,"placement_group":"uranus"},"crius":{"x":-3,"y":-2,"placement_group":"uranus"},"cronus":{"x":0,"y":3,"placement_group":"uranus"},"tethys":{"x":-3,"y":2,"placement_group":"uranus"},"rhea":{"x":-1,"y":3,"placement_group":"uranus"},"oceanus":{"x":-3,"y":1,"placement_group":"uranus"},"themis":{"x":3,"y":0,"placement_group":"uranus"},"hyperion":{"x":3,"y":-3,"placement_group":"uranus"},"mnemosyne":{"x":3,"y":-1,"placement_group":"uranus"},"theia":{"x":3,"y":-2,"placement_group":"uranus"},"gigantes":{"x":3,"y":2,"placement_group":"uranus_blood"},"erinyes":{"x":1,"y":3,"placement_group":"uranus_blood"},"elder_cyclopes":{"x":3,"y":3,"placement_group":"uranus"},"hecatoncheires":{"x":2,"y":3,"placement_group":"uranus"},"ceto":{"x":0,"y":-4,"placement_group":"pontus"},"thaumas":{"x":-1,"y":-4,"placement_group":"pontus"},"phorcys":{"x":-2,"y":-4,"placement_group":"pontus"},"nereus":{"x":-3,"y":-4,"placement_group":"pontus"},"asteria":{"x":-4,"y":-1,"placement_group":"coeus_phoebe"},"perses":{"x":-4,"y":-2,"placement_group":"eurybia"},"epimetheus":{"x":2,"y":-5,"placement_group":"iapetus"},"prometheus":{"x":3,"y":-5,"placement_group":"iapetus"},"atlas":{"x":4,"y":-5,"placement_group":"iapetus"},"eurynome":{"x":-4,"y":2,"placement_group":"oceanus_tethys"},"semele":{"x":4,"y":2,"placement_group":"semele"},"poseidon":{"x":-2,"y":4,"placement_group":"cronus_rhea"},"hera":{"x":1,"y":4,"placement_group":"cronus_rhea"},"zeus":{"x":0,"y":4,"placement_group":"cronus_rhea"},"demeter":{"x":2,"y":4,"placement_group":"cronus_rhea"},"metis":{"x":3,"y":4,"placement_group":"metis"},"hades":{"x":-1,"y":4,"placement_group":"cronus_rhea"},"maia":{"x":4,"y":4,"placement_group":"maia"},"hestia":{"x":-3,"y":4,"placement_group":"cronus_rhea"},"leto":{"x":4,"y":3,"placement_group":"leto"},"selene":{"x":4,"y":-3,"placement_group":"hyperion"},"eos":{"x":4,"y":-4,"placement_group":"hyperion"},"helios":{"x":4,"y":-2,"placement_group":"hyperion"},"doris":{"x":-4,"y":1,"placement_group":"nereus"},"hecate":{"x":-5,"y":-1,"placement_group":"perses_asteria"},"charites":{"x":-4,"y":5,"placement_group":"zeus_eurynome"},"dionysus":{"x":5,"y":2,"placement_group":"zeus"},"hephaestus":{"x":1,"y":6,"placement_group":"hera"},"ares":{"x":1,"y":5,"placement_group":"zeus"},"hebe":{"x":0,"y":5,"placement_group":"zeus"},"persephone":{"x":2,"y":5,"placement_group":"zeus"},"athena":{"x":3,"y":5,"placement_group":"zeus"},"hermes":{"x":4,"y":5,"placement_group":"zeus"},"artemis":{"x":5,"y":4,"placement_group":"zeus"},"apollo":{"x":5,"y":3,"placement_group":"zeus"},"muses":{"x":5,"y":-1,"placement_group":"zeus_mnemosyne"},"horae":{"x":5,"y":0,"placement_group":"zeus_themis"},"nereids":{"x":-5,"y":-2,"placement_group":"nereus_doris"}},"pinned_ids":[],"level_bounds":[{"left":0,"right":0,"top":0,"bottom":0},{"left":-1,"right":1,"top":-1,"bottom":1},{"left":-2,"right":2,"top":-3,"bottom":2},{"left":-3,"right":3,"top":-4,"bottom":3},{"left":-4,"right":4,"top":-5,"bottom":4},{"left":-8,"right":8,"top":-8,"bottom":8}]};
-const STYLES = {"chaos":{"color":"#6f7785"},"gaia":{"color":"#d64545"},"nyx":{"color":"#c63fcf"},"pontus":{"color":"#e58b2a"},"tartarus":{"color":"#43a160"},"uranus":{"color":"#2b7cd3"},"erebus":{"color":"#d0aa00"},"hyperion":{"color":"#d39b2a"},"theia":{"color":"#9a6dc2"},"iapetus":{"color":"#667785"},"clymene":{"color":"#7f8f4e"},"cronus":{"color":"#8b5a3c"},"rhea":{"color":"#3f9d9a"},"zeus":{"color":"#315fc3"},"hera":{"color":"#bd5573"},"demeter":{"color":"#6b9f45"},"metis":{"color":"#3a9fb0"},"leto":{"color":"#7d61b8"},"maia":{"color":"#a77b4d"},"semele":{"color":"#9b405d"},"nereus":{"color":"#4f8391"},"doris":{"color":"#668ca0"},"eurybia":{"color":"#537786"},"coeus":{"color":"#6e5da2"},"perses":{"color":"#74548e"},"asteria":{"color":"#67558f"},"eurynome":{"color":"#8865a2"},"oceanus":{"color":"#587899"},"tethys":{"color":"#7865a0"},"crius":{"color":"#645696"},"phoebe":{"color":"#815f9d"},"mnemosyne":{"color":"#7254a2"},"themis":{"color":"#8b639a"}};
+const STYLES = {"chaos":{"color":"#8C607D"},"gaia":{"color":"#D94E64"},"nyx":{"color":"#D8A21B"},"pontus":{"color":"#258B9B"},"tartarus":{"color":"#8C607D"},"uranus":{"color":"#D94E64"},"erebus":{"color":"#D8A21B"},"hyperion":{"color":"#BD5875"},"theia":{"color":"#BD5875"},"iapetus":{"color":"#735BCB"},"clymene":{"color":"#735BCB"},"cronus":{"color":"#D94E64"},"rhea":{"color":"#E8793F"},"zeus":{"color":"#E8793F"},"hera":{"color":"#E8793F"},"demeter":{"color":"#E8793F"},"metis":{"color":"#E8793F"},"leto":{"color":"#E8793F"},"maia":{"color":"#E8793F"},"semele":{"color":"#E8793F"},"nereus":{"color":"#258B9B"},"doris":{"color":"#3265A8"},"eurybia":{"color":"#258B9B"},"coeus":{"color":"#667E4C"},"perses":{"color":"#667E4C"},"asteria":{"color":"#667E4C"},"eurynome":{"color":"#3265A8"},"oceanus":{"color":"#3265A8"},"tethys":{"color":"#3265A8"},"crius":{"color":"#667E4C"},"phoebe":{"color":"#667E4C"},"mnemosyne":{"color":"#E8793F"},"themis":{"color":"#E8793F"}};
 const MACRO_GROUPS = {
-  "primordial": {
-    "label": "Primordials",
-    "color": "#c4474d",
+  "origins": {
+    "label": "Origins",
+    "color": "#8C607D",
     "setback": 4,
     "members": [
       "chaos",
       "eros",
+      "tartarus"
+    ]
+  },
+  "primordial": {
+    "label": "Earth & sky",
+    "color": "#D94E64",
+    "setback": 4,
+    "members": [
+      "cronus",
       "gaia",
-      "tartarus",
-      "pontus",
+      "uranus",
       "ourea",
+      "aphrodite"
+    ]
+  },
+  "monsters": {
+    "label": "Giants & monsters",
+    "color": "#596C78",
+    "setback": 5,
+    "members": [
       "echidna",
       "typhon",
-      "thaumas",
-      "phorcys",
-      "ceto",
-      "nereus",
-      "doris",
-      "nereids",
       "hecatoncheires",
       "elder_cyclopes",
-      "erinyes",
-      "gigantes",
-      "eurybia"
+      "gigantes"
     ]
   },
   "night": {
-    "label": "Night / underworld",
-    "color": "#b98315",
+    "label": "Night & underworld",
+    "color": "#D8A21B",
     "setback": 8,
     "members": [
       "erebus",
@@ -238,6 +243,7 @@ const MACRO_GROUPS = {
       "hypnos",
       "thanatos",
       "moros",
+      "erinyes",
       "moirai",
       "keres",
       "nemesis",
@@ -245,43 +251,77 @@ const MACRO_GROUPS = {
       "hesperides"
     ]
   },
-  "titan": {
-    "label": "Titans",
-    "color": "#7650b8",
+  "sea": {
+    "label": "Sea",
+    "color": "#258B9B",
+    "setback": 5,
+    "members": [
+      "pontus",
+      "thaumas",
+      "phorcys",
+      "ceto",
+      "nereus",
+      "eurybia"
+    ]
+  },
+  "ocean": {
+    "label": "Ocean & nymphs",
+    "color": "#3265A8",
+    "setback": 6,
+    "members": [
+      "oceanus",
+      "tethys",
+      "doris",
+      "nereids",
+      "eurynome",
+      "charites"
+    ]
+  },
+  "light": {
+    "label": "Sun, moon & dawn",
+    "color": "#BD5875",
     "setback": 7,
     "members": [
-      "uranus",
-      "aphrodite",
-      "mnemosyne",
-      "themis",
-      "tethys",
-      "phoebe",
-      "oceanus",
-      "crius",
-      "coeus",
       "hyperion",
       "theia",
       "helios",
       "selene",
-      "eos",
+      "eos"
+    ]
+  },
+  "iapetus": {
+    "label": "Prometheus & Atlas",
+    "color": "#735BCB",
+    "setback": 7,
+    "members": [
       "iapetus",
       "clymene",
-      "prometheus",
-      "epimetheus",
       "atlas",
-      "cronus",
-      "rhea",
+      "prometheus",
+      "epimetheus"
+    ]
+  },
+  "hecate": {
+    "label": "Magic & prophecy",
+    "color": "#667E4C",
+    "setback": 7,
+    "members": [
+      "crius",
+      "coeus",
+      "phoebe",
       "perses",
       "asteria",
-      "hecate",
-      "eurynome"
+      "hecate"
     ]
   },
   "olympian": {
     "label": "Olympians",
-    "color": "#c65a2e",
+    "color": "#E8793F",
     "setback": 9,
     "members": [
+      "rhea",
+      "themis",
+      "mnemosyne",
       "hestia",
       "demeter",
       "hera",
@@ -302,17 +342,58 @@ const MACRO_GROUPS = {
       "dionysus",
       "semele",
       "muses",
-      "horae",
-      "charites"
+      "horae"
     ]
   }
 };
 
 
 const PALETTES = {
-  jewel:{label:'Jewel modern', colors:{primordial:'#D94E64',night:'#D8A21B',titan:'#735BCB',olympian:'#E8793F'}},
-  editorial:{label:'Cool editorial', colors:{primordial:'#D98292',night:'#C3A447',titan:'#8588CE',olympian:'#E5A07C'}},
-  fresco:{label:'Fresco modern', colors:{primordial:'#C45F50',night:'#A99A4F',titan:'#6579A9',olympian:'#70A1B1'}}
+  "jewel": {
+    "label": "Family routes",
+    "colors": {
+      "origins": "#8C607D",
+      "primordial": "#D94E64",
+      "monsters": "#596C78",
+      "night": "#D8A21B",
+      "sea": "#258B9B",
+      "ocean": "#3265A8",
+      "light": "#BD5875",
+      "iapetus": "#735BCB",
+      "hecate": "#667E4C",
+      "olympian": "#E8793F"
+    }
+  },
+  "editorial": {
+    "label": "Soft family routes",
+    "colors": {
+      "origins": "#a38097",
+      "primordial": "#e17183",
+      "monsters": "#7a8993",
+      "night": "#D8A21B",
+      "sea": "#51a2af",
+      "ocean": "#5b84b9",
+      "light": "#ca7991",
+      "iapetus": "#8f7cd5",
+      "hecate": "#859870",
+      "olympian": "#ed9465"
+    }
+  },
+  "fresco": {
+    "label": "Pale family routes",
+    "colors": {
+      "origins": "#b498ab",
+      "primordial": "#e68c9a",
+      "monsters": "#939fa7",
+      "night": "#D8A21B",
+      "sea": "#71b4be",
+      "ocean": "#7a9bc6",
+      "light": "#d492a5",
+      "iapetus": "#a494dd",
+      "hecate": "#9cab8b",
+      "olympian": "#f0a882"
+    }
+  }
 };
 const TYPEFACE_STACKS = {
   grotesk:'"Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif',
@@ -323,6 +404,7 @@ const TYPEFACE_STACKS = {
 function applyPalette(id){
   const p=PALETTES[id]||PALETTES.jewel;
   for(const mid of Object.keys(MACRO_GROUPS)) MACRO_GROUPS[mid].color=p.colors[mid];
+  for(const [gid,style] of Object.entries(STYLES))style.color=p.colors[MEMBER_TO_MACRO[gid]];
 }
 function currentTypeface(){ return TYPEFACE_STACKS[document.getElementById('typefaceMode')?.value || 'grotesk']; }
 
@@ -344,7 +426,7 @@ let optimizing = false, optimizerAbort = false;
 const CELL_W = 112, CELL_H = 112;
 const PAGE_MARGIN = 48, HEADER_H = 118, PANEL_PAD_X = 30, PANEL_PAD_Y = 26;
 const DIAGRAM_GUTTER_X = 34, DIAGRAM_GUTTER_Y = 32;
-const KEY_GAP = 20, KEY_PANEL_H = 220, FOOTER_H = 72;
+const KEY_GAP = 20, KEY_PANEL_H = 380, FOOTER_H = 72;
 const LEFT = PAGE_MARGIN + PANEL_PAD_X + DIAGRAM_GUTTER_X;
 const TOP = PAGE_MARGIN + HEADER_H + PANEL_PAD_Y + DIAGRAM_GUTTER_Y;
 const REGION_CORNER_R = 17;
@@ -545,7 +627,7 @@ function shortestPathToMask(start, mask, blocked, b, options={}){
   }
   let endKey=null, endDist=Infinity;
   for(const mk of mask){ const d=dist.get(mk); if(d!==undefined && d<endDist){ endDist=d; endKey=mk; } }
-  if(endKey===null) throw new Error(`Could not route boundary from ${start}`);
+  if(endKey===null){if(options.allowDisconnected)return [start];throw new Error(`Could not route boundary from ${start}`);}
   const path=[]; let ck=endKey;
   while(ck!==null){path.push(parseKey(ck)); ck=prev.get(ck) ?? null;}
   return path.reverse();
@@ -607,7 +689,7 @@ function generateMaskForIds(memberIds, layout=nodes){
     };
     remaining.sort((a,b)=>distanceToMask(a)-distanceToMask(b)||a.localeCompare(b));
     const id=remaining[0];
-    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b);
+    const path=shortestPathToMask(targetCells.get(id),mask,blocked,b,{allowDisconnected:true});
     path.forEach(c=>mask.add(key(c)));
     remaining=ids.filter(id=>!mask.has(key(targetCells.get(id))));
   }
@@ -1153,6 +1235,10 @@ const RING_BANDS=Object.freeze([{"inner":0,"outer":0},{"inner":1,"outer":1},{"in
 const LEVEL_NAMES=Object.freeze(["Origin","Primordials","Primordial children","Titans and contemporaries","Olympians and younger Titans","Olympian children and contemporaries"]);
 const INITIAL_LEVEL_BOUNDS=Object.freeze([{"left":0,"right":0,"top":0,"bottom":0},{"left":-1,"right":1,"top":-1,"bottom":1},{"left":-2,"right":2,"top":-3,"bottom":2},{"left":-3,"right":3,"top":-4,"bottom":3},{"left":-4,"right":4,"top":-5,"bottom":4},{"left":-8,"right":8,"top":-8,"bottom":8}]);
 let levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);
+function ringGuideRect(edge,b){
+  const [x,y]=cellToPx(edge.left,edge.top,b);
+  return {x,y,width:(edge.right-edge.left+1)*CELL_W,height:(edge.bottom-edge.top+1)*CELL_H};
+}
 function insideLevelBoundary(x,y,bounds){return x>=bounds.left&&x<=bounds.right&&y>=bounds.top&&y<=bounds.bottom;}
 function belongsToLevel(level,x,y,bounds=levelBounds){return insideLevelBoundary(x,y,bounds[level])&&(level===0||!insideLevelBoundary(x,y,bounds[level-1]));}
 function validateLevelBounds(bounds,layout=nodes){
@@ -1169,12 +1255,6 @@ function validateLevelBounds(bounds,layout=nodes){
     if(!Number.isInteger(n?.x)||!Number.isInteger(n?.y)||!belongsToLevel(level,n.x,n.y,bounds))throw new Error(people[id].name+' would fall outside level '+level+', '+LEVEL_NAMES[level]);
   }
   return bounds;
-}
-function resizedLevelBounds(level,side,delta,layout=nodes){
-  if(!Number.isInteger(level)||level<=0||level>=levelBounds.length-1)throw new Error('That boundary is fixed');
-  if(!['left','right','top','bottom'].includes(side)||!Number.isInteger(delta))throw new Error('Invalid boundary change');
-  const candidate=structuredClone(levelBounds);candidate[level][side]+=delta;
-  return validateLevelBounds(candidate,layout);
 }
 function ringMoveError(id,x,y,bounds=levelBounds){
   const level=ANCESTRY_LEVELS[id];
@@ -1212,7 +1292,7 @@ function render(){
   const diagramH=TOP+rows*CELL_H;
   svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.replaceChildren();
-  applyPalette('jewel');
+  applyPalette(document.getElementById('paletteMode')?.value||'jewel');
   renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey);
 
   // grid (debug only; off by default for styling review)
@@ -1238,8 +1318,8 @@ function render(){
   const showFills=document.getElementById('showFills')?.checked !== false;
   const showBoundaries=document.getElementById('showBoundaries')?.checked !== false;
   const order=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);
-  const macroMasks=computeMacroMasks(masks);
   if(showFills){
+    const macroMasks=computeMacroMasks(masks);
     // Draw larger regions first. Each macro zone is a single union-of-cells path.
     const macroOrder=Object.keys(MACRO_GROUPS).sort((a,bid)=>macroMasks[bid].size-macroMasks[a].size);
     for(const mid of macroOrder){
@@ -1306,20 +1386,17 @@ function render(){
   }
 
   // Square contours mark ancestry depth, not historical dates or deity classes.
+  // Guides run along cell edges, inside the gutter between figure boxes, so no
+  // box straddles two levels. Labels sit in the same gutter.
   levelBounds.forEach((edge,index)=>{
-    const [cellX,cellY]=cellToPx(edge.left,edge.top,b);
-    const x=cellX-CELL_W*.2,y=cellY-CELL_H*.2;
-    const width=(edge.right-edge.left+1.4)*CELL_W,height=(edge.bottom-edge.top+1.4)*CELL_H;
-    svg.append(makeSvg('rect',{x,y,width,height,rx:20,fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
-    const label=makeSvg('text',{x:x+20,y:y-8,fill:'#606159','font-size':15,class:'ring-guide'});
+    if(index===levelBounds.length-1)return;
+    const {x,y,width,height}=ringGuideRect(edge,b);
+    svg.append(makeSvg('rect',{x,y,width,height,rx:Math.min(NODE_INSET_X,NODE_INSET_Y),fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
+    const label=makeSvg('text',{x:x+CELL_W*.25,y,dy:'.35em',fill:'#606159','font-size':12,class:'ring-guide ring-label'});
     label.textContent='Level '+index+' · '+LEVEL_NAMES[index];
     svg.append(label);
-    if(index>0&&index<levelBounds.length-1){
-      for(const [side,hx,hy] of [['top',x+width/2,y],['right',x+width,y+height/2],['bottom',x+width/2,y+height],['left',x,y+height/2]]){
-        const handle=makeSvg('circle',{cx:hx,cy:hy,r:12,class:'ring-guide ring-handle handle-'+side,'data-level':index,'data-side':side,tabindex:0,role:'button','aria-label':'Resize level '+index+' '+side+' boundary'});
-        handle.addEventListener('pointerdown',event=>beginBoundaryDrag(event,index,side));svg.append(handle);
-      }
-    }
+    const bb=label.getBBox();
+    svg.insertBefore(makeSvg('rect',{x:bb.x-5,y:bb.y,width:bb.width+10,height:bb.height,rx:4,fill:'#fff',class:'ring-guide'}),label);
   });
   // nodes
   for(const [id,n] of Object.entries(nodes)){
@@ -1404,27 +1481,6 @@ function beginDrag(e,id){
   drag={id,startX:e.clientX,startY:e.clientY,startNode:structuredClone(nodes[id]),before:snapshotState(),moved:false,lastCell:[nodes[id].x,nodes[id].y]};
   svg.setPointerCapture(e.pointerId);render();updateSidebar();
 }
-let boundaryDrag=null;
-function beginBoundaryDrag(e,level,side){
-  if(optimizing)return;e.preventDefault();e.stopPropagation();
-  boundaryDrag={level,side,startX:e.clientX,startY:e.clientY,startBounds:structuredClone(levelBounds),before:snapshotState(),moved:false,lastDelta:null};
-  svg.setPointerCapture(e.pointerId);setStatus('Resizing level '+level+' '+side+' edge. Drag by whole grid squares.');
-}
-svg.addEventListener('pointermove',e=>{
-  if(!boundaryDrag)return;
-  const rect=svg.getBoundingClientRect(),sx=svg.viewBox.baseVal.width/rect.width,sy=svg.viewBox.baseVal.height/rect.height;
-  const horizontal=boundaryDrag.side==='left'||boundaryDrag.side==='right';
-  const delta=Math.round(horizontal?(e.clientX-boundaryDrag.startX)*sx/CELL_W:(e.clientY-boundaryDrag.startY)*sy/CELL_H);
-  if(delta===boundaryDrag.lastDelta)return;
-  const previousBounds=levelBounds;boundaryDrag.lastDelta=delta;levelBounds=structuredClone(boundaryDrag.startBounds);
-  try{levelBounds=resizedLevelBounds(boundaryDrag.level,boundaryDrag.side,delta,nodes);boundaryDrag.moved=delta!==0;render();updateSidebar();setStatus('Level '+boundaryDrag.level+' '+boundaryDrag.side+' edge '+(delta===0?'restored':(delta>0?'+':'')+delta+' square'+(Math.abs(delta)===1?'':'s'))+'.');}
-  catch(error){levelBounds=previousBounds;setStatus('Boundary blocked: '+error.message,true);}
-});
-svg.addEventListener('pointerup',e=>{
-  if(!boundaryDrag)return;e.preventDefault();e.stopPropagation();const change=boundaryDrag;boundaryDrag=null;
-  if(change.moved){pushHistory(change.before);autoSave();setStatus('Level '+change.level+' boundary updated.');}else setStatus('Boundary unchanged.');render();updateSidebar();
-});
-svg.addEventListener('pointercancel',()=>{if(!boundaryDrag)return;restoreState(boundaryDrag.before);boundaryDrag=null;render();updateSidebar();setStatus('Boundary change cancelled.');});
 svg.addEventListener('pointermove',e=>{
   if(!drag) return;
   const rect=svg.getBoundingClientRect(), b=layoutBounds();
@@ -1547,7 +1603,6 @@ function buildStandaloneSvg(){
   clone.setAttribute('role','img');
   clone.setAttribute('aria-labelledby','poster-export-title poster-export-description');
   clone.removeAttribute('aria-label');
-  clone.querySelectorAll('.ring-handle').forEach(el=>el.remove());
   const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];
   clone.querySelectorAll('*').forEach(el=>transient.forEach(name=>el.classList.remove(name)));
   const style=makeSvg('style',{});
@@ -1580,7 +1635,7 @@ function restoreAutoSave(){try{const raw=localStorage.getItem('greek-square-ring
 
 function updateSidebar(){
   const id=selectedId||hoveredId;
-  if(id){const level=ANCESTRY_LEVELS[id];document.getElementById('ringAssignment').textContent=people[id].name+' · Level '+level+' · '+LEVEL_NAMES[level];}else document.getElementById('ringAssignment').textContent='Drag a boundary handle to resize one side by whole grid squares';
+  if(id){const level=ANCESTRY_LEVELS[id];document.getElementById('ringAssignment').textContent=people[id].name+' · Level '+level+' · '+LEVEL_NAMES[level];}else document.getElementById('ringAssignment').textContent='Drag a figure within its assigned ancestry level';
   const name=document.getElementById('personName'),coord=document.getElementById('personCoord'),parents=document.getElementById('parents'),children=document.getElementById('children'),owned=document.getElementById('owned'),pinState=document.getElementById('pinState');
   if(!id){name.textContent='Nothing selected';coord.textContent='Click or drag a figure';parents.innerHTML='<span class="empty">—</span>';children.innerHTML='<span class="empty">—</span>';owned.innerHTML='<span class="empty">No boundary</span>';pinState.textContent='Select a figure to pin it.';document.getElementById('familyMetricsSection').style.display='none';syncActionButtons();return;}
   const rel=relationInfo(id);name.textContent=people[id].name;coord.textContent=`(${nodes[id].x}, ${nodes[id].y}) · placement: ${nodes[id].placement_group}`;
@@ -1657,27 +1712,27 @@ function renderPosterFooter(svg,W,H){
 function renderPosterKey(svg,b,W,keyY){
   const y=keyY;
   const outerX=PAGE_MARGIN, outerW=W-PAGE_MARGIN*2;
-  const padX=30, padTop=34, gap=38;
+  const padX=30, padTop=40, gap=38;
   const keyW=Math.round((outerW-gap)*.48), noteW=outerW-keyW-gap;
-  const macroIds=['primordial','night','titan','olympian'];
+  const macroIds=Object.keys(MACRO_GROUPS);
   const keyG=makeSvg('g',{class:'poster-key'});
   keyG.append(makeSvg('line',{class:'poster-lower-rule',x1:outerX,y1:y,x2:outerX+outerW,y2:y}));
   svg.append(keyG);
   const headingFont="font-family: Georgia, 'Times New Roman', serif";
-  const bodyFont='font-family:'+currentTypeface();
+  const bodyFont='font-family:'+currentTypeface()+';font-size:20px';
   const keyHeading=makeSvg('text',{x:outerX+padX,y:y+padTop+10,class:'poster-key-note-head'});
-  keyHeading.textContent='Colour groups';
-  keyHeading.setAttribute('style',headingFont);
+  keyHeading.textContent='Groups';
+  keyHeading.setAttribute('style',headingFont+';font-size:26px');
   keyG.append(keyHeading);
   for(let ci=0;ci<macroIds.length;ci++){
     const mid=macroIds[ci], def=MACRO_GROUPS[mid];
     const col=ci%2, row=Math.floor(ci/2);
     const x=outerX+padX+col*(keyW-padX*2)/2;
-    const yy=y+padTop+55+row*46;
+    const yy=y+padTop+70+row*58;
     keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));
     const name=makeSvg('text',{x:x+39,y:yy,class:'poster-key-row-name'});
     name.textContent=def.label;
-    name.setAttribute('style',bodyFont+';font-size:14px;font-weight:620');
+    name.setAttribute('style',bodyFont+';font-size:22px;font-weight:620');
     keyG.append(name);
   }
   const noteX=outerX+keyW+gap, noteG=makeSvg('g',{class:'poster-note'});
@@ -1685,15 +1740,15 @@ function renderPosterKey(svg,b,W,keyY){
   svg.append(noteG);
   const heading=makeSvg('text',{x:noteX+padX,y:y+padTop+10,class:'poster-key-note-head'});
   heading.textContent='How to read the family map';
-  heading.setAttribute('style',bodyFont);
+  heading.setAttribute('style',bodyFont+';font-size:26px');
   noteG.append(heading);
-  const firstY=y+padTop+48;
-  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,18,'poster-key-note',bodyFont);
-  const dividerY=firstY+Math.max(1,lines)*18+9;
+  const firstY=y+padTop+60;
+  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,26,'poster-key-note',bodyFont);
+  const dividerY=firstY+Math.max(1,lines)*26+12;
   noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
-  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.',noteX+padX,dividerY+23,noteW-padX*2,17,'poster-key-note',bodyFont);
-  const footY=dividerY+23+Math.max(1,overlapLines)*17+12;
-  wrapSvgText(noteG,'* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Dashed boxes are collectives.',noteX+padX,footY,noteW-padX*2,14,'poster-key-note','font-family:'+currentTypeface()+';font-size:10.5px;font-weight:520;fill:#77746d');
+  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings mark generations. Colours identify groups of related figures; overlapping regions show shared parentage.',noteX+padX,dividerY+31,noteW-padX*2,25,'poster-key-note',bodyFont);
+  const footY=dividerY+31+Math.max(1,overlapLines)*25+17;
+  wrapSvgText(noteG,'* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Dashed boxes are collectives.',noteX+padX,footY,noteW-padX*2,23,'poster-key-note','font-family:'+currentTypeface()+';font-size:17px;font-weight:520;fill:#77746d');
 }
 
 function setStatus(msg,error=false){statusEl.textContent=msg;statusEl.classList.toggle('error',error);clearTimeout(setStatus.t);setStatus.t=setTimeout(()=>{statusEl.classList.remove('error')},2200)}

@@ -5,7 +5,7 @@ const html=await readFile('poster/layout_editor_square_rings.html','utf8');
 const script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];
 const prefix=script.slice(0,script.indexOf('function render(){'));
 const nudge=script.slice(script.indexOf('function nudgeSelected('),script.indexOf("window.addEventListener('keydown'"));
-const pointer=script.split("svg.addEventListener('pointermove',e=>{")[2].split("\n});")[0];
+const pointer=script.split("svg.addEventListener('pointermove',e=>{")[1].split("\n});")[0];
 const importer=script.split("document.getElementById('importFile').addEventListener('change',async e=>{")[1].split("\n});")[0];
 const harness=new Function('document',prefix+`
 let message='';
@@ -19,24 +19,50 @@ return {
  getNodes:()=>structuredClone(nodes), validate:validateRingLayout, error:ringMoveError,
  levels:()=>structuredClone(ANCESTRY_LEVELS), bands:()=>structuredClone(RING_BANDS),
  bounds:()=>structuredClone(levelBounds),
- resize:(level,side,delta)=>{levelBounds=resizedLevelBounds(level,side,delta,nodes);return structuredClone(levelBounds);},
+ branchGroups:()=>structuredClone(MACRO_GROUPS),
+ branch:familyMacroId,
+ palette:id=>{applyPalette(id);return structuredClone(MACRO_GROUPS);},
+ familyColors:()=>structuredClone(STYLES),
+ macroMasks:()=>computeMacroMasks(),
  familyIds:()=>Object.keys(groups), routedFamilyIds:()=>Object.keys(computeAllMasks(nodes)),
  getMessage:()=>message,
  nudge:(id,dx,dy)=>{selectedId=id;nudgeSelected(dx,dy);},
  pointer:(id,x,y)=>{drag={id,lastCell:[nodes[id].x,nodes[id].y]};const bounds=layoutBounds();
   const e={clientX:LEFT+(x-bounds.xMin+.5)*CELL_W,clientY:TOP+(y-bounds.yMin+.5)*CELL_H};${pointer}},
  import:async incoming=>{const e={target:{files:[{name:'test.json',text:async()=>JSON.stringify(incoming)}],value:'test'}};${importer}},
- export:()=>({nodes:structuredClone(nodes),pinned_ids:[],level_bounds:structuredClone(levelBounds)})
+ export:()=>({nodes:structuredClone(nodes),pinned_ids:[],level_bounds:structuredClone(levelBounds)}),
+ guideCrossings:()=>{const b=layoutBounds(),crossings=[];
+  levelBounds.slice(0,-1).forEach((edge,level)=>{const g=ringGuideRect(edge,b);
+   for(const [id,n] of Object.entries(nodes)){const [cx,cy]=cellToPx(n.x,n.y,b);
+    const x0=cx+NODE_INSET_X,x1=cx+CELL_W-NODE_INSET_X,y0=cy+NODE_INSET_Y,y1=cy+CELL_H-NODE_INSET_Y;
+    const overlapsY=y0<g.y+g.height&&y1>g.y,overlapsX=x0<g.x+g.width&&x1>g.x;
+    if(([g.x,g.x+g.width].some(v=>x0<v&&v<x1)&&overlapsY)||([g.y,g.y+g.height].some(v=>y0<v&&v<y1)&&overlapsX))crossings.push(id+' crosses level '+level);}
+  });return crossings;}
 };`);
 const app=harness({getElementById:()=>({getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),viewBox:{baseVal:{width:100,height:100}}})});
 const initial=app.getNodes();
+const branches=app.branchGroups();
+assert.equal(Object.keys(branches).length,10);
+assert.deepEqual(Object.values(branches).flatMap(branch=>branch.members).sort(),Object.keys(initial).sort());
+for(const [id,branch] of [['cronus','primordial'],['nyx','night'],['pontus','sea'],['nereus','sea'],['oceanus','ocean'],['tethys','ocean'],['hyperion','light'],['iapetus','iapetus'],['clymene','iapetus'],['crius','hecate'],['coeus','hecate'],['zeus','olympian']])assert.equal(app.branch(id),branch);
+for(const palette of ['jewel','editorial','fresco']){
+  const colours=app.palette(palette);
+  assert.equal(colours.night.color,'#D8A21B','Night retains its existing yellow');
+  for(const branch of Object.values(colours))assert.match(branch.color,/^#[0-9a-f]{6}$/i);
+  for(const [owner,style] of Object.entries(app.familyColors()))assert.equal(style.color,colours[app.branch(owner)].color);
+}
+app.palette('jewel');
+for(const [group,mask] of Object.entries(app.macroMasks())){
+  for(const id of branches[group].members){const n=initial[id];assert.ok(mask.has(n.x+','+n.y),group+' must include '+id+' even when disconnected');}
+}
 app.validate(initial);
+assert.deepEqual(app.guideCrossings(),[],'Ring guides must not cut through figure boxes');
 assert.equal(app.familyIds().length,33);
 assert.deepEqual(app.routedFamilyIds().sort(),app.familyIds().sort());
 for(const id of ['oceanus','tethys','crius','phoebe','mnemosyne','themis'])assert.ok(app.familyIds().includes(id),`${id} needs a family region`);
 assert.deepEqual(app.bands(),[{inner:0,outer:0},{inner:1,outer:1},{inner:2,outer:2},{inner:3,outer:4},{inner:5,outer:6},{inner:7,outer:8}]);
-assert.match(html,/ring-handle/);
-assert.match(html,/beginBoundaryDrag/);
+assert.doesNotMatch(html,/ring-handle/);
+assert.doesNotMatch(html,/boundaryDrag|beginBoundaryDrag|resizedLevelBounds/);
 assert.match(html,/level_bounds/);
 assert.doesNotMatch(html,/> P badges</);
 assert.doesNotMatch(html,/marks a parent/);
@@ -76,12 +102,6 @@ for(const [id,n] of Object.entries(initial)){
   if(radialMove)break;
 }
 assert.ok(radialMove,'A two-lane level needs one available radial move');
-app.resize(4,'top',-1);
-assert.equal(app.bounds()[4].top,-6);
-assert.deepEqual(app.bounds()[4],{left:-4,right:4,top:-6,bottom:4});
-assert.equal(app.error('zeus',0,-6),'');
-app.resize(4,'top',1);
-assert.equal(app.bounds()[4].top,-5);
 const invalid=app.export();invalid.nodes.zeus.x=0;invalid.nodes.zeus.y=0;
 await app.import(invalid);
 assert.match(app.getMessage(),/Import failed: Zeus must stay/);
@@ -105,4 +125,4 @@ for(const [id,n] of Object.entries(initial)){
   if(moved)break;
 }
 assert.ok(moved,'At least one legal move must succeed');
-console.log('Verified layout30, resizable square-ring edges, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');
+console.log('Verified layout30, static square-ring guides, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');
