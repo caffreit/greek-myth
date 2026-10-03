@@ -95,9 +95,15 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 .layout-controls{position:fixed;top:10px;right:10px;z-index:20;display:flex;gap:8px;background:#fffefa;padding:6px;border:1px solid #d6d1c7;border-radius:8px}
 @media(max-width:650px){.layout-controls{top:54px}}
 .hide-ring-guides .ring-guide{display:none}
+#canvas .person .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
+#canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}
+#canvas .person.selected .node{stroke:#20211e;stroke-width:2.6}
+#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e;stroke-width:2}
+.family-outline{pointer-events:none}.family-outline.dim{opacity:.12}.family-outline.emph{opacity:1}
+.family-outline .family-focus-fill{opacity:0}.family-outline.emph .family-focus-fill{opacity:.16}
 </style>
 </head>
-<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings_group_fill.html">Group-fill version</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
+<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings.html">Translucent-region version</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
 <div class="app">
   <div class="toolbar">
     <div class="title">Greek theogony, extended · poster design V27.0 <span style="font-size:10px;color:#777;font-weight:650;letter-spacing:.04em">SHAREABLE SVG EXPORT</span></div>
@@ -430,7 +436,7 @@ const KEY_GAP = 20, KEY_PANEL_H = 380, FOOTER_H = 72;
 const LEFT = PAGE_MARGIN + PANEL_PAD_X + DIAGRAM_GUTTER_X;
 const TOP = PAGE_MARGIN + HEADER_H + PANEL_PAD_Y + DIAGRAM_GUTTER_Y;
 const REGION_CORNER_R = 17;
-const NODE_INSET_X = 8, NODE_INSET_Y = 10;
+const NODE_INSET_X = 12, NODE_INSET_Y = 12;
 const svg = document.getElementById('canvas');
 const wrap = document.getElementById('wrap');
 const statusEl = document.getElementById('status');
@@ -754,6 +760,27 @@ function familyShiftForLevel(level, scale=1){
   ];
   const p=pattern[level % pattern.length];
   return {dx:p.dx*scale, dy:p.dy*scale};
+}
+function mixWithWhite(hex,amount){
+  return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('');
+}
+// Outlines of overlapping families take separate lanes. Every lane must fit
+// within NODE_INSET so the boxes drawn above never hide it.
+const FAMILY_LANE_START=1.5, FAMILY_LANE_STEP=3, FAMILY_LANE_WIDTH=2;
+function appendFamilyOutline(svg,gid,d,color,level,W,H){
+  const inset=FAMILY_LANE_START+level*FAMILY_LANE_STEP;
+  const maskId='familyOutline_'+gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const mask=makeSvg('mask',{id:maskId,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+FAMILY_LANE_WIDTH),'stroke-linejoin':'round'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round'}));
+  defs.append(mask);
+  const g=makeSvg('g',{class:'family-region family-outline','data-group':gid});
+  g.append(makeSvg('path',{d,fill:color,class:'family-focus-fill'}));
+  g.append(makeSvg('path',{d,fill:color,mask:`url(#${maskId})`}));
+  svg.append(g);
 }
 function appendInsetFamilyRegion(svg,gid,d,fill,opacity,inset,W,H,dx=0,dy=0){
   // SVG has no native inset-path operation. Use a per-family mask: the filled
@@ -1352,7 +1379,7 @@ function render(){
       const level=setbackInfo.level[gid] || 0;
       const inset=BASE_FAMILY_INSET + level*FAMILY_INSET_STEP;
       const shift=familyShiftForLevel(level, SHIFT_SCALE);
-      appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);
+      appendFamilyOutline(svg,gid,d,macroDef.color,level,W,H);
     }
     if(familyMarkerMode!=='off'){
       for(const gid of FAMILY_OWNER_ORDER){
@@ -1407,7 +1434,11 @@ function render(){
     if(pinnedIds.has(id)) classes.push('pinned');
     if(drag?.id===id) classes.push('dragging');
     const g=makeSvg('g',{class:classes.join(' '),'data-person':id,transform:`translate(${x},${y})`});
-    const rect=makeSvg('rect',{class:'node',x:0,y:0,width:w,height:h});
+    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
+    g.setAttribute('style',`--box-fill:${mixWithWhite(groupColor,.55)};--box-stroke:${groupColor}`);
+    const stack=people[id].role==='collective'?6:0;
+    if(stack)[[6,0],[3,3]].forEach(([sx,sy])=>g.append(makeSvg('rect',{class:'stack-card',x:sx,y:sy,width:w-stack,height:h-stack,rx:6,ry:6})));
+    const rect=makeSvg('rect',{class:'node',x:0,y:stack,width:w-stack,height:h-stack});
     const treatment=document.getElementById('textTreatment')?.value || 'a';
     const isCollective=people[id].role==='collective';
     const text=makeSvg('text',{class:`label text-${treatment}`,x:w/2,y:isCollective?h/2-13:h/2});text.textContent=people[id].name;
@@ -1423,6 +1454,10 @@ function render(){
     }
     if(pinnedIds.has(id)){const mark=makeSvg('circle',{class:'pin-mark',cx:w-7,cy:7,r:3});g.append(mark);}
     svg.append(g);
+    for(const label of g.querySelectorAll('text')){
+      const width=label.getBBox().width,room=w-stack-10;
+      if(width>room)label.style.fontSize=(parseFloat(getComputedStyle(label).fontSize)*room/width).toFixed(2)+'px';
+    }
     if(treatment==='c'){
       const bb=text.getBBox();
       const backing=makeSvg('rect',{class:'label-backing',x:bb.x-5.5,y:bb.y-2.2,width:bb.width+11,height:bb.height+4.4,rx:5.5,ry:5.5});
@@ -1572,7 +1607,7 @@ function undo(){if(!undoStack.length||optimizing)return;redoStack.push(snapshotS
 function redo(){if(!redoStack.length||optimizing)return;undoStack.push(snapshotState());restoreState(redoStack.pop());updateUndoButtons();autoSave();render();updateSidebar();setStatus('Redid action.');}
 function updateUndoButtons(){document.getElementById('undoBtn').disabled=!undoStack.length||optimizing;document.getElementById('redoBtn').disabled=!redoStack.length||optimizing;syncActionButtons();}
 document.getElementById('undoBtn').onclick=undo;document.getElementById('redoBtn').onclick=redo;document.getElementById('pinBtn').onclick=()=>togglePin();document.getElementById('optFamilyBtn').onclick=()=>optimizeLayout('family');document.getElementById('optAllBtn').onclick=()=>optimizeLayout('all');document.getElementById('stopOptBtn').onclick=()=>{optimizerAbort=true;setStatus('Stopping optimizer…');};
-document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-square-rings-v1');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout and level boundaries.');};
+document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-square-rings-group-fill-v1');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout and level boundaries.');};
 
 function exportObject(){
   const xs=Object.values(nodes).map(n=>n.x),ys=Object.values(nodes).map(n=>n.y);
@@ -1630,8 +1665,8 @@ function downloadPosterSvg(){
   setTimeout(()=>URL.revokeObjectURL(url),0);
   setStatus('Downloaded greek_theogony_square_rings.svg.');
 }
-function autoSave(){try{localStorage.setItem('greek-square-rings-v1',JSON.stringify(exportObject()));}catch{}}
-function restoreAutoSave(){try{const raw=localStorage.getItem('greek-square-rings-v1');if(!raw)return;const obj=JSON.parse(raw);if(obj.nodes){const candidate=obj.nodes;computeAllMasks(candidate);nodes=structuredClone(candidate);pinnedIds=new Set((obj.pinned_ids||[]).filter(id=>nodes[id]));lastValidNodes=structuredClone(nodes);setStatus('Restored your browser-saved layout.');}}catch{}}
+function autoSave(){try{localStorage.setItem('greek-square-rings-group-fill-v1',JSON.stringify(exportObject()));}catch{}}
+function restoreAutoSave(){try{const raw=localStorage.getItem('greek-square-rings-group-fill-v1');if(!raw)return;const obj=JSON.parse(raw);if(obj.nodes){const candidate=obj.nodes;computeAllMasks(candidate);nodes=structuredClone(candidate);pinnedIds=new Set((obj.pinned_ids||[]).filter(id=>nodes[id]));lastValidNodes=structuredClone(nodes);setStatus('Restored your browser-saved layout.');}}catch{}}
 
 function updateSidebar(){
   const id=selectedId||hoveredId;
@@ -1688,7 +1723,7 @@ function wrapSvgText(group, text, x, y, width, lineHeight, className, styleText=
 function renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey){
   svg.append(makeSvg('rect',{class:'poster-page',x:0,y:0,width:W,height:H,rx:2,ry:2,fill:'#fbfaf6'}));
   const kicker=makeSvg('text',{class:'poster-header-kicker',x:PAGE_MARGIN,y:PAGE_MARGIN+14});
-  kicker.textContent='SQUARE RINGS EXPERIMENT · ANCESTRY RUNS OUTWARDS';
+  kicker.textContent='SQUARE RINGS EXPERIMENT · GROUP FILL · ANCESTRY RUNS OUTWARDS';
   svg.append(kicker);
   const title=makeSvg('text',{class:'poster-header-title',x:PAGE_MARGIN,y:PAGE_MARGIN+76});
   title.textContent='Greek Theogony, Square Rings';
@@ -1729,7 +1764,7 @@ function renderPosterKey(svg,b,W,keyY){
     const col=ci%2, row=Math.floor(ci/2);
     const x=outerX+padX+col*(keyW-padX*2)/2;
     const yy=y+padTop+70+row*58;
-    keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));
+    keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));
     const name=makeSvg('text',{x:x+39,y:yy,class:'poster-key-row-name'});
     name.textContent=def.label;
     name.setAttribute('style',bodyFont+';font-size:22px;font-weight:620');
@@ -1743,12 +1778,12 @@ function renderPosterKey(svg,b,W,keyY){
   heading.setAttribute('style',bodyFont+';font-size:26px');
   noteG.append(heading);
   const firstY=y+padTop+60;
-  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,26,'poster-key-note',bodyFont);
+  const lines=wrapSvgText(noteG,"A box's colour shows its group. A coloured outline encloses each parent's direct children, drawn in the parent's group colour.",noteX+padX,firstY,noteW-padX*2,26,'poster-key-note',bodyFont);
   const dividerY=firstY+Math.max(1,lines)*26+12;
   noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
-  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings mark generations. Colours identify groups of related figures; overlapping regions show shared parentage.',noteX+padX,dividerY+31,noteW-padX*2,25,'poster-key-note',bodyFont);
+  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings mark generations. Where two outlines overlap, the enclosed figures share both parents.',noteX+padX,dividerY+31,noteW-padX*2,25,'poster-key-note',bodyFont);
   const footY=dividerY+31+Math.max(1,overlapLines)*25+17;
-  wrapSvgText(noteG,'* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Dashed boxes are collectives.',noteX+padX,footY,noteW-padX*2,23,'poster-key-note','font-family:'+currentTypeface()+';font-size:17px;font-weight:520;fill:#77746d');
+  wrapSvgText(noteG,'* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Stacked cards are collectives.',noteX+padX,footY,noteW-padX*2,23,'poster-key-note','font-family:'+currentTypeface()+';font-size:17px;font-weight:520;fill:#77746d');
 }
 
 function setStatus(msg,error=false){statusEl.textContent=msg;statusEl.classList.toggle('error',error);clearTimeout(setStatus.t);setStatus.t=setTimeout(()=>{statusEl.classList.remove('error')},2200)}

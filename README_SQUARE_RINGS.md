@@ -30,4 +30,6 @@ The six provisional labels describe mixed ancestry cohorts, not exclusive deity 
 
 Generated coordinates are in `data/layout.square_rings.json`. Placement assumptions and per-figure depths are recorded in `data/square_rings_report.json`. The original V27 poster and its layout remain separate. The experiment starts from its generated layout rather than restoring browser autosaves.
 
+The same build also writes `poster/layout_editor_square_rings_group_fill.html`, a comparison with the same layout. Each box is filled with its own group colour. Each parent's family is a thin outline in the parent's group colour, drawn in the gutters beneath the boxes. Overlapping families take separate inset lanes, so colours never blend. Selecting a figure lightly fills its families. Collectives are stacked cards rather than dashed boxes. Verify it with `node tools/verify_square_rings.mjs poster/layout_editor_square_rings_group_fill.html`.
+
 This is a layout comparison, not a replacement poster. The extra lane makes the rings more flexible, but family fields can become more complex when figures occupy both lanes. That is the point to test before removing minor boundaries.

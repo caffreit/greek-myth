@@ -306,7 +306,7 @@ html=html.replace('</style>',`/* Fit the complete poster width on initial load; 
 @media(max-width:650px){.layout-controls{top:54px}}
 .hide-ring-guides .ring-guide{display:none}
 </style>`);
-html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
+html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings_group_fill.html">Group-fill version</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
 // Move the existing controls out of the hidden development toolbar. Keeping
 // their IDs preserves the original save/import handlers and keyboard shortcuts.
 const saveControl='<button id="saveBtn">Save layout JSON</button>';
@@ -429,7 +429,70 @@ script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];
 new Function(script);
 api=routingApi(script);
 const fields=api.fields(nodes);
+// Group-fill variant. Box fills show each figure's own group; parent families
+// are inset outlines beneath the boxes, so overlapping families never blend.
+function groupFillVariant(base){
+  let out=base;
+  const swap=(before,after)=>{
+    if(!out.includes(before))throw new Error('Missing group-fill fragment: '+before);
+    out=out.replace(before,after);
+  };
+  swap('const NODE_INSET_X = 8, NODE_INSET_Y = 10;','const NODE_INSET_X = 12, NODE_INSET_Y = 12;');
+  swap('function appendInsetFamilyRegion(',`function mixWithWhite(hex,amount){
+  return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('');
+}
+// Outlines of overlapping families take separate lanes. Every lane must fit
+// within NODE_INSET so the boxes drawn above never hide it.
+const FAMILY_LANE_START=1.5, FAMILY_LANE_STEP=3, FAMILY_LANE_WIDTH=2;
+function appendFamilyOutline(svg,gid,d,color,level,W,H){
+  const inset=FAMILY_LANE_START+level*FAMILY_LANE_STEP;
+  const maskId='familyOutline_'+gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const mask=makeSvg('mask',{id:maskId,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+FAMILY_LANE_WIDTH),'stroke-linejoin':'round'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round'}));
+  defs.append(mask);
+  const g=makeSvg('g',{class:'family-region family-outline','data-group':gid});
+  g.append(makeSvg('path',{d,fill:color,class:'family-focus-fill'}));
+  g.append(makeSvg('path',{d,fill:color,mask:\`url(#\${maskId})\`}));
+  svg.append(g);
+}
+function appendInsetFamilyRegion(`);
+  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);','appendFamilyOutline(svg,gid,d,macroDef.color,level,W,H);');
+  swap("    const rect=makeSvg('rect',{class:'node',x:0,y:0,width:w,height:h});",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
+    g.setAttribute('style',\`--box-fill:\${mixWithWhite(groupColor,.55)};--box-stroke:\${groupColor}\`);
+    const stack=people[id].role==='collective'?6:0;
+    if(stack)[[6,0],[3,3]].forEach(([sx,sy])=>g.append(makeSvg('rect',{class:'stack-card',x:sx,y:sy,width:w-stack,height:h-stack,rx:6,ry:6})));
+    const rect=makeSvg('rect',{class:'node',x:0,y:stack,width:w-stack,height:h-stack});`);
+  swap('    svg.append(g);\n    if(treatment===',`    svg.append(g);
+    for(const label of g.querySelectorAll('text')){
+      const width=label.getBBox().width,room=w-stack-10;
+      if(width>room)label.style.fontSize=(parseFloat(getComputedStyle(label).fontSize)*room/width).toFixed(2)+'px';
+    }
+    if(treatment===`);
+  swap("keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));",
+    "keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));");
+  swap(`"Coloured boundaries enclose each parent's direct family."`,`"A box's colour shows its group. A coloured outline encloses each parent's direct children, drawn in the parent's group colour."`);
+  swap('Colours identify groups of related figures; overlapping regions show shared parentage.','Where two outlines overlap, the enclosed figures share both parents.');
+  swap('Dashed boxes are collectives.','Stacked cards are collectives.');
+  swap('<a href="layout_editor_square_rings_group_fill.html">Group-fill version</a>','<a href="layout_editor_square_rings.html">Translucent-region version</a>');
+  out=out.replaceAll('greek-square-rings-v1','greek-square-rings-group-fill-v1');
+  out=out.replaceAll('SQUARE RINGS EXPERIMENT · ANCESTRY RUNS OUTWARDS','SQUARE RINGS EXPERIMENT · GROUP FILL · ANCESTRY RUNS OUTWARDS');
+  swap('</style>',`#canvas .person .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
+#canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}
+#canvas .person.selected .node{stroke:#20211e;stroke-width:2.6}
+#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e;stroke-width:2}
+.family-outline{pointer-events:none}.family-outline.dim{opacity:.12}.family-outline.emph{opacity:1}
+.family-outline .family-focus-fill{opacity:0}.family-outline.emph .family-focus-fill{opacity:.16}
+</style>`);
+  new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
+  return out;
+}
+const groupFillHtml=groupFillVariant(html);
 await writeFile('poster/layout_editor_square_rings.html',html);
+await writeFile('poster/layout_editor_square_rings_group_fill.html',groupFillHtml);
 await writeFile('data/layout.square_rings.json',JSON.stringify(layout,null,2)+'\n');
 await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout30.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
 console.log(`Built square-ring experiment from layout30: ${people.length} figures, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);

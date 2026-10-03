@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
-const html=await readFile('poster/layout_editor_square_rings.html','utf8');
+const html=await readFile(process.argv[2]||'poster/layout_editor_square_rings.html','utf8');
 const script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];
 const prefix=script.slice(0,script.indexOf('function render(){'));
 const nudge=script.slice(script.indexOf('function nudgeSelected('),script.indexOf("window.addEventListener('keydown'"));
