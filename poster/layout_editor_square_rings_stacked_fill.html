@@ -96,6 +96,7 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 @media(max-width:650px){.layout-controls{top:54px}}
 .hide-ring-guides .ring-guide{display:none}
 #canvas .person.role-collective .node,#canvas .person .stack-card{fill:rgba(255,255,255,.3);stroke:rgba(32,33,30,.24);stroke-width:1;stroke-dasharray:none}
+.family-stack{pointer-events:none}.family-stack.dim{opacity:.15}.family-stack.emph{opacity:1}
 </style>
 </head>
 <body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><a href="layout_editor_square_rings_stacked_fill.html">Stacked fill</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
@@ -199,7 +200,7 @@ const STYLES = {"chaos":{"color":"#8C607D"},"gaia":{"color":"#D94E64"},"nyx":{"c
 const MACRO_GROUPS = {
   "origins": {
     "label": "Origins",
-    "color": "#8C607D",
+    "color": "#6B5446",
     "setback": 4,
     "members": [
       "chaos",
@@ -209,7 +210,7 @@ const MACRO_GROUPS = {
   },
   "primordial": {
     "label": "Earth & sky",
-    "color": "#D94E64",
+    "color": "#C8433A",
     "setback": 4,
     "members": [
       "cronus",
@@ -221,7 +222,7 @@ const MACRO_GROUPS = {
   },
   "monsters": {
     "label": "Giants & monsters",
-    "color": "#596C78",
+    "color": "#5D7286",
     "setback": 5,
     "members": [
       "echidna",
@@ -254,7 +255,7 @@ const MACRO_GROUPS = {
   },
   "sea": {
     "label": "Sea",
-    "color": "#258B9B",
+    "color": "#2A9D8F",
     "setback": 5,
     "members": [
       "pontus",
@@ -267,7 +268,7 @@ const MACRO_GROUPS = {
   },
   "ocean": {
     "label": "Ocean & nymphs",
-    "color": "#3265A8",
+    "color": "#2F5DA8",
     "setback": 6,
     "members": [
       "oceanus",
@@ -280,7 +281,7 @@ const MACRO_GROUPS = {
   },
   "light": {
     "label": "Sun, moon & dawn",
-    "color": "#BD5875",
+    "color": "#B8428C",
     "setback": 7,
     "members": [
       "hyperion",
@@ -292,7 +293,7 @@ const MACRO_GROUPS = {
   },
   "iapetus": {
     "label": "Prometheus & Atlas",
-    "color": "#735BCB",
+    "color": "#7A5BC7",
     "setback": 7,
     "members": [
       "iapetus",
@@ -304,7 +305,7 @@ const MACRO_GROUPS = {
   },
   "hecate": {
     "label": "Magic & prophecy",
-    "color": "#667E4C",
+    "color": "#6E8B3D",
     "setback": 7,
     "members": [
       "crius",
@@ -317,7 +318,7 @@ const MACRO_GROUPS = {
   },
   "olympian": {
     "label": "Olympians",
-    "color": "#E8793F",
+    "color": "#F08A24",
     "setback": 9,
     "members": [
       "rhea",
@@ -353,46 +354,46 @@ const PALETTES = {
   "jewel": {
     "label": "Family routes",
     "colors": {
-      "origins": "#8C607D",
-      "primordial": "#D94E64",
-      "monsters": "#596C78",
+      "origins": "#6B5446",
+      "primordial": "#C8433A",
+      "monsters": "#5D7286",
       "night": "#D8A21B",
-      "sea": "#258B9B",
-      "ocean": "#3265A8",
-      "light": "#BD5875",
-      "iapetus": "#735BCB",
-      "hecate": "#667E4C",
-      "olympian": "#E8793F"
+      "sea": "#2A9D8F",
+      "ocean": "#2F5DA8",
+      "light": "#B8428C",
+      "iapetus": "#7A5BC7",
+      "hecate": "#6E8B3D",
+      "olympian": "#F08A24"
     }
   },
   "editorial": {
     "label": "Soft family routes",
     "colors": {
-      "origins": "#a38097",
-      "primordial": "#e17183",
-      "monsters": "#7a8993",
+      "origins": "#89766b",
+      "primordial": "#d36961",
+      "monsters": "#7d8e9e",
       "night": "#D8A21B",
-      "sea": "#51a2af",
-      "ocean": "#5b84b9",
-      "light": "#ca7991",
-      "iapetus": "#8f7cd5",
-      "hecate": "#859870",
-      "olympian": "#ed9465"
+      "sea": "#55b1a5",
+      "ocean": "#597db9",
+      "light": "#c668a3",
+      "iapetus": "#957cd2",
+      "hecate": "#8ba264",
+      "olympian": "#f3a150"
     }
   },
   "fresco": {
     "label": "Pale family routes",
     "colors": {
-      "origins": "#b498ab",
-      "primordial": "#e68c9a",
-      "monsters": "#939fa7",
+      "origins": "#9f9087",
+      "primordial": "#db857f",
+      "monsters": "#96a3b0",
       "night": "#D8A21B",
-      "sea": "#71b4be",
-      "ocean": "#7a9bc6",
-      "light": "#d492a5",
-      "iapetus": "#a494dd",
-      "hecate": "#9cab8b",
-      "olympian": "#f0a882"
+      "sea": "#75bfb6",
+      "ocean": "#7896c6",
+      "light": "#d184b4",
+      "iapetus": "#a994db",
+      "hecate": "#a1b481",
+      "olympian": "#f5b371"
     }
   }
 };
@@ -755,6 +756,30 @@ function familyShiftForLevel(level, scale=1){
   ];
   const p=pattern[level % pattern.length];
   return {dx:p.dx*scale, dy:p.dy*scale};
+}
+function mixWithWhite(hex,amount){
+  return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('');
+}
+// A family painted over overlapping families is inset further and slightly
+// darker, so the larger family beneath keeps a visible margin.
+const STACK_INSET_STEP=5, STACK_EDGE=2, STACK_MAX_DEPTH=2;
+function familyMask(svg,id,d,inset,band,W,H){
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const mask=makeSvg('mask',{id,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  if(band)mask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+band),'stroke-linejoin':'round'}));
+  else mask.append(makeSvg('path',{d,fill:'white'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round'}));
+  defs.append(mask);
+  return `url(#${id})`;
+}
+function appendStackedFamily(svg,gid,d,color,depth,W,H){
+  const inset=depth*STACK_INSET_STEP, safe=gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  const g=makeSvg('g',{class:'family-region family-stack','data-group':gid});
+  g.append(makeSvg('path',{d,fill:mixWithWhite(color,.55-depth*.1),mask:familyMask(svg,'familyFill_'+safe,d,inset,0,W,H)}));
+  g.append(makeSvg('path',{d,fill:color,mask:familyMask(svg,'familyEdge_'+safe,d,inset,STACK_EDGE,W,H)}));
+  svg.append(g);
 }
 function appendInsetFamilyRegion(svg,gid,d,fill,opacity,inset,W,H,dx=0,dy=0){
   // SVG has no native inset-path operation. Use a per-family mask: the filled
@@ -1357,13 +1382,16 @@ function render(){
     const familyOrder=Object.keys(groups).sort((a,bid)=>ANCESTRY_LEVELS[a]-ANCESTRY_LEVELS[bid]||masks[bid].size-masks[a].size);
     const BASE_FAMILY_INSET=2, FAMILY_INSET_STEP=3.5;
     const SHIFT_SCALE = 0.9 * setbackScale;
+    const stackedFamilies=[];
     for(const gid of familyOrder){
       const mid=familyMacroId(gid), macroDef=MACRO_GROUPS[mid] || MACRO_GROUPS.primordial;
       const d=pathStringForMask(masks[gid],b);
       const level=setbackInfo.level[gid] || 0;
       const inset=BASE_FAMILY_INSET + level*FAMILY_INSET_STEP;
       const shift=familyShiftForLevel(level, SHIFT_SCALE);
-      appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);
+      const depth=Math.min(STACK_MAX_DEPTH,stackedFamilies.filter(other=>masksOverlap(masks[other],masks[gid])).length);
+      stackedFamilies.push(gid);
+      appendStackedFamily(svg,gid,d,macroDef.color,depth,W,H);
     }
     if(familyMarkerMode!=='off'){
       for(const gid of FAMILY_OWNER_ORDER){
@@ -1402,7 +1430,7 @@ function render(){
   levelBounds.forEach((edge,index)=>{
     if(index===levelBounds.length-1)return;
     const {x,y,width,height}=ringGuideRect(edge,b);
-    svg.append(makeSvg('rect',{x,y,width,height,rx:Math.min(NODE_INSET_X,NODE_INSET_Y),fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
+    svg.append(makeSvg('rect',{x,y,width,height,rx:Math.min(NODE_INSET_X,NODE_INSET_Y),fill:'none',stroke:'#66675f','stroke-opacity':.28,'stroke-width':1.4,'stroke-dasharray':'7 7',class:'ring-guide'}));
     const label=makeSvg('text',{x:x+CELL_W*.25,y,dy:'.35em',fill:'#606159','font-size':12,class:'ring-guide ring-label'});
     label.textContent='Level '+index+' · '+LEVEL_NAMES[index];
     svg.append(label);
@@ -1589,7 +1617,7 @@ function undo(){if(!undoStack.length||optimizing)return;redoStack.push(snapshotS
 function redo(){if(!redoStack.length||optimizing)return;undoStack.push(snapshotState());restoreState(redoStack.pop());updateUndoButtons();autoSave();render();updateSidebar();setStatus('Redid action.');}
 function updateUndoButtons(){document.getElementById('undoBtn').disabled=!undoStack.length||optimizing;document.getElementById('redoBtn').disabled=!redoStack.length||optimizing;syncActionButtons();}
 document.getElementById('undoBtn').onclick=undo;document.getElementById('redoBtn').onclick=redo;document.getElementById('pinBtn').onclick=()=>togglePin();document.getElementById('optFamilyBtn').onclick=()=>optimizeLayout('family');document.getElementById('optAllBtn').onclick=()=>optimizeLayout('all');document.getElementById('stopOptBtn').onclick=()=>{optimizerAbort=true;setStatus('Stopping optimizer…');};
-document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-square-rings-v1');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout and level boundaries.');};
+document.getElementById('resetBtn').onclick=()=>{const before=snapshotState();nodes=structuredClone(initialNodes);levelBounds=structuredClone(INITIAL_LEVEL_BOUNDS);pinnedIds=new Set();lastValidNodes=structuredClone(nodes);selectedId=null;localStorage.removeItem('greek-square-rings-stacked-fill-v1');pushHistory(before);render();updateSidebar();setStatus('Reset to packaged layout and level boundaries.');};
 
 function exportObject(){
   const xs=Object.values(nodes).map(n=>n.x),ys=Object.values(nodes).map(n=>n.y);
@@ -1647,8 +1675,8 @@ function downloadPosterSvg(){
   setTimeout(()=>URL.revokeObjectURL(url),0);
   setStatus('Downloaded greek_theogony_square_rings.svg.');
 }
-function autoSave(){try{localStorage.setItem('greek-square-rings-v1',JSON.stringify(exportObject()));}catch{}}
-function restoreAutoSave(){try{const raw=localStorage.getItem('greek-square-rings-v1');if(!raw)return;const obj=JSON.parse(raw);if(obj.nodes){const candidate=obj.nodes;computeAllMasks(candidate);nodes=structuredClone(candidate);pinnedIds=new Set((obj.pinned_ids||[]).filter(id=>nodes[id]));lastValidNodes=structuredClone(nodes);setStatus('Restored your browser-saved layout.');}}catch{}}
+function autoSave(){try{localStorage.setItem('greek-square-rings-stacked-fill-v1',JSON.stringify(exportObject()));}catch{}}
+function restoreAutoSave(){try{const raw=localStorage.getItem('greek-square-rings-stacked-fill-v1');if(!raw)return;const obj=JSON.parse(raw);if(obj.nodes){const candidate=obj.nodes;computeAllMasks(candidate);nodes=structuredClone(candidate);pinnedIds=new Set((obj.pinned_ids||[]).filter(id=>nodes[id]));lastValidNodes=structuredClone(nodes);setStatus('Restored your browser-saved layout.');}}catch{}}
 
 function updateSidebar(){
   const id=selectedId||hoveredId;
@@ -1705,7 +1733,7 @@ function wrapSvgText(group, text, x, y, width, lineHeight, className, styleText=
 function renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey){
   svg.append(makeSvg('rect',{class:'poster-page',x:0,y:0,width:W,height:H,rx:2,ry:2,fill:'#fbfaf6'}));
   const kicker=makeSvg('text',{class:'poster-header-kicker',x:PAGE_MARGIN,y:PAGE_MARGIN+14});
-  kicker.textContent='SQUARE RINGS EXPERIMENT · ANCESTRY RUNS OUTWARDS';
+  kicker.textContent='SQUARE RINGS EXPERIMENT · STACKED FILL · ANCESTRY RUNS OUTWARDS';
   svg.append(kicker);
   const title=makeSvg('text',{class:'poster-header-title',x:PAGE_MARGIN,y:PAGE_MARGIN+76});
   title.textContent='Greek Theogony, Square Rings';
@@ -1746,7 +1774,7 @@ function renderPosterKey(svg,b,W,keyY){
     const col=ci%2, row=Math.floor(ci/2);
     const x=outerX+padX+col*(keyW-padX*2)/2;
     const yy=y+padTop+70+row*58;
-    keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));
+    keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':2}));
     const name=makeSvg('text',{x:x+39,y:yy,class:'poster-key-row-name'});
     name.textContent=def.label;
     name.setAttribute('style',bodyFont+';font-size:22px;font-weight:620');
@@ -1760,10 +1788,10 @@ function renderPosterKey(svg,b,W,keyY){
   heading.setAttribute('style',bodyFont+';font-size:26px');
   noteG.append(heading);
   const firstY=y+padTop+60;
-  const lines=wrapSvgText(noteG,"Coloured boundaries enclose each parent's direct family.",noteX+padX,firstY,noteW-padX*2,26,'poster-key-note',bodyFont);
+  const lines=wrapSvgText(noteG,"Each shaded region encloses a parent's direct children, in the parent's group colour.",noteX+padX,firstY,noteW-padX*2,26,'poster-key-note',bodyFont);
   const dividerY=firstY+Math.max(1,lines)*26+12;
   noteG.append(makeSvg('line',{class:'poster-divider',x1:noteX+padX,y1:dividerY,x2:noteX+noteW-padX,y2:dividerY}));
-  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings mark generations. Colours identify groups of related figures; overlapping regions show shared parentage.',noteX+padX,dividerY+31,noteW-padX*2,25,'poster-key-note',bodyFont);
+  const overlapLines=wrapSvgText(noteG,'Read ancestry from the centre outwards. Rings mark generations. Smaller families sit on top of larger ones; figures inside two regions share both parents.',noteX+padX,dividerY+31,noteW-padX*2,25,'poster-key-note',bodyFont);
   const footY=dividerY+31+Math.max(1,overlapLines)*25+17;
   wrapSvgText(noteG,'* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Stacked cards are collectives.',noteX+padX,footY,noteW-padX*2,23,'poster-key-note','font-family:'+currentTypeface()+';font-size:17px;font-weight:520;fill:#77746d');
 }

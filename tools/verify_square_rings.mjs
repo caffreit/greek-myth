@@ -125,4 +125,4 @@ for(const [id,n] of Object.entries(initial)){
   if(moved)break;
 }
 assert.ok(moved,'At least one legal move must succeed');
-console.log('Verified layout30, static square-ring guides, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');
+console.log('Verified layout32, static square-ring guides, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');

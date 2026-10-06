@@ -167,9 +167,9 @@
       "bottom": 8
     }
   ],
-  "starting_layout": "layout30.json",
+  "starting_layout": "layout32.json",
   "routing_repairs": [],
   "figures": 79,
   "routed_fields": 33,
-  "family_distance_cost": 603.9321821835697
+  "family_distance_cost": 594.0833438731279
 }

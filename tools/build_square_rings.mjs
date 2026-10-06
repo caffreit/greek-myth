@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 // A separate experiment derived from the current poster, including its genealogy.
 const source = await readFile('poster/layout_editor_greek_theogony_extended_v27_0.html', 'utf8');
-const savedLayout30 = JSON.parse(await readFile('data/layout30.json', 'utf8'));
+const savedLayout = JSON.parse(await readFile('data/layout32.json', 'utf8'));
 const people = JSON.parse(source.match(/const PEOPLE_RAW = (.*);\nconst INITIAL_LAYOUT/)[1]);
 const original = JSON.parse(source.match(/const INITIAL_LAYOUT = (.*);\nconst STYLES/)[1]);
 const sourceStyles = JSON.parse(source.match(/const STYLES = (.*);\nconst MACRO_GROUPS/)[1]);
@@ -123,7 +123,7 @@ function minimumCostAssignment(costs){
 }
 
 const layout15Bands=ringBands;
-const initialLevelBounds=structuredClone(savedLayout30.level_bounds);
+const initialLevelBounds=structuredClone(savedLayout.level_bounds);
 for(let level=0;level<levels.length;level++){
   const ids=levels[level],sourceBand=layout15Bands[level],targetBand=ringBands[level];
   const desired=ids.map(id=>{
@@ -156,16 +156,16 @@ for(let level=0;level<levels.length;level++){
   }else assignment=minimumCostAssignment(costs);
   ids.forEach((id,index)=>Object.assign(nodes[id],slots[level][assignment[index]]));
 }
-const savedIds=Object.keys(savedLayout30.nodes||{}),expectedIds=people.map(person=>person.id);
-const missingSavedIds=expectedIds.filter(id=>!savedLayout30.nodes?.[id]);
+const savedIds=Object.keys(savedLayout.nodes||{}),expectedIds=people.map(person=>person.id);
+const missingSavedIds=expectedIds.filter(id=>!savedLayout.nodes?.[id]);
 const unknownSavedIds=savedIds.filter(id=>!byId[id]);
-if(missingSavedIds.length||unknownSavedIds.length)throw new Error(`layout30 coordinate mismatch. Missing: ${missingSavedIds.join(', ')}; unknown: ${unknownSavedIds.join(', ')}`);
-if(!Array.isArray(initialLevelBounds)||initialLevelBounds.length!==levels.length)throw new Error('layout30 has invalid level_bounds');
-for(const id of expectedIds)Object.assign(nodes[id],savedLayout30.nodes[id]);
+if(missingSavedIds.length||unknownSavedIds.length)throw new Error(`layout32 coordinate mismatch. Missing: ${missingSavedIds.join(', ')}; unknown: ${unknownSavedIds.join(', ')}`);
+if(!Array.isArray(initialLevelBounds)||initialLevelBounds.length!==levels.length)throw new Error('layout32 has invalid level_bounds');
+for(const id of expectedIds)Object.assign(nodes[id],savedLayout.nodes[id]);
 const inside=(point,bounds)=>point.x>=bounds.left&&point.x<=bounds.right&&point.y>=bounds.top&&point.y<=bounds.bottom;
 for(const id of expectedIds){
   const level=depths[id],point=nodes[id];
-  if(!inside(point,initialLevelBounds[level])||(level>0&&inside(point,initialLevelBounds[level-1])))throw new Error(`${id} from layout30 is outside level ${level}`);
+  if(!inside(point,initialLevelBounds[level])||(level>0&&inside(point,initialLevelBounds[level-1])))throw new Error(`${id} from layout32 is outside level ${level}`);
 }
 const projectedLayout30=structuredClone(nodes);
 score=cost();
@@ -178,7 +178,7 @@ for(const p of people) {
     if(depths[rel.parent_id]>=depths[p.id]) throw new Error(`Ancestry reversal: ${p.id}`);
   }
 }
-const layout={...original,nodes,pinned_ids:[...(savedLayout30.pinned_ids||[])],grid:{...savedLayout30.grid},level_bounds:structuredClone(initialLevelBounds)};
+const layout={...original,nodes,pinned_ids:[...(savedLayout.pinned_ids||[])],grid:{...savedLayout.grid},level_bounds:structuredClone(initialLevelBounds)};
 let html=source.replace(/const INITIAL_LAYOUT = .*;\nconst STYLES/,`const INITIAL_LAYOUT = ${JSON.stringify(layout)};\nconst STYLES`);
 // Selected family routes, inspired by the companion metro map. Each owner has
 // one route colour; overlapping parent regions still show shared ancestry.
@@ -199,8 +199,9 @@ if(branchMembers.length!==people.length||new Set(branchMembers).size!==people.le
 const branchFor=Object.fromEntries(Object.entries(branchGroups).flatMap(([branch,group])=>group.members.map(id=>[id,branch])));
 html=html.replace(/const MACRO_GROUPS = [\s\S]*?;\n\n\nconst PALETTES/,`const MACRO_GROUPS = ${JSON.stringify(branchGroups,null,2)};\n\n\nconst PALETTES`);
 const routeColors=Object.fromEntries(Object.entries(branchGroups).map(([id,group])=>[id,group.color]));
-function softenedColors(amount){return Object.fromEntries(Object.entries(routeColors).map(([id,color])=>[id,id==='night'?color:'#'+[1,3,5].map(start=>Math.round(parseInt(color.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('')]));}
-const routePalettes={jewel:{label:'Family routes',colors:routeColors},editorial:{label:'Soft family routes',colors:softenedColors(.2)},fresco:{label:'Pale family routes',colors:softenedColors(.35)}};
+function softenedColors(colors,amount){return Object.fromEntries(Object.entries(colors).map(([id,color])=>[id,id==='night'?color:'#'+[1,3,5].map(start=>Math.round(parseInt(color.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('')]));}
+function palettesFor(colors){return {jewel:{label:'Family routes',colors},editorial:{label:'Soft family routes',colors:softenedColors(colors,.2)},fresco:{label:'Pale family routes',colors:softenedColors(colors,.35)}};}
+const routePalettes=palettesFor(routeColors);
 html=html.replace(/const PALETTES = [\s\S]*?;\nconst TYPEFACE_STACKS/,`const PALETTES = ${JSON.stringify(routePalettes,null,2)};\nconst TYPEFACE_STACKS`);
 const extraFamilyStyles={oceanus:{color:'#587899'},tethys:{color:'#7865a0'},crius:{color:'#645696'},phoebe:{color:'#815f9d'},mnemosyne:{color:'#7254a2'},themis:{color:'#8b639a'}};
 const squareStyles=Object.fromEntries(Object.entries({...sourceStyles,...extraFamilyStyles}).map(([id,style])=>[id,{...style,color:branchGroups[branchFor[id]].color}]));
@@ -305,8 +306,9 @@ html=html.replace('</style>',`/* Fit the complete poster width on initial load; 
 .layout-controls{position:fixed;top:10px;right:10px;z-index:20;display:flex;gap:8px;background:#fffefa;padding:6px;border:1px solid #d6d1c7;border-radius:8px}
 @media(max-width:650px){.layout-controls{top:54px}}
 .hide-ring-guides .ring-guide{display:none}
+#canvas .person.role-collective .node,#canvas .person .stack-card{fill:rgba(255,255,255,.3);stroke:rgba(32,33,30,.24);stroke-width:1;stroke-dasharray:none}
 </style>`);
-html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings_group_fill.html">Group-fill version</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
+html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><a href="layout_editor_square_rings_stacked_fill.html">Stacked fill</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
 // Move the existing controls out of the hidden development toolbar. Keeping
 // their IDs preserves the original save/import handlers and keyboard shortcuts.
 const saveControl='<button id="saveBtn">Save layout JSON</button>';
@@ -319,7 +321,37 @@ html=html.replace('      <select id="parentCueMode"><option value="numbers" sele
 html=html.replace('centerOnChaos();prepareExportBuffer();','prepareExportBuffer();');
 html=html.replace('restoreAutoSave();buildLegend();','buildLegend();');
 html=html.replace('Where two parent regions overlap, the enclosed figures are children of both. Darker fields show immediate families.','Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.');
-html=html.replace('* Dashed boxes represent named collectives. Parentage varies across ancient sources.','* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Dashed boxes are collectives.');
+html=html.replace('* Dashed boxes represent named collectives. Parentage varies across ancient sources.','* Leto, Maia, Metis, Semele and Clymene have no recorded ancestry here; their rings follow their co-parent. Stacked cards are collectives.');
+replaceRequired("    const rect=makeSvg('rect',{class:'node',x:0,y:0,width:w,height:h});",`    const stack=people[id].role==='collective'?6:0;
+    if(stack)[[6,0],[3,3]].forEach(([sx,sy])=>g.append(makeSvg('rect',{class:'stack-card',x:sx,y:sy,width:w-stack,height:h-stack,rx:7,ry:7})));
+    const rect=makeSvg('rect',{class:'node',x:0,y:stack,width:w-stack,height:h-stack});`);
+replaceRequired('    svg.append(g);\n    if(treatment===',`    svg.append(g);
+    for(const label of g.querySelectorAll('text')){
+      const width=label.getBBox().width,room=w-stack-10;
+      if(width>room)label.style.fontSize=(parseFloat(getComputedStyle(label).fontSize)*room/width).toFixed(2)+'px';
+    }
+    if(treatment===`);
+// Each translucent family also gets a darker edge. Overlapping families sit in
+// separate inset lanes so their edges run side by side rather than on top.
+replaceRequired('    const BASE_FAMILY_INSET=3.0, FAMILY_INSET_STEP=2.25;','    const BASE_FAMILY_INSET=2, FAMILY_INSET_STEP=3.5;');
+// Translucent layers mix unevenly, so paint order sets the visible colour.
+// Older parents' families go underneath, so every cell shows its nearest
+// parent's colour on top.
+replaceRequired('    const familyOrder=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);',
+  '    const familyOrder=Object.keys(groups).sort((a,bid)=>ANCESTRY_LEVELS[a]-ANCESTRY_LEVELS[bid]||masks[bid].size-masks[a].size);');
+replaceRequired("  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid,mask:`url(#${maskId})`,transform:`translate(${dx},${dy})`}));\n}",
+`  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid,mask:\`url(#\${maskId})\`,transform:\`translate(\${dx},\${dy})\`}));
+  const edgeMask=makeSvg('mask',{id:maskId+'_edge',maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  edgeMask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  edgeMask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+FAMILY_EDGE_WIDTH),'stroke-linejoin':'round',transform:\`translate(\${dx},\${dy})\`}));
+  edgeMask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round',transform:\`translate(\${dx},\${dy})\`}));
+  defs.append(edgeMask);
+  svg.append(makeSvg('path',{d,fill:shadeColor(fill,.22),'fill-opacity':.9,class:'family-region family-edge','data-group':gid,mask:\`url(#\${maskId}_edge)\`,transform:\`translate(\${dx},\${dy})\`}));
+}
+const FAMILY_EDGE_WIDTH=1.8;
+function shadeColor(hex,amount){
+  return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)).toString(16).padStart(2,'0')).join('');
+}`);
 replaceRequired("  const parentCueMode=document.getElementById('parentCueMode')?.value || 'numbers';\n  const familyMarkerMode=parentCueMode==='numbers'?'numbers':'off';",
   "  const familyMarkerMode='off';");
 const markerHelpers=html;
@@ -386,7 +418,7 @@ function routingApi(currentScript){
 
 // Compression can box a family owner between unrelated occupied cells. Repair
 // only when the real router fails, and choose the valid same-level move or swap
-// with the least total displacement from the saved layout30 arrangement.
+// with the least total displacement from the saved layout32 arrangement.
 let api=routingApi(script),failures=api.inspect(nodes);
 const repairMoves=[];
 const displacement=layout=>Object.keys(layout).reduce((sum,id)=>sum+Math.abs(layout[id].x-projectedLayout30[id].x)+Math.abs(layout[id].y-projectedLayout30[id].y),0);
@@ -461,26 +493,16 @@ function appendFamilyOutline(svg,gid,d,color,level,W,H){
 }
 function appendInsetFamilyRegion(`);
   swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);','appendFamilyOutline(svg,gid,d,macroDef.color,level,W,H);');
-  swap("    const rect=makeSvg('rect',{class:'node',x:0,y:0,width:w,height:h});",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
+  swap("    const stack=people[id].role==='collective'?6:0;",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
     g.setAttribute('style',\`--box-fill:\${mixWithWhite(groupColor,.55)};--box-stroke:\${groupColor}\`);
-    const stack=people[id].role==='collective'?6:0;
-    if(stack)[[6,0],[3,3]].forEach(([sx,sy])=>g.append(makeSvg('rect',{class:'stack-card',x:sx,y:sy,width:w-stack,height:h-stack,rx:6,ry:6})));
-    const rect=makeSvg('rect',{class:'node',x:0,y:stack,width:w-stack,height:h-stack});`);
-  swap('    svg.append(g);\n    if(treatment===',`    svg.append(g);
-    for(const label of g.querySelectorAll('text')){
-      const width=label.getBBox().width,room=w-stack-10;
-      if(width>room)label.style.fontSize=(parseFloat(getComputedStyle(label).fontSize)*room/width).toFixed(2)+'px';
-    }
-    if(treatment===`);
+    const stack=people[id].role==='collective'?6:0;`);
   swap("keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));",
     "keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));");
   swap(`"Coloured boundaries enclose each parent's direct family."`,`"A box's colour shows its group. A coloured outline encloses each parent's direct children, drawn in the parent's group colour."`);
   swap('Colours identify groups of related figures; overlapping regions show shared parentage.','Where two outlines overlap, the enclosed figures share both parents.');
-  swap('Dashed boxes are collectives.','Stacked cards are collectives.');
-  swap('<a href="layout_editor_square_rings_group_fill.html">Group-fill version</a>','<a href="layout_editor_square_rings.html">Translucent-region version</a>');
   out=out.replaceAll('greek-square-rings-v1','greek-square-rings-group-fill-v1');
   out=out.replaceAll('SQUARE RINGS EXPERIMENT · ANCESTRY RUNS OUTWARDS','SQUARE RINGS EXPERIMENT · GROUP FILL · ANCESTRY RUNS OUTWARDS');
-  swap('</style>',`#canvas .person .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
+  swap('</style>',`#canvas .person .node,#canvas .person.role-collective .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
 #canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}
 #canvas .person.selected .node{stroke:#20211e;stroke-width:2.6}
 #canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e;stroke-width:2}
@@ -490,9 +512,66 @@ function appendInsetFamilyRegion(`);
   new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
   return out;
 }
+// Stacked-fill variant, styled like a map. Family regions are opaque tints
+// painted largest first, each edged in its full group colour, so overlaps read
+// as layers rather than mixed hues. Names sit directly on the colour.
+const stackedColors={origins:'#6B5446',primordial:'#C8433A',monsters:'#5D7286',night:'#D8A21B',sea:'#2A9D8F',ocean:'#2F5DA8',light:'#B8428C',iapetus:'#7A5BC7',hecate:'#6E8B3D',olympian:'#F08A24'};
+function stackedFillVariant(base){
+  let out=base;
+  const swap=(before,after)=>{
+    if(!out.includes(before))throw new Error('Missing stacked-fill fragment: '+before);
+    out=out.replace(before,after);
+  };
+  out=out.replace(/const PALETTES = [\s\S]*?;\nconst TYPEFACE_STACKS/,`const PALETTES = ${JSON.stringify(palettesFor(stackedColors),null,2)};\nconst TYPEFACE_STACKS`);
+  const stackedGroups=Object.fromEntries(Object.entries(branchGroups).map(([id,group])=>[id,{...group,color:stackedColors[id]}]));
+  out=out.replace(/const MACRO_GROUPS = [\s\S]*?;\n\n\nconst PALETTES/,`const MACRO_GROUPS = ${JSON.stringify(stackedGroups,null,2)};\n\n\nconst PALETTES`);
+  swap('function appendInsetFamilyRegion(',`function mixWithWhite(hex,amount){
+  return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('');
+}
+// A family painted over overlapping families is inset further and slightly
+// darker, so the larger family beneath keeps a visible margin.
+const STACK_INSET_STEP=5, STACK_EDGE=2, STACK_MAX_DEPTH=2;
+function familyMask(svg,id,d,inset,band,W,H){
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const mask=makeSvg('mask',{id,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
+  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
+  if(band)mask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+band),'stroke-linejoin':'round'}));
+  else mask.append(makeSvg('path',{d,fill:'white'}));
+  mask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round'}));
+  defs.append(mask);
+  return \`url(#\${id})\`;
+}
+function appendStackedFamily(svg,gid,d,color,depth,W,H){
+  const inset=depth*STACK_INSET_STEP, safe=gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  const g=makeSvg('g',{class:'family-region family-stack','data-group':gid});
+  g.append(makeSvg('path',{d,fill:mixWithWhite(color,.55-depth*.1),mask:familyMask(svg,'familyFill_'+safe,d,inset,0,W,H)}));
+  g.append(makeSvg('path',{d,fill:color,mask:familyMask(svg,'familyEdge_'+safe,d,inset,STACK_EDGE,W,H)}));
+  svg.append(g);
+}
+function appendInsetFamilyRegion(`);
+  swap('    for(const gid of familyOrder){','    const stackedFamilies=[];\n    for(const gid of familyOrder){');
+  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);',
+    `const depth=Math.min(STACK_MAX_DEPTH,stackedFamilies.filter(other=>masksOverlap(masks[other],masks[gid])).length);
+      stackedFamilies.push(gid);
+      appendStackedFamily(svg,gid,d,macroDef.color,depth,W,H);`);
+  swap("keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));",
+    "keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':2}));");
+  swap("'stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'","'stroke-opacity':.28,'stroke-width':1.4,'stroke-dasharray':'7 7',class:'ring-guide'");
+  swap(`"Coloured boundaries enclose each parent's direct family."`,`"Each shaded region encloses a parent's direct children, in the parent's group colour."`);
+  swap('Colours identify groups of related figures; overlapping regions show shared parentage.','Smaller families sit on top of larger ones; figures inside two regions share both parents.');
+  out=out.replaceAll('greek-square-rings-v1','greek-square-rings-stacked-fill-v1');
+  out=out.replaceAll('SQUARE RINGS EXPERIMENT · ANCESTRY RUNS OUTWARDS','SQUARE RINGS EXPERIMENT · STACKED FILL · ANCESTRY RUNS OUTWARDS');
+  swap('</style>',`.family-stack{pointer-events:none}.family-stack.dim{opacity:.15}.family-stack.emph{opacity:1}
+</style>`);
+  new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
+  return out;
+}
+const stackedFillHtml=stackedFillVariant(html);
 const groupFillHtml=groupFillVariant(html);
 await writeFile('poster/layout_editor_square_rings.html',html);
 await writeFile('poster/layout_editor_square_rings_group_fill.html',groupFillHtml);
+await writeFile('poster/layout_editor_square_rings_stacked_fill.html',stackedFillHtml);
 await writeFile('data/layout.square_rings.json',JSON.stringify(layout,null,2)+'\n');
-await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout30.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
-console.log(`Built square-ring experiment from layout30: ${people.length} figures, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);
+await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout32.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
+console.log(`Built square-ring experiment from layout32: ${people.length} figures, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);

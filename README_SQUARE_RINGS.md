@@ -18,7 +18,7 @@ node tools/analyze_boundary_layout.mjs data/layout20.json poster/layout_editor_s
 
 The report counts geometric crossing points and pairs of overlapping regions. It also checks whether an imported layout obeys the square-ring placement rule. A crossing count is an achieved value for that layout, not a proof of the minimum.
 
-The generator places all 79 figures in six concentric square levels. It starts with `data/layout30.json`, including its resized level boundaries, then checks collisions, outward ancestry, JavaScript syntax and successful routing of all 33 family fields before writing the experiment.
+The generator places all 79 figures in six concentric square levels. It starts with `data/layout32.json`, including its resized level boundaries, then checks collisions, outward ancestry, JavaScript syntax and successful routing of all 33 family fields before writing the experiment.
 
 Leto, Maia, Metis and Semele share Zeus's level; Clymene shares Iapetus's level. These are explicit layout assumptions because their ancestry is missing in the current dataset. They add no genealogy. Alternative parent traditions excluded from the visible boundaries do not determine the rings.
 
@@ -30,6 +30,10 @@ The six provisional labels describe mixed ancestry cohorts, not exclusive deity 
 
 Generated coordinates are in `data/layout.square_rings.json`. Placement assumptions and per-figure depths are recorded in `data/square_rings_report.json`. The original V27 poster and its layout remain separate. The experiment starts from its generated layout rather than restoring browser autosaves.
 
+In the main translucent version, each family region also has a thin edge in a darker shade of its colour. Overlapping families use separate inset lanes so their edges run side by side. Families are painted in order of the parent's generation, oldest underneath, so each cell shows its nearest parent's colour on top. Collectives are stacked cards in all three versions.
+
 The same build also writes `poster/layout_editor_square_rings_group_fill.html`, a comparison with the same layout. Each box is filled with its own group colour. Each parent's family is a thin outline in the parent's group colour, drawn in the gutters beneath the boxes. Overlapping families take separate inset lanes, so colours never blend. Selecting a figure lightly fills its families. Collectives are stacked cards rather than dashed boxes. Verify it with `node tools/verify_square_rings.mjs poster/layout_editor_square_rings_group_fill.html`.
+
+A third comparison, `poster/layout_editor_square_rings_stacked_fill.html`, keeps filled family regions but never blends them. It is styled like a map. Regions are opaque tints painted largest first, and each is edged in its full group colour. Families painted over others are inset slightly and a step darker. Names sit directly on the colour, collectives are faint stacked cards, and the ring guides are lighter. This version also uses a revised palette that spreads the warm groups apart in hue and lightness. Night keeps its yellow.
 
 This is a layout comparison, not a replacement poster. The extra lane makes the rings more flexible, but family fields can become more complex when figures occupy both lanes. That is the point to test before removing minor boundaries.
