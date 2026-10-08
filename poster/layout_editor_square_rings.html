@@ -1702,7 +1702,6 @@ document.getElementById('importFile').addEventListener('change',async e=>{
 });
 function buildStandaloneSvg(){
   const clone=svg.cloneNode(true);
-  clone.removeAttribute('id');
   clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
   clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
   clone.setAttribute('role','img');
@@ -1711,7 +1710,7 @@ function buildStandaloneSvg(){
   const transient=['selected','hover','parent','child','dim','emph','dragging','pinned'];
   clone.querySelectorAll('*').forEach(el=>transient.forEach(name=>el.classList.remove(name)));
   const style=makeSvg('style',{});
-  style.textContent=Array.from(document.querySelectorAll('style')).map(el=>el.textContent).join('\n');
+  style.textContent=Array.from(document.querySelectorAll('style')).map(el=>el.textContent).join('\n')+'\n#canvas{filter:none}';
   const title=makeSvg('title',{id:'poster-export-title'});
   title.textContent='Greek Theogony';
   const description=makeSvg('desc',{id:'poster-export-description'});

@@ -232,6 +232,12 @@ replaceRequired("  const right=makeSvg('text',{class:'poster-footer-right',x:W-P
 // The drawn grid fits the figures, family regions and ring guides, widened to
 // be symmetric about Chaos so the origin sits on the page's centre line.
 // Routing keeps the padded editor bounds.
+// The exported SVG keeps id="canvas"; the poster styles are scoped to it. The
+// editor's page shadow is dropped, since a filter on the root also forces
+// print renderers to rasterise the whole poster.
+replaceRequired("  const clone=svg.cloneNode(true);\n  clone.removeAttribute('id');\n","  const clone=svg.cloneNode(true);\n");
+replaceRequired("  style.textContent=Array.from(document.querySelectorAll('style')).map(el=>el.textContent).join('\\n');",
+  "  style.textContent=Array.from(document.querySelectorAll('style')).map(el=>el.textContent).join('\\n')+'\\n#canvas{filter:none}';");
 // The page is A-series (1:√2). The white panel absorbs the difference, with
 // the diagram centred in it; LEFT and TOP are set on each render.
 replaceRequired('const LEFT = PAGE_MARGIN + PANEL_PAD_X + DIAGRAM_GUTTER_X;\nconst TOP = PAGE_MARGIN + HEADER_H + PANEL_PAD_Y + DIAGRAM_GUTTER_Y;',

@@ -34,4 +34,6 @@ In the main translucent version, each family region also has a thin edge in a da
 
 The same build also writes `poster/layout_editor_square_rings_group_fill.html`, a comparison with the same layout. Each box is filled with its own group colour. Each parent's family is a thin outline in the parent's group colour, drawn in the gutters beneath the boxes. Overlapping families take separate inset lanes, so colours never blend. Selecting a figure lightly fills its families. Collectives are stacked cards rather than dashed boxes. Verify it with `node tools/verify_square_rings.mjs poster/layout_editor_square_rings_group_fill.html`.
 
+`node tools/export_square_rings_posters.mjs` writes print files for both versions to `poster/print/`. It uses headless Google Chrome. Each version gets a standalone SVG, a vector A2 PDF and a 300 dpi A2 PNG. The page is 1:√2, so the PDF and SVG scale to any A size. Run the build first, since the export reads the generated editor pages.
+
 This is a layout comparison, not a replacement poster. The extra lane makes the rings more flexible, but family fields can become more complex when figures occupy both lanes. That is the point to test before removing minor boundaries.
