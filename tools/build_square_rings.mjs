@@ -525,7 +525,7 @@ replaceRequired('    const path=shortestPathToMask(targetCells.get(id),mask,bloc
 replaceRequired('  const macroMasks=computeMacroMasks(masks);\n  if(showFills){',
   '  if(showFills){\n    const macroMasks=computeMacroMasks(masks);');
 // Larger poster legend text, with enough height for wrapped explanatory notes.
-replaceRequired('KEY_PANEL_H = 220','KEY_PANEL_H = 470');
+replaceRequired('KEY_PANEL_H = 220','KEY_PANEL_H = 500');
 const keyStart=html.indexOf('function renderPosterKey(');
 const keyEnd=html.indexOf('function setStatus(',keyStart);
 let keyMarkup=html.slice(keyStart,keyEnd);
@@ -534,17 +534,38 @@ keyMarkup=keyMarkup.replace('const padX=30, padTop=34, gap=38;', 'const padX=30,
   .replace("heading.textContent='How to read the family map';","heading.textContent='Reading the map';")
   .replace("keyHeading.setAttribute('style',headingFont);", "keyHeading.setAttribute('style',bodyFont+';font-size:26px');")
   .replace("  const headingFont=\"font-family: Georgia, 'Times New Roman', serif\";\n",'')
-  .replace("keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));",
-    `keyG.append(makeSvg('rect',{x,y:yy-19,width:38,height:26,rx:6,ry:6,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));`)
   .replace("heading.setAttribute('style',bodyFont);", "heading.setAttribute('style',bodyFont+';font-size:26px');")
-  .replace('padTop+55+row*46','padTop+80+row*80')
-  .replace('{x:x+39,y:yy,','{x:x+52,y:yy,')
-  .replace('font-size:14px;font-weight:620','font-size:20px;font-weight:600')
   .replace('const keyW=Math.round((outerW-gap)*.48), noteW=outerW-keyW-gap;',
     'const ringW=ringKeyWidth(padX), keyW=Math.round((outerW-ringW-gap*2)*.55), noteW=outerW-keyW-ringW-gap*2;')
   .replace('  const noteX=outerX+keyW+gap,',
     '  renderRingKey(svg,outerX+keyW+gap,y,padX,padTop,gap,bodyFont);\n  const noteX=outerX+keyW+ringW+gap*2,');
-const NOTE_PARAGRAPHS=["Ancestry runs outwards from Chaos at the centre, one ring per generation.", "A coloured region surrounds the children of one parent. It is drawn in that parent's group colour. Where two regions overlap, the figures inside share both parents.", "Stacked cards are collectives. Leto, Maia, Metis, Semele and Clymene have no recorded parents here, so each sits in the same ring as their partner."];
+// Group rows are as tall as their longest wrapped name.
+const groupLoopStart=keyMarkup.indexOf('  for(let ci=0;ci<macroIds.length;ci++){');
+const groupLoopEnd=keyMarkup.indexOf('\n  }\n',groupLoopStart)+5;
+if(groupLoopStart<0)throw new Error('Missing group key loop');
+keyMarkup=keyMarkup.slice(0,groupLoopStart)+String.raw`  const swatchW=46, swatchH=32, nameGap=14, groupLine=29, colW=(keyW-padX*2)/2+24;
+  let rowY=y+padTop+82;
+  for(let row=0;row*2<macroIds.length;row++){
+    let rowLines=1;
+    for(let col=0;col<2&&row*2+col<macroIds.length;col++){
+      const def=MACRO_GROUPS[macroIds[row*2+col]], x=outerX+padX+col*colW, top=rowY-8-swatchH/2;
+      keyG.append(makeSvg('rect',{x,y:top,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
+      const name=makeSvg('text',{x:x+swatchW+nameGap,y:rowY,class:'poster-key-row-name'});
+      name.setAttribute('style',bodyFont+';font-size:24px;font-weight:600');
+      name.textContent=def.label;
+      keyG.append(name);
+      // A name too long for its column breaks before its ampersand.
+      if(name.getComputedTextLength()>colW-swatchW-nameGap-16&&def.label.includes(' & ')){
+        const [first,rest]=def.label.split(/ (?=& )/);
+        name.textContent='';
+        [first,rest].forEach((text,index)=>{const line=makeSvg('tspan',{x:x+swatchW+nameGap,dy:index?groupLine:0});line.textContent=text;name.append(line);});
+        rowLines=2;
+      }
+    }
+    rowY+=rowLines*groupLine+24;
+  }
+`+keyMarkup.slice(groupLoopEnd);
+const NOTE_PARAGRAPHS=["Ancestry runs outwards from Chaos at the centre, one ring per generation.", "A coloured region surrounds the children of one parent. It is drawn in that parent's group colour. Where two regions overlap, the figures inside share both parents. Zeus, for example, sits where Cronus's region (Earth & sky) overlaps Rhea's (Olympians).", "Stacked cards are collectives. Leto, Maia, Metis, Semele and Clymene have no recorded parents here, so each sits in the same ring as their partner."];
 const noteStart=keyMarkup.indexOf('  const firstY=');
 if(noteStart<0)throw new Error('Missing key note fragment');
 keyMarkup=keyMarkup.slice(0,noteStart)+`  let noteY=y+padTop+70;
@@ -668,9 +689,10 @@ function appendInsetFamilyRegion(`);
   swap("    const stack=people[id].role==='collective'?6:0;",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
     g.setAttribute('style',\`--box-fill:\${mixWithWhite(groupColor,.55)};--box-stroke:\${groupColor}\`);
     const stack=people[id].role==='collective'?6:0;`);
-  swap("keyG.append(makeSvg('rect',{x,y:yy-19,width:38,height:26,rx:6,ry:6,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));",
-    "keyG.append(makeSvg('rect',{x,y:yy-19,width:38,height:26,rx:6,ry:6,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));");
+  swap("fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));",
+    "fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));");
   swap("A coloured region surrounds the children of one parent. It is drawn in that parent's group colour. Where two regions overlap,","Each box takes its own group's colour. An outline surrounds the children of one parent, drawn in that parent's group colour. Where two outlines overlap,");
+  swap("sits where Cronus's region (Earth & sky) overlaps","sits where Cronus's outline (Earth & sky) overlaps");
   out=out.replaceAll('greek-square-rings-v1','greek-square-rings-group-fill-v1');
   swap('</style>',`#canvas .person .node,#canvas .person.role-collective .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
 #canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}

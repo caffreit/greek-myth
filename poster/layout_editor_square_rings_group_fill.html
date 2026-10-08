@@ -433,7 +433,7 @@ let optimizing = false, optimizerAbort = false;
 const CELL_W = 112, CELL_H = 112;
 const PAGE_MARGIN = 48, HEADER_H = 98, PANEL_PAD_X = 30, PANEL_PAD_Y = 26;
 const DIAGRAM_GUTTER_X = 34, DIAGRAM_GUTTER_Y = 32;
-const KEY_GAP = 20, KEY_PANEL_H = 470, FOOTER_H = 72;
+const KEY_GAP = 20, KEY_PANEL_H = 500, FOOTER_H = 72;
 let LEFT = PAGE_MARGIN + PANEL_PAD_X + DIAGRAM_GUTTER_X;
 let TOP = PAGE_MARGIN + HEADER_H + PANEL_PAD_Y + DIAGRAM_GUTTER_Y;
 const REGION_CORNER_R = 12;
@@ -1853,7 +1853,7 @@ function renderRingKey(svg,x0,y,padX,padTop,gap,bodyFont){
     g.append(label);
   });
 }
-const NOTE_PARAGRAPHS=["Ancestry runs outwards from Chaos at the centre, one ring per generation.","Each box takes its own group's colour. An outline surrounds the children of one parent, drawn in that parent's group colour. Where two outlines overlap, the figures inside share both parents.","Stacked cards are collectives. Leto, Maia, Metis, Semele and Clymene have no recorded parents here, so each sits in the same ring as their partner."];
+const NOTE_PARAGRAPHS=["Ancestry runs outwards from Chaos at the centre, one ring per generation.","Each box takes its own group's colour. An outline surrounds the children of one parent, drawn in that parent's group colour. Where two outlines overlap, the figures inside share both parents. Zeus, for example, sits where Cronus's outline (Earth & sky) overlaps Rhea's (Olympians).","Stacked cards are collectives. Leto, Maia, Metis, Semele and Clymene have no recorded parents here, so each sits in the same ring as their partner."];
 function renderPosterKey(svg,b,W,keyY){
   const y=keyY;
   const outerX=PAGE_MARGIN, outerW=W-PAGE_MARGIN*2;
@@ -1868,16 +1868,26 @@ function renderPosterKey(svg,b,W,keyY){
   keyHeading.textContent='Groups';
   keyHeading.setAttribute('style',bodyFont+';font-size:26px');
   keyG.append(keyHeading);
-  for(let ci=0;ci<macroIds.length;ci++){
-    const mid=macroIds[ci], def=MACRO_GROUPS[mid];
-    const col=ci%2, row=Math.floor(ci/2);
-    const x=outerX+padX+col*(keyW-padX*2)/2;
-    const yy=y+padTop+80+row*80;
-    keyG.append(makeSvg('rect',{x,y:yy-19,width:38,height:26,rx:6,ry:6,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));
-    const name=makeSvg('text',{x:x+52,y:yy,class:'poster-key-row-name'});
-    name.textContent=def.label;
-    name.setAttribute('style',bodyFont+';font-size:20px;font-weight:600');
-    keyG.append(name);
+  const swatchW=46, swatchH=32, nameGap=14, groupLine=29, colW=(keyW-padX*2)/2+24;
+  let rowY=y+padTop+82;
+  for(let row=0;row*2<macroIds.length;row++){
+    let rowLines=1;
+    for(let col=0;col<2&&row*2+col<macroIds.length;col++){
+      const def=MACRO_GROUPS[macroIds[row*2+col]], x=outerX+padX+col*colW, top=rowY-8-swatchH/2;
+      keyG.append(makeSvg('rect',{x,y:top,width:swatchW,height:swatchH,rx:7,ry:7,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));
+      const name=makeSvg('text',{x:x+swatchW+nameGap,y:rowY,class:'poster-key-row-name'});
+      name.setAttribute('style',bodyFont+';font-size:24px;font-weight:600');
+      name.textContent=def.label;
+      keyG.append(name);
+      // A name too long for its column breaks before its ampersand.
+      if(name.getComputedTextLength()>colW-swatchW-nameGap-16&&def.label.includes(' & ')){
+        const [first,rest]=def.label.split(/ (?=& )/);
+        name.textContent='';
+        [first,rest].forEach((text,index)=>{const line=makeSvg('tspan',{x:x+swatchW+nameGap,dy:index?groupLine:0});line.textContent=text;name.append(line);});
+        rowLines=2;
+      }
+    }
+    rowY+=rowLines*groupLine+24;
   }
   renderRingKey(svg,outerX+keyW+gap,y,padX,padTop,gap,bodyFont);
   const noteX=outerX+keyW+ringW+gap*2, noteG=makeSvg('g',{class:'poster-note'});
