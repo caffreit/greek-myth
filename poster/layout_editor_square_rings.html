@@ -1846,29 +1846,27 @@ function renderPosterKey(svg,b,W,keyY){
   keyHeading.textContent='Groups';
   keyHeading.setAttribute('style',bodyFont+';font-size:26px');
   keyG.append(keyHeading);
-  const swatchW=46, swatchH=32, nameGap=14, colGap=16, groupLine=30, colW=(keyW-padX*2)/2;
+  const swatchW=46, swatchH=32, nameGap=14, colGap=32, edgeGap=16, maxFont=22;
   const rows=Math.ceil(macroIds.length/2), keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2;
-  const textRoom=[colW-swatchW-nameGap-colGap, keyW+gap/2-padX-colW-swatchW-nameGap-colGap];
-  const wrapped=new Set(), names=macroIds.map((id,index)=>{
-    const textX=outerX+padX+(index%2)*colW+swatchW+nameGap;
-    const name=makeSvg('text',{x:textX,class:'poster-key-row-name'});
-    name.setAttribute('style',bodyFont+';font-size:25px;font-weight:600');
+  const names=macroIds.map(id=>{
+    const name=makeSvg('text',{class:'poster-key-row-name'});
+    name.setAttribute('style',bodyFont+';font-size:'+maxFont+'px;font-weight:600');
     name.textContent=MACRO_GROUPS[id].label;
     keyG.append(name);
-    // A name that would run into the next column or divider breaks before its ampersand.
-    if(name.getComputedTextLength()>textRoom[index%2]&&name.textContent.includes(' & ')){
-      name.textContent='';
-      wrapped.add(name);
-      MACRO_GROUPS[id].label.split(/ (?=& )/).forEach((text,line)=>{const span=makeSvg('tspan',{x:textX,dy:line?groupLine:0});span.textContent=text;name.append(span);});
-    }
     return name;
   });
-  const lastRowExtra=names.slice((rows-1)*2).some(name=>wrapped.has(name))?groupLine+8-swatchH/2:0;
-  const firstCentre=keyTop+swatchH/2, pitch=(keyBottom-lastRowExtra-swatchH/2-firstCentre)/(rows-1);
+  // Names stay on one line; the font shrinks if both columns would not fit before the divider.
+  const colTextW=[0,1].map(col=>Math.max(...names.filter((_,i)=>i%2===col).map(name=>name.getComputedTextLength())));
+  const textRoom=keyW+gap/2-edgeGap-padX-(swatchW+nameGap)*2-colGap;
+  const scale=Math.min(1,textRoom/(colTextW[0]+colTextW[1]));
+  if(scale<1)names.forEach(name=>name.style.fontSize=maxFont*scale+'px');
+  const colX=[outerX+padX, outerX+padX+swatchW+nameGap+colTextW[0]*scale+colGap];
+  const firstCentre=keyTop+swatchH/2, pitch=(keyBottom-swatchH-keyTop)/(rows-1);
   names.forEach((name,index)=>{
-    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+Math.floor(index/2)*pitch;
-    keyG.append(makeSvg('rect',{x:outerX+padX+(index%2)*colW,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
-    name.setAttribute('y',centre+9);
+    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+Math.floor(index/2)*pitch, x=colX[index%2];
+    keyG.append(makeSvg('rect',{x,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
+    name.setAttribute('x',x+swatchW+nameGap);
+    name.setAttribute('y',centre+8);
   });
   renderRingKey(svg,outerX+keyW+gap,y,padX,padTop,gap,bodyFont);
   const noteX=outerX+keyW+ringW+gap*2, noteG=makeSvg('g',{class:'poster-note'});
