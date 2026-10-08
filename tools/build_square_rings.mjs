@@ -539,31 +539,34 @@ keyMarkup=keyMarkup.replace('const padX=30, padTop=34, gap=38;', 'const padX=30,
     'const ringW=ringKeyWidth(padX), keyW=Math.round((outerW-ringW-gap*2)*.55), noteW=outerW-keyW-ringW-gap*2;')
   .replace('  const noteX=outerX+keyW+gap,',
     '  renderRingKey(svg,outerX+keyW+gap,y,padX,padTop,gap,bodyFont);\n  const noteX=outerX+keyW+ringW+gap*2,');
-// Group rows are as tall as their longest wrapped name.
+// Group swatches sit on an even row pitch that spans the height of the ring key.
 const groupLoopStart=keyMarkup.indexOf('  for(let ci=0;ci<macroIds.length;ci++){');
 const groupLoopEnd=keyMarkup.indexOf('\n  }\n',groupLoopStart)+5;
 if(groupLoopStart<0)throw new Error('Missing group key loop');
-keyMarkup=keyMarkup.slice(0,groupLoopStart)+String.raw`  const swatchW=46, swatchH=32, nameGap=14, groupLine=29, colW=(keyW-padX*2)/2+24;
-  let rowY=y+padTop+82;
-  for(let row=0;row*2<macroIds.length;row++){
-    let rowLines=1;
-    for(let col=0;col<2&&row*2+col<macroIds.length;col++){
-      const def=MACRO_GROUPS[macroIds[row*2+col]], x=outerX+padX+col*colW, top=rowY-8-swatchH/2;
-      keyG.append(makeSvg('rect',{x,y:top,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
-      const name=makeSvg('text',{x:x+swatchW+nameGap,y:rowY,class:'poster-key-row-name'});
-      name.setAttribute('style',bodyFont+';font-size:24px;font-weight:600');
-      name.textContent=def.label;
-      keyG.append(name);
-      // A name too long for its column breaks before its ampersand.
-      if(name.getComputedTextLength()>colW-swatchW-nameGap-16&&def.label.includes(' & ')){
-        const [first,rest]=def.label.split(/ (?=& )/);
-        name.textContent='';
-        [first,rest].forEach((text,index)=>{const line=makeSvg('tspan',{x:x+swatchW+nameGap,dy:index?groupLine:0});line.textContent=text;name.append(line);});
-        rowLines=2;
-      }
+keyMarkup=keyMarkup.slice(0,groupLoopStart)+String.raw`  const swatchW=46, swatchH=32, nameGap=14, colGap=16, groupLine=30, colW=(keyW-padX*2)/2;
+  const rows=Math.ceil(macroIds.length/2), keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2;
+  const textRoom=[colW-swatchW-nameGap-colGap, keyW+gap/2-padX-colW-swatchW-nameGap-colGap];
+  const wrapped=new Set(), names=macroIds.map((id,index)=>{
+    const textX=outerX+padX+(index%2)*colW+swatchW+nameGap;
+    const name=makeSvg('text',{x:textX,class:'poster-key-row-name'});
+    name.setAttribute('style',bodyFont+';font-size:25px;font-weight:600');
+    name.textContent=MACRO_GROUPS[id].label;
+    keyG.append(name);
+    // A name that would run into the next column or divider breaks before its ampersand.
+    if(name.getComputedTextLength()>textRoom[index%2]&&name.textContent.includes(' & ')){
+      name.textContent='';
+      wrapped.add(name);
+      MACRO_GROUPS[id].label.split(/ (?=& )/).forEach((text,line)=>{const span=makeSvg('tspan',{x:textX,dy:line?groupLine:0});span.textContent=text;name.append(span);});
     }
-    rowY+=rowLines*groupLine+24;
-  }
+    return name;
+  });
+  const lastRowExtra=names.slice((rows-1)*2).some(name=>wrapped.has(name))?groupLine+8-swatchH/2:0;
+  const firstCentre=keyTop+swatchH/2, pitch=(keyBottom-lastRowExtra-swatchH/2-firstCentre)/(rows-1);
+  names.forEach((name,index)=>{
+    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+Math.floor(index/2)*pitch;
+    keyG.append(makeSvg('rect',{x:outerX+padX+(index%2)*colW,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
+    name.setAttribute('y',centre+9);
+  });
 `+keyMarkup.slice(groupLoopEnd);
 const NOTE_PARAGRAPHS=["Ancestry runs outwards from Chaos at the centre, one ring per generation.", "A coloured region surrounds the children of one parent. It is drawn in that parent's group colour. Where two regions overlap, the figures inside share both parents. Zeus, for example, sits where Cronus's region (Earth & sky) overlaps Rhea's (Olympians).", "Stacked cards are collectives. Leto, Maia, Metis, Semele and Clymene have no recorded parents here, so each sits in the same ring as their partner."];
 const noteStart=keyMarkup.indexOf('  const firstY=');
@@ -593,7 +596,7 @@ function renderRingKey(svg,x0,y,padX,padTop,gap,bodyFont){
   g.append(heading);
   const rings=levelBounds.slice(0,-1), band=${RING_KEY_BAND}, outerDepth=rings.length-1;
   const size=depth=>${RING_KEY_CORE}+depth*2*band;
-  const outer=size(outerDepth), cx=x0+padX+outer/2, cy=y+padTop+32+outer/2;
+  const outer=size(outerDepth), cx=x0+padX+outer/2, cy=y+padTop+56+outer/2;
   // Painted outermost first so each ring's band shows around the next.
   [...rings.keys()].reverse().forEach(index=>{
     const s=size(index), rx=cx-s/2, ry=cy-s/2;
