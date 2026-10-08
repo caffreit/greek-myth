@@ -284,16 +284,11 @@ replaceRequired('  const id=selectedId||hoveredId;\n  const name=',
   "  const id=selectedId||hoveredId;\n  if(id){const level=ANCESTRY_LEVELS[id];document.getElementById('ringAssignment').textContent=people[id].name+' · Level '+level+' · '+LEVEL_NAMES[level];}else document.getElementById('ringAssignment').textContent='Drag a figure within its assigned ancestry level';\n  const name=");
 html=html.replace('  // nodes\n',`  // Square contours mark ancestry depth, not historical dates or deity classes.
   // Guides run along cell edges, inside the gutter between figure boxes, so no
-  // box straddles two levels. Labels sit in the same gutter.
+  // box straddles two levels. The ring key in the legend names each ring.
   levelBounds.forEach((edge,index)=>{
     if(index===levelBounds.length-1)return;
     const {x,y,width,height}=ringGuideRect(edge,b);
     svg.append(makeSvg('rect',{x,y,width,height,rx:Math.min(NODE_INSET_X,NODE_INSET_Y),fill:'none',stroke:'#66675f','stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'}));
-    const label=makeSvg('text',{x:x+CELL_W*.25,y,dy:'.35em',fill:'#606159','font-size':12,class:'ring-guide ring-label'});
-    label.textContent='Level '+index+' · '+LEVEL_NAMES[index];
-    svg.append(label);
-    const bb=label.getBBox();
-    svg.insertBefore(makeSvg('rect',{x:bb.x-5,y:bb.y,width:bb.width+10,height:bb.height,rx:4,fill:'#fff',class:'ring-guide'}),label);
   });
   // nodes
 `);
@@ -308,7 +303,7 @@ html=html.replace('</style>',`/* Fit the complete poster width on initial load; 
 .hide-ring-guides .ring-guide{display:none}
 #canvas .person.role-collective .node,#canvas .person .stack-card{fill:rgba(255,255,255,.3);stroke:rgba(32,33,30,.24);stroke-width:1;stroke-dasharray:none}
 </style>`);
-html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_greek_theogony_extended_v27_0.html">Current poster</a><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><a href="layout_editor_square_rings_stacked_fill.html">Stacked fill</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
+html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
 // Move the existing controls out of the hidden development toolbar. Keeping
 // their IDs preserves the original save/import handlers and keyboard shortcuts.
 const saveControl='<button id="saveBtn">Save layout JSON</button>';
@@ -333,20 +328,140 @@ replaceRequired('    svg.append(g);\n    if(treatment===',`    svg.append(g);
     if(treatment===`);
 // Each translucent family also gets a darker edge. Overlapping families sit in
 // separate inset lanes so their edges run side by side rather than on top.
-replaceRequired('    const BASE_FAMILY_INSET=3.0, FAMILY_INSET_STEP=2.25;','    const BASE_FAMILY_INSET=2, FAMILY_INSET_STEP=3.5;');
+replaceRequired('    const BASE_FAMILY_INSET=3.0, FAMILY_INSET_STEP=2.25;','    const BASE_FAMILY_INSET=4, FAMILY_INSET_STEP=4.5;');
+// Tighter corners; the inner radius follows the editor's corner slider.
+replaceRequired('const REGION_CORNER_R = 17;','const REGION_CORNER_R = 12;');
+replaceRequired('<input id="cornerRadius" type="range" value="17">','<input id="cornerRadius" type="range" value="12">');
+replaceRequired('<span id="cornerRadiusVal">17</span>','<span id="cornerRadiusVal">12</span>');
+replaceRequired('function getInnerCornerRadius(){ return Math.max(8, getOuterCornerRadius()*0.58); }','function getInnerCornerRadius(){ return Math.max(4, getOuterCornerRadius()*0.58); }');
+// Insetting a shape takes the inset off every outer corner's radius and adds it
+// to every inner one, so mask-inset paths are drawn pre-compensated.
+replaceRequired('function pathStringForMask(mask,b){\n  const loops=stitchLoops(boundarySegments(mask));\n  return loops.map(loop=>cornerPath(loop,b)).join(\' \');',
+  'function pathStringForMask(mask,b,inset=0){\n  const loops=stitchLoops(boundarySegments(mask));\n  return loops.map(loop=>cornerPath(loop,b,inset)).join(\' \');');
+replaceRequired('function cornerPath(loop,b){','function cornerPath(loop,b,inset=0){');
+replaceRequired('    const desired=concave?getInnerCornerRadius():getOuterCornerRadius();',
+  '    const desired=concave?Math.max(0,getInnerCornerRadius()-inset):getOuterCornerRadius()+inset;');
+replaceRequired('    const pts=clean.map(([x,y])=>cellToPx(x,y,b));'.trim(),
+  'return roundedPolygonPath(clean.map(([x,y])=>cellToPx(x,y,b)),inset);\n}\nfunction roundedPolygonPath(pts,inset=0){');
+// Lanes are set along each straight side of a family outline. Where a side
+// runs alone it hugs its cell edge; where it shares a cell edge with
+// same-facing sides of other families, those stretches are packed into
+// successive lanes in family-level order, so nesting never flips. A side
+// steps between lanes only at cell corners, which sit in the gutters.
+replaceRequired('function familyShiftForLevel(',`function familySides(mask){
+  return stitchLoops(boundarySegments(mask)).map(loop=>{
+    const pts=loop.slice(0,-1), n=pts.length, sides=[];
+    const dir=i=>{const a=pts[i],c=pts[(i+1)%n];return [c[0]-a[0],c[1]-a[1]];};
+    const same=(u,v)=>u[0]===v[0]&&u[1]===v[1];
+    let start=0;
+    while(same(dir((start-1+n)%n),dir(start)))start++;
+    let i=start;
+    do{
+      const d=dir(i);
+      let j=i;
+      while(same(dir(j),d))j=(j+1)%n;
+      // Segments run clockwise on screen, so the interior is on the right.
+      sides.push({from:pts[i],to:pts[j],normal:[-d[1],d[0]],horizontal:d[1]===0});
+      i=j;
+    }while(i!==start);
+    return sides;
+  });
+}
+function computeFamilySideLanes(masks,familyLevel){
+  const byFamily={}, tracks=new Map();
+  for(const gid of Object.keys(masks)){
+    byFamily[gid]=familySides(masks[gid]);
+    for(const side of byFamily[gid].flat()){
+      const h=side.horizontal, along=h?0:1, across=h?1:0;
+      Object.assign(side,{gid,lo:Math.min(side.from[along],side.to[along]),hi:Math.max(side.from[along],side.to[along])});
+      const track=(h?'H':'V')+side.from[across]+'|'+side.normal[across];
+      if(!tracks.has(track))tracks.set(track,[]);
+      tracks.get(track).push(side);
+    }
+  }
+  const rank=(p,q)=>(familyLevel[p.gid]||0)-(familyLevel[q.gid]||0)||p.gid.localeCompare(q.gid)||p.lo-q.lo;
+  for(const sides of tracks.values()){
+    for(const side of sides){
+      const cuts=new Set([side.lo,side.hi]);
+      for(const other of sides)if(other.gid!==side.gid)for(const v of [other.lo,other.hi])if(side.lo<v&&v<side.hi)cuts.add(v);
+      const at=[...cuts].sort((p,q)=>p-q);
+      side.pieces=at.slice(1).map((hi,k)=>({gid:side.gid,lo:at[k],hi}));
+    }
+    const pieces=sides.flatMap(side=>side.pieces).sort(rank);
+    pieces.forEach((piece,index)=>{
+      const used=new Set(pieces.slice(0,index).filter(o=>o.gid!==piece.gid&&o.lo<piece.hi&&piece.lo<o.hi).map(o=>o.lane));
+      let lane=0;
+      while(used.has(lane))lane++;
+      piece.lane=lane;
+    });
+    for(const side of sides){
+      const merged=[];
+      for(const piece of side.pieces){
+        const last=merged.at(-1);
+        if(last&&last.lane===piece.lane)last.hi=piece.hi;
+        else merged.push({lo:piece.lo,hi:piece.hi,lane:piece.lane});
+      }
+      // Pieces are listed in the side's direction of travel.
+      const forward=side.horizontal?side.to[0]>side.from[0]:side.to[1]>side.from[1];
+      side.pieces=forward?merged:merged.reverse();
+    }
+  }
+  return byFamily;
+}
+// Half the length of the step between two lanes along one side, in px.
+const LANE_STEP_HALF=6;
+function familyLanePath(loops,b,laneInset){
+  return loops.map(sides=>{
+    const pts=[];
+    sides.forEach((side,i)=>{
+      const prev=sides[(i-1+sides.length)%sides.length], [x,y]=cellToPx(side.from[0],side.from[1],b);
+      const dp=laneInset(prev.pieces.at(-1).lane), ds=laneInset(side.pieces[0].lane);
+      pts.push([x+prev.normal[0]*dp+side.normal[0]*ds,y+prev.normal[1]*dp+side.normal[1]*ds]);
+      const along=side.horizontal?0:1, sign=Math.sign(side.to[along]-side.from[along]);
+      for(let k=1;k<side.pieces.length;k++){
+        const cut=[...side.from];
+        cut[along]=sign>0?side.pieces[k].lo:side.pieces[k].hi;
+        const [cx,cy]=cellToPx(cut[0],cut[1],b);
+        for(const [offset,lane] of [[-LANE_STEP_HALF,side.pieces[k-1].lane],[LANE_STEP_HALF,side.pieces[k].lane]]){
+          const inset=laneInset(lane), point=[cx+side.normal[0]*inset,cy+side.normal[1]*inset];
+          point[along]+=sign*offset;
+          pts.push(point);
+        }
+      }
+    });
+    return roundedPolygonPath(pts);
+  }).join(' ');
+}
+function familyShiftForLevel(`);
+replaceRequired(`      const d=pathStringForMask(masks[gid],b);
+      const level=setbackInfo.level[gid] || 0;
+      const inset=BASE_FAMILY_INSET + level*FAMILY_INSET_STEP;
+      const shift=familyShiftForLevel(level, SHIFT_SCALE);
+      appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);`,`      const level=setbackInfo.level[gid] || 0;
+      const d=familyLanePath(sideLanes[gid],b,lane=>BASE_FAMILY_INSET+lane*FAMILY_INSET_STEP);
+      appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity);`);
+replaceRequired('    const BASE_FAMILY_INSET=4, FAMILY_INSET_STEP=4.5;','    const BASE_FAMILY_INSET=4, FAMILY_INSET_STEP=4.5;\n    const sideLanes=computeFamilySideLanes(masks,setbackInfo.level);');
 // Translucent layers mix unevenly, so paint order sets the visible colour.
 // Older parents' families go underneath, so every cell shows its nearest
 // parent's colour on top.
 replaceRequired('    const familyOrder=Object.keys(groups).sort((a,bid)=>masks[bid].size-masks[a].size);',
   '    const familyOrder=Object.keys(groups).sort((a,bid)=>ANCESTRY_LEVELS[a]-ANCESTRY_LEVELS[bid]||masks[bid].size-masks[a].size);');
-replaceRequired("  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid,mask:`url(#${maskId})`,transform:`translate(${dx},${dy})`}));\n}",
-`  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid,mask:\`url(#\${maskId})\`,transform:\`translate(\${dx},\${dy})\`}));
-  const edgeMask=makeSvg('mask',{id:maskId+'_edge',maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
-  edgeMask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
-  edgeMask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+FAMILY_EDGE_WIDTH),'stroke-linejoin':'round',transform:\`translate(\${dx},\${dy})\`}));
-  edgeMask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round',transform:\`translate(\${dx},\${dy})\`}));
-  defs.append(edgeMask);
-  svg.append(makeSvg('path',{d,fill:shadeColor(fill,.22),'fill-opacity':.9,class:'family-region family-edge','data-group':gid,mask:\`url(#\${maskId}_edge)\`,transform:\`translate(\${dx},\${dy})\`}));
+html=html.replace(/function appendInsetFamilyRegion\([\s\S]*?\n}\n/,()=>`function familyClip(svg,gid,d){
+  const id='familyClip_'+gid.replace(/[^a-zA-Z0-9_-]/g,'_');
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
+  const clip=makeSvg('clipPath',{id});
+  clip.append(makeSvg('path',{d}));
+  defs.append(clip);
+  return \`url(#\${id})\`;
+}
+// The path is already inset per side; the edge is the inner half of a stroke
+// clipped to the region.
+function appendInsetFamilyRegion(svg,gid,d,fill,opacity){
+  svg.append(makeSvg('path',{d,fill,'fill-opacity':opacity,class:'family-region','data-group':gid}));
+  const edge=makeSvg('path',{d,fill:'none',class:'family-region family-edge','data-group':gid,'clip-path':familyClip(svg,gid,d)});
+  edge.setAttribute('style',\`stroke:\${shadeColor(fill,.22)};stroke-opacity:.9;stroke-width:\${2*FAMILY_EDGE_WIDTH}\`);
+  svg.append(edge);
 }
 const FAMILY_EDGE_WIDTH=1.8;
 function shadeColor(hex,amount){
@@ -374,7 +489,7 @@ replaceRequired('  return {grid:{...grid,x_min:Math.min(...xs)-1,x_max:Math.max(
   '  return {grid:{...grid,x_min:Math.min(...xs,levelBounds.at(-1).left)-1,x_max:Math.max(...xs,levelBounds.at(-1).right)+1,y_min:Math.min(...ys,levelBounds.at(-1).top)-1,y_max:Math.max(...ys,levelBounds.at(-1).bottom)+1},nodes:structuredClone(nodes),pinned_ids:[...pinnedIds],level_bounds:structuredClone(levelBounds)};');
 replaceRequired("  const macroIds=['primordial','night','titan','olympian'];",'  const macroIds=Object.keys(MACRO_GROUPS);');
 replaceRequired("keyHeading.textContent='Colour groups';","keyHeading.textContent='Groups';");
-replaceRequired('Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.', 'Read ancestry from the centre outwards. Rings mark generations. Colours identify groups of related figures; overlapping regions show shared parentage.');
+replaceRequired('Read ancestry from the centre outwards. Rings are lineage levels, not dates. Regions identify direct families.', 'Read ancestry from the centre outwards; each dashed ring is a generation. Colours identify groups of related figures; overlapping regions show shared parentage.');
 html=html.replace('Locked poster layout · Jewel Modern palette.','Locked poster layout · Family route colours.');
 html=html.replace('>jewel modern<','>family routes<').replace('>cool editorial<','>soft family routes<').replace('>fresco modern<','>pale family routes<');
 replaceRequired("  applyPalette('jewel');", "  applyPalette(document.getElementById('paletteMode')?.value||'jewel');");
@@ -388,7 +503,7 @@ replaceRequired('    const path=shortestPathToMask(targetCells.get(id),mask,bloc
 replaceRequired('  const macroMasks=computeMacroMasks(masks);\n  if(showFills){',
   '  if(showFills){\n    const macroMasks=computeMacroMasks(masks);');
 // Larger poster legend text, with enough height for wrapped explanatory notes.
-replaceRequired('KEY_PANEL_H = 220','KEY_PANEL_H = 380');
+replaceRequired('KEY_PANEL_H = 220','KEY_PANEL_H = 410');
 const keyStart=html.indexOf('function renderPosterKey(');
 const keyEnd=html.indexOf('function setStatus(',keyStart);
 let keyMarkup=html.slice(keyStart,keyEnd);
@@ -405,7 +520,40 @@ keyMarkup=keyMarkup.replace('const padX=30, padTop=34, gap=38;', 'const padX=30,
   .replace("noteW-padX*2,17,'poster-key-note'", "noteW-padX*2,25,'poster-key-note'")
   .replace('Math.max(1,overlapLines)*17+12','Math.max(1,overlapLines)*25+17')
   .replace("noteW-padX*2,14,'poster-key-note'", "noteW-padX*2,23,'poster-key-note'")
-  .replace('font-size:10.5px;font-weight:520','font-size:17px;font-weight:520');
+  .replace('font-size:10.5px;font-weight:520','font-size:17px;font-weight:520')
+  .replace('const keyW=Math.round((outerW-gap)*.48), noteW=outerW-keyW-gap;',
+    'const ringW=ringKeyWidth(padX), keyW=Math.round((outerW-ringW-gap*2)*.55), noteW=outerW-keyW-ringW-gap*2;')
+  .replace('  const noteX=outerX+keyW+gap,',
+    '  renderRingKey(svg,outerX+keyW+gap,y,padX,padTop,gap,bodyFont);\n  const noteX=outerX+keyW+ringW+gap*2,');
+// The poster's rings carry no labels; this key names them. The real rings are
+// too thin to hold a name, so the key spaces them evenly and writes each name
+// in its ring's top band.
+const RING_KEY_BAND=36, RING_KEY_CORE_W=90;
+keyMarkup=`function ringKeyWidth(padX){
+  return padX*2+${RING_KEY_CORE_W}+(levelBounds.length-2)*2*${RING_KEY_BAND};
+}
+function renderRingKey(svg,x0,y,padX,padTop,gap,bodyFont){
+  const g=makeSvg('g',{class:'poster-ring-key'});
+  svg.append(g);
+  g.append(makeSvg('line',{class:'poster-lower-divider',x1:x0-gap/2,y1:y+24,x2:x0-gap/2,y2:y+KEY_PANEL_H-12}));
+  const heading=makeSvg('text',{x:x0+padX,y:y+padTop+10,class:'poster-key-note-head'});
+  heading.textContent='Rings';
+  heading.setAttribute('style',bodyFont+';font-size:26px');
+  g.append(heading);
+  const rings=levelBounds.slice(0,-1), band=${RING_KEY_BAND}, outerDepth=rings.length-1;
+  const size=depth=>({w:${RING_KEY_CORE_W}+depth*2*band,h:band+depth*2*band});
+  const outer=size(outerDepth), cx=x0+padX+outer.w/2, cy=y+padTop+32+outer.h/2;
+  // Painted outermost first so each ring's band shows around the next.
+  [...rings.keys()].reverse().forEach(index=>{
+    const {w,h}=size(index), rx=cx-w/2, ry=cy-h/2;
+    g.append(makeSvg('rect',{x:rx,y:ry,width:w,height:h,rx:4,fill:index%2?'#f6f4ee':'#e8e5dc'}));
+    const label=makeSvg('text',{x:cx,y:ry+band/2,dy:'.35em','text-anchor':'middle',class:'poster-key-note'});
+    label.textContent=LEVEL_NAMES[index];
+    label.setAttribute('style',bodyFont+';font-size:17px');
+    g.append(label);
+  });
+}
+`+keyMarkup;
 html=html.slice(0,keyStart)+keyMarkup+html.slice(keyEnd);
 let script=html.match(/<script>\n([\s\S]*)<\/script>/)[1];
 new Function(script);
@@ -469,30 +617,24 @@ function groupFillVariant(base){
     if(!out.includes(before))throw new Error('Missing group-fill fragment: '+before);
     out=out.replace(before,after);
   };
-  swap('const NODE_INSET_X = 8, NODE_INSET_Y = 10;','const NODE_INSET_X = 12, NODE_INSET_Y = 12;');
+  swap('const NODE_INSET_X = 8, NODE_INSET_Y = 10;','const NODE_INSET_X = 14, NODE_INSET_Y = 14;');
   swap('function appendInsetFamilyRegion(',`function mixWithWhite(hex,amount){
   return '#'+[1,3,5].map(start=>Math.round(parseInt(hex.slice(start,start+2),16)*(1-amount)+255*amount).toString(16).padStart(2,'0')).join('');
 }
 // Outlines of overlapping families take separate lanes. Every lane must fit
 // within NODE_INSET so the boxes drawn above never hide it.
-const FAMILY_LANE_START=1.5, FAMILY_LANE_STEP=3, FAMILY_LANE_WIDTH=2;
-function appendFamilyOutline(svg,gid,d,color,level,W,H){
-  const inset=FAMILY_LANE_START+level*FAMILY_LANE_STEP;
-  const maskId='familyOutline_'+gid.replace(/[^a-zA-Z0-9_-]/g,'_');
-  let defs=svg.querySelector('defs');
-  if(!defs){defs=makeSvg('defs',{});svg.append(defs);}
-  const mask=makeSvg('mask',{id:maskId,maskUnits:'userSpaceOnUse',x:0,y:0,width:W,height:H});
-  mask.append(makeSvg('rect',{x:0,y:0,width:W,height:H,fill:'black'}));
-  mask.append(makeSvg('path',{d,fill:'none',stroke:'white','stroke-width':2*(inset+FAMILY_LANE_WIDTH),'stroke-linejoin':'round'}));
-  mask.append(makeSvg('path',{d,fill:'none',stroke:'black','stroke-width':2*inset,'stroke-linejoin':'round'}));
-  defs.append(mask);
+const FAMILY_LANE_START=3.5, FAMILY_LANE_STEP=4, FAMILY_LANE_WIDTH=2;
+function appendFamilyOutline(svg,gid,d,color){
   const g=makeSvg('g',{class:'family-region family-outline','data-group':gid});
   g.append(makeSvg('path',{d,fill:color,class:'family-focus-fill'}));
-  g.append(makeSvg('path',{d,fill:color,mask:\`url(#\${maskId})\`}));
+  const band=makeSvg('path',{d,fill:'none','clip-path':familyClip(svg,gid,d)});
+  band.setAttribute('style',\`stroke:\${color};stroke-width:\${2*FAMILY_LANE_WIDTH}\`);
+  g.append(band);
   svg.append(g);
 }
 function appendInsetFamilyRegion(`);
-  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);','appendFamilyOutline(svg,gid,d,macroDef.color,level,W,H);');
+  swap('lane=>BASE_FAMILY_INSET+lane*FAMILY_INSET_STEP','lane=>FAMILY_LANE_START+lane*FAMILY_LANE_STEP');
+  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity);','appendFamilyOutline(svg,gid,d,macroDef.color);');
   swap("    const stack=people[id].role==='collective'?6:0;",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
     g.setAttribute('style',\`--box-fill:\${mixWithWhite(groupColor,.55)};--box-stroke:\${groupColor}\`);
     const stack=people[id].role==='collective'?6:0;`);
@@ -551,10 +693,10 @@ function appendStackedFamily(svg,gid,d,color,depth,W,H){
 }
 function appendInsetFamilyRegion(`);
   swap('    for(const gid of familyOrder){','    const stackedFamilies=[];\n    for(const gid of familyOrder){');
-  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity,inset,W,H,shift.dx,shift.dy);',
+  swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity);',
     `const depth=Math.min(STACK_MAX_DEPTH,stackedFamilies.filter(other=>masksOverlap(masks[other],masks[gid])).length);
       stackedFamilies.push(gid);
-      appendStackedFamily(svg,gid,d,macroDef.color,depth,W,H);`);
+      appendStackedFamily(svg,gid,pathStringForMask(masks[gid],b,depth*STACK_INSET_STEP),macroDef.color,depth,W,H);`);
   swap("keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:def.color,'fill-opacity':.72,stroke:'rgba(20,20,18,.08)','stroke-width':.7}));",
     "keyG.append(makeSvg('rect',{x,y:yy-15,width:28,height:18,rx:5,ry:5,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':2}));");
   swap("'stroke-opacity':.5,'stroke-width':1.6,'stroke-dasharray':'7 7',class:'ring-guide'","'stroke-opacity':.28,'stroke-width':1.4,'stroke-dasharray':'7 7',class:'ring-guide'");

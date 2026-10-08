@@ -25,6 +25,7 @@ return {
  familyColors:()=>structuredClone(STYLES),
  macroMasks:()=>computeMacroMasks(),
  familyIds:()=>Object.keys(groups), routedFamilyIds:()=>Object.keys(computeAllMasks(nodes)),
+ sideLanes:()=>{const masks=computeAllMasks(nodes);return computeFamilySideLanes(masks,computeFamilySetbackLevels(masks).level);},
  getMessage:()=>message,
  nudge:(id,dx,dy)=>{selectedId=id;nudgeSelected(dx,dy);},
  pointer:(id,x,y)=>{drag={id,lastCell:[nodes[id].x,nodes[id].y]};const bounds=layoutBounds();
@@ -59,6 +60,15 @@ app.validate(initial);
 assert.deepEqual(app.guideCrossings(),[],'Ring guides must not cut through figure boxes');
 assert.equal(app.familyIds().length,33);
 assert.deepEqual(app.routedFamilyIds().sort(),app.familyIds().sort());
+// Coincident, same-facing stretches of different families' sides must take
+// different lanes; a stretch that runs alone takes the first lane.
+const trackOf=s=>(s.horizontal?'H'+s.from[1]+'|'+s.normal[1]:'V'+s.from[0]+'|'+s.normal[0]);
+const stretches=Object.values(app.sideLanes()).flat(2).flatMap(s=>s.pieces.map(p=>({...p,gid:s.gid,track:trackOf(s)})));
+for(const p of stretches){
+  const shared=stretches.filter(o=>o.gid!==p.gid&&o.track===p.track&&o.lo<p.hi&&p.lo<o.hi);
+  for(const o of shared)assert.notEqual(o.lane,p.lane,`${p.gid} and ${o.gid} share a lane on ${p.track}`);
+  if(!shared.length)assert.equal(p.lane,0,`${p.gid} runs alone on ${p.track} but is inset`);
+}
 for(const id of ['oceanus','tethys','crius','phoebe','mnemosyne','themis'])assert.ok(app.familyIds().includes(id),`${id} needs a family region`);
 assert.deepEqual(app.bands(),[{inner:0,outer:0},{inner:1,outer:1},{inner:2,outer:2},{inner:3,outer:4},{inner:5,outer:6},{inner:7,outer:8}]);
 assert.doesNotMatch(html,/ring-handle/);
