@@ -25,8 +25,8 @@ html,body{margin:0;background:#e6e4de;font-family:Inter,"Helvetica Neue",Arial,s
   <span class="state" id="state"></span>
 </div>
 <script>
-const DATA={"people":[{"id":"chaos","name":"Chaos","depth":0},{"id":"eros","name":"Eros","depth":1},{"id":"gaia","name":"Gaia","depth":1},{"id":"tartarus","name":"Tartarus","depth":1},{"id":"erebus","name":"Erebus","depth":1},{"id":"nyx","name":"Nyx","depth":1},{"id":"pontus","name":"Pontus","depth":2},{"id":"ourea","name":"Ourea","depth":2},{"id":"uranus","name":"Uranus","depth":2},{"id":"echidna","name":"Echidna","depth":2},{"id":"typhon","name":"Typhon","depth":2},{"id":"thaumas","name":"Thaumas","depth":3},{"id":"phorcys","name":"Phorcys","depth":3},{"id":"ceto","name":"Ceto","depth":3},{"id":"themis","name":"Themis","depth":3},{"id":"mnemosyne","name":"Mnemosyne","depth":3},{"id":"hyperion","name":"Hyperion","depth":3},{"id":"theia","name":"Theia","depth":3},{"id":"crius","name":"Crius","depth":3},{"id":"iapetus","name":"Iapetus","depth":3},{"id":"coeus","name":"Coeus","depth":3},{"id":"phoebe","name":"Phoebe","depth":3},{"id":"oceanus","name":"Oceanus","depth":3},{"id":"cronus","name":"Cronus","depth":3},{"id":"tethys","name":"Tethys","depth":3},{"id":"rhea","name":"Rhea","depth":3},{"id":"aphrodite","name":"Aphrodite","depth":3},{"id":"aether","name":"Aether","depth":2},{"id":"hemera","name":"Hemera","depth":2},{"id":"charon","name":"Charon","depth":2},{"id":"hypnos","name":"Hypnos","depth":2},{"id":"thanatos","name":"Thanatos","depth":2},{"id":"moros","name":"Moros","depth":2},{"id":"hestia","name":"Hestia","depth":4},{"id":"demeter","name":"Demeter","depth":4},{"id":"hera","name":"Hera","depth":4},{"id":"hades","name":"Hades","depth":4},{"id":"poseidon","name":"Poseidon","depth":4},{"id":"zeus","name":"Zeus","depth":4},{"id":"helios","name":"Helios","depth":4},{"id":"selene","name":"Selene","depth":4},{"id":"eos","name":"Eos","depth":4},{"id":"clymene","name":"Clymene","depth":3},{"id":"atlas","name":"Atlas","depth":4},{"id":"prometheus","name":"Prometheus","depth":4},{"id":"epimetheus","name":"Epimetheus","depth":4},{"id":"metis","name":"Metis","depth":4},{"id":"athena","name":"Athena","depth":5},{"id":"leto","name":"Leto","depth":4},{"id":"apollo","name":"Apollo","depth":5},{"id":"artemis","name":"Artemis","depth":5},{"id":"maia","name":"Maia","depth":4},{"id":"hermes","name":"Hermes","depth":5},{"id":"semele","name":"Semele","depth":4},{"id":"dionysus","name":"Dionysus","depth":5},{"id":"ares","name":"Ares","depth":5},{"id":"hephaestus","name":"Hephaestus","depth":5},{"id":"hebe","name":"Hebe","depth":5},{"id":"persephone","name":"Persephone","depth":5},{"id":"nereus","name":"Nereus","depth":3},{"id":"doris","name":"Doris","depth":4},{"id":"nereids","name":"Nereids","depth":5},{"id":"hecatoncheires","name":"Hecatoncheires","depth":3},{"id":"elder_cyclopes","name":"Elder Cyclopes","depth":3},{"id":"erinyes","name":"Erinyes","depth":3},{"id":"gigantes","name":"Gigantes","depth":3},{"id":"moirai","name":"Moirai","depth":2},{"id":"keres","name":"Keres","depth":2},{"id":"nemesis","name":"Nemesis","depth":2},{"id":"eris","name":"Eris","depth":2},{"id":"hesperides","name":"Hesperides","depth":2},{"id":"eurybia","name":"Eurybia","depth":3},{"id":"perses","name":"Perses","depth":4},{"id":"asteria","name":"Asteria","depth":4},{"id":"hecate","name":"Hecate","depth":5},{"id":"muses","name":"Muses","depth":5},{"id":"horae","name":"Horae","depth":5},{"id":"eurynome","name":"Eurynome","depth":4},{"id":"charites","name":"Charites","depth":5}],"links":[["chaos","eros"],["chaos","gaia"],["chaos","tartarus"],["chaos","erebus"],["chaos","nyx"],["gaia","pontus"],["gaia","ourea"],["gaia","uranus"],["gaia","echidna"],["tartarus","echidna"],["gaia","typhon"],["tartarus","typhon"],["pontus","thaumas"],["pontus","phorcys"],["pontus","ceto"],["gaia","themis"],["uranus","themis"],["gaia","mnemosyne"],["uranus","mnemosyne"],["gaia","hyperion"],["uranus","hyperion"],["gaia","theia"],["uranus","theia"],["gaia","crius"],["uranus","crius"],["gaia","iapetus"],["uranus","iapetus"],["gaia","coeus"],["uranus","coeus"],["gaia","phoebe"],["uranus","phoebe"],["gaia","oceanus"],["uranus","oceanus"],["gaia","cronus"],["uranus","cronus"],["gaia","tethys"],["uranus","tethys"],["gaia","rhea"],["uranus","rhea"],["uranus","aphrodite"],["erebus","aether"],["nyx","aether"],["erebus","hemera"],["nyx","hemera"],["erebus","charon"],["nyx","charon"],["nyx","hypnos"],["nyx","thanatos"],["nyx","moros"],["cronus","hestia"],["rhea","hestia"],["cronus","demeter"],["rhea","demeter"],["cronus","hera"],["rhea","hera"],["cronus","hades"],["rhea","hades"],["cronus","poseidon"],["rhea","poseidon"],["cronus","zeus"],["rhea","zeus"],["hyperion","helios"],["theia","helios"],["hyperion","selene"],["theia","selene"],["hyperion","eos"],["theia","eos"],["iapetus","atlas"],["clymene","atlas"],["iapetus","prometheus"],["clymene","prometheus"],["iapetus","epimetheus"],["clymene","epimetheus"],["zeus","athena"],["metis","athena"],["zeus","apollo"],["leto","apollo"],["zeus","artemis"],["leto","artemis"],["zeus","hermes"],["maia","hermes"],["zeus","dionysus"],["semele","dionysus"],["zeus","ares"],["hera","ares"],["hera","hephaestus"],["zeus","hebe"],["hera","hebe"],["zeus","persephone"],["demeter","persephone"],["gaia","nereus"],["pontus","nereus"],["oceanus","doris"],["tethys","doris"],["nereus","nereids"],["doris","nereids"],["gaia","hecatoncheires"],["uranus","hecatoncheires"],["gaia","elder_cyclopes"],["uranus","elder_cyclopes"],["gaia","erinyes"],["uranus","erinyes"],["gaia","gigantes"],["uranus","gigantes"],["nyx","moirai"],["nyx","keres"],["nyx","nemesis"],["nyx","eris"],["nyx","hesperides"],["gaia","eurybia"],["pontus","eurybia"],["crius","perses"],["eurybia","perses"],["coeus","asteria"],["phoebe","asteria"],["perses","hecate"],["asteria","hecate"],["zeus","muses"],["mnemosyne","muses"],["zeus","horae"],["themis","horae"],["oceanus","eurynome"],["tethys","eurynome"],["zeus","charites"],["eurynome","charites"]],"lines":[{"id":"sovereignty","name":"Sovereignty line","color":"#d0312d","paths":[["chaos","gaia","uranus","cronus","zeus","athena"],["zeus","apollo"]]},{"id":"promethean","name":"Promethean line","color":"#7a4ea6","paths":[["chaos","gaia","uranus","iapetus","prometheus"],["iapetus","atlas"]]},{"id":"sea","name":"Sea line","color":"#13a19d","paths":[["chaos","gaia","pontus","nereus","nereids"]]},{"id":"ocean","name":"Ocean line","color":"#1f5ea8","paths":[["chaos","gaia","uranus","oceanus","doris","nereids"]]},{"id":"sun","name":"Sun line","color":"#f0a500","paths":[["chaos","gaia","uranus","hyperion","helios"],["hyperion","eos"]]},{"id":"hecate","name":"Hecate line","color":"#2e8b4b","paths":[["chaos","gaia","uranus","coeus","asteria","hecate"],["uranus","crius","perses","hecate"]]},{"id":"night","name":"Night line","color":"#1d1d1b","paths":[["chaos","nyx","moirai"],["nyx","thanatos"]]}],"levelNames":["Origin","Primordials","Primordial children","Titans and contemporaries","Olympians and younger Titans","Olympian children and contemporaries"]};
-const VARIANTS=[{key:'ltr',name:'A · Left to right'},{key:'ring',name:'B · Square rings'}];
+const DATA={"people":[{"id":"chaos","name":"Chaos","depth":0},{"id":"eros","name":"Eros","depth":1},{"id":"gaia","name":"Gaia","depth":1},{"id":"tartarus","name":"Tartarus","depth":1},{"id":"erebus","name":"Erebus","depth":1},{"id":"nyx","name":"Nyx","depth":1},{"id":"pontus","name":"Pontus","depth":2},{"id":"ourea","name":"Ourea","depth":2},{"id":"uranus","name":"Uranus","depth":2},{"id":"echidna","name":"Echidna","depth":2},{"id":"typhon","name":"Typhon","depth":2},{"id":"thaumas","name":"Thaumas","depth":3},{"id":"phorcys","name":"Phorcys","depth":3},{"id":"ceto","name":"Ceto","depth":3},{"id":"themis","name":"Themis","depth":3},{"id":"mnemosyne","name":"Mnemosyne","depth":3},{"id":"hyperion","name":"Hyperion","depth":3},{"id":"theia","name":"Theia","depth":3},{"id":"crius","name":"Crius","depth":3},{"id":"iapetus","name":"Iapetus","depth":3},{"id":"coeus","name":"Coeus","depth":3},{"id":"phoebe","name":"Phoebe","depth":3},{"id":"oceanus","name":"Oceanus","depth":3},{"id":"cronus","name":"Cronus","depth":3},{"id":"tethys","name":"Tethys","depth":3},{"id":"rhea","name":"Rhea","depth":3},{"id":"aphrodite","name":"Aphrodite","depth":3},{"id":"aether","name":"Aether","depth":2},{"id":"hemera","name":"Hemera","depth":2},{"id":"charon","name":"Charon","depth":2},{"id":"hypnos","name":"Hypnos","depth":2},{"id":"thanatos","name":"Thanatos","depth":2},{"id":"moros","name":"Moros","depth":2},{"id":"hestia","name":"Hestia","depth":4},{"id":"demeter","name":"Demeter","depth":4},{"id":"hera","name":"Hera","depth":4},{"id":"hades","name":"Hades","depth":4},{"id":"poseidon","name":"Poseidon","depth":4},{"id":"zeus","name":"Zeus","depth":4},{"id":"helios","name":"Helios","depth":4},{"id":"selene","name":"Selene","depth":4},{"id":"eos","name":"Eos","depth":4},{"id":"clymene","name":"Clymene","depth":3},{"id":"atlas","name":"Atlas","depth":4},{"id":"prometheus","name":"Prometheus","depth":4},{"id":"epimetheus","name":"Epimetheus","depth":4},{"id":"metis","name":"Metis","depth":4},{"id":"athena","name":"Athena","depth":5},{"id":"leto","name":"Leto","depth":4},{"id":"apollo","name":"Apollo","depth":5},{"id":"artemis","name":"Artemis","depth":5},{"id":"maia","name":"Maia","depth":4},{"id":"hermes","name":"Hermes","depth":5},{"id":"semele","name":"Semele","depth":4},{"id":"dionysus","name":"Dionysus","depth":5},{"id":"ares","name":"Ares","depth":5},{"id":"hephaestus","name":"Hephaestus","depth":5},{"id":"hebe","name":"Hebe","depth":5},{"id":"persephone","name":"Persephone","depth":5},{"id":"nereus","name":"Nereus","depth":3},{"id":"doris","name":"Doris","depth":4},{"id":"nereids","name":"Nereids","depth":5},{"id":"hecatoncheires","name":"Hecatoncheires","depth":3},{"id":"elder_cyclopes","name":"Elder Cyclopes","depth":3},{"id":"erinyes","name":"Erinyes","depth":3},{"id":"gigantes","name":"Gigantes","depth":3},{"id":"moirai","name":"Moirai","depth":2},{"id":"keres","name":"Keres","depth":2},{"id":"nemesis","name":"Nemesis","depth":2},{"id":"eris","name":"Eris","depth":2},{"id":"hesperides","name":"Hesperides","depth":2},{"id":"eurybia","name":"Eurybia","depth":3},{"id":"perses","name":"Perses","depth":4},{"id":"asteria","name":"Asteria","depth":4},{"id":"hecate","name":"Hecate","depth":5},{"id":"muses","name":"Muses","depth":5},{"id":"horae","name":"Horae","depth":5},{"id":"eurynome","name":"Eurynome","depth":4},{"id":"charites","name":"Charites","depth":5}],"links":[["chaos","eros"],["chaos","gaia"],["chaos","tartarus"],["chaos","erebus"],["chaos","nyx"],["gaia","pontus"],["gaia","ourea"],["gaia","uranus"],["gaia","echidna"],["tartarus","echidna"],["gaia","typhon"],["tartarus","typhon"],["pontus","thaumas"],["pontus","phorcys"],["pontus","ceto"],["gaia","themis"],["uranus","themis"],["gaia","mnemosyne"],["uranus","mnemosyne"],["gaia","hyperion"],["uranus","hyperion"],["gaia","theia"],["uranus","theia"],["gaia","crius"],["uranus","crius"],["gaia","iapetus"],["uranus","iapetus"],["gaia","coeus"],["uranus","coeus"],["gaia","phoebe"],["uranus","phoebe"],["gaia","oceanus"],["uranus","oceanus"],["gaia","cronus"],["uranus","cronus"],["gaia","tethys"],["uranus","tethys"],["gaia","rhea"],["uranus","rhea"],["uranus","aphrodite"],["erebus","aether"],["nyx","aether"],["erebus","hemera"],["nyx","hemera"],["erebus","charon"],["nyx","charon"],["nyx","hypnos"],["nyx","thanatos"],["nyx","moros"],["cronus","hestia"],["rhea","hestia"],["cronus","demeter"],["rhea","demeter"],["cronus","hera"],["rhea","hera"],["cronus","hades"],["rhea","hades"],["cronus","poseidon"],["rhea","poseidon"],["cronus","zeus"],["rhea","zeus"],["hyperion","helios"],["theia","helios"],["hyperion","selene"],["theia","selene"],["hyperion","eos"],["theia","eos"],["iapetus","atlas"],["clymene","atlas"],["iapetus","prometheus"],["clymene","prometheus"],["iapetus","epimetheus"],["clymene","epimetheus"],["zeus","athena"],["metis","athena"],["zeus","apollo"],["leto","apollo"],["zeus","artemis"],["leto","artemis"],["zeus","hermes"],["maia","hermes"],["zeus","dionysus"],["semele","dionysus"],["zeus","ares"],["hera","ares"],["hera","hephaestus"],["zeus","hebe"],["hera","hebe"],["zeus","persephone"],["demeter","persephone"],["gaia","nereus"],["pontus","nereus"],["oceanus","doris"],["tethys","doris"],["nereus","nereids"],["doris","nereids"],["gaia","hecatoncheires"],["uranus","hecatoncheires"],["gaia","elder_cyclopes"],["uranus","elder_cyclopes"],["gaia","erinyes"],["uranus","erinyes"],["gaia","gigantes"],["uranus","gigantes"],["nyx","moirai"],["nyx","keres"],["nyx","nemesis"],["nyx","eris"],["nyx","hesperides"],["gaia","eurybia"],["pontus","eurybia"],["crius","perses"],["eurybia","perses"],["coeus","asteria"],["phoebe","asteria"],["perses","hecate"],["asteria","hecate"],["zeus","muses"],["mnemosyne","muses"],["zeus","horae"],["themis","horae"],["oceanus","eurynome"],["tethys","eurynome"],["zeus","charites"],["eurynome","charites"]],"lines":[{"id":"sovereignty","name":"Sovereignty line","color":"#d0312d","paths":[["chaos","gaia","uranus","cronus","zeus","athena"],["zeus","apollo"],["zeus","artemis"],["zeus","hermes"],["zeus","dionysus"],["zeus","ares"],["zeus","hebe"]]},{"id":"promethean","name":"Promethean line","color":"#7a4ea6","paths":[["chaos","gaia","uranus","iapetus","prometheus"],["iapetus","atlas"]]},{"id":"sea","name":"Sea line","color":"#13a19d","paths":[["chaos","gaia","pontus","nereus","nereids"]]},{"id":"ocean","name":"Ocean line","color":"#1f5ea8","paths":[["chaos","gaia","uranus","oceanus","doris","nereids"],["oceanus","eurynome","charites"]]},{"id":"sun","name":"Sun line","color":"#f0a500","paths":[["chaos","gaia","uranus","hyperion","helios"],["hyperion","eos"]]},{"id":"hecate","name":"Hecate line","color":"#2e8b4b","paths":[["chaos","gaia","uranus","coeus","asteria","hecate"],["uranus","crius","perses","hecate"]]},{"id":"night","name":"Night line","color":"#1d1d1b","paths":[["chaos","nyx","moirai"],["nyx","thanatos"],["nyx","hypnos"]]},{"id":"memory","name":"Memory line","color":"#e0609c","paths":[["uranus","mnemosyne","muses"]]},{"id":"justice","name":"Justice line","color":"#9aa3a8","paths":[["uranus","themis","horae"]]},{"id":"hera","name":"Hera line","color":"#8c1c3c","paths":[["cronus","hera","ares"],["hera","hephaestus"],["hera","hebe"]]},{"id":"harvest","name":"Harvest line","color":"#8dc63f","paths":[["cronus","demeter","persephone"]]},{"id":"abyss","name":"Abyss line","color":"#7b5130","paths":[["chaos","tartarus","typhon"],["tartarus","echidna"]]},{"id":"erebus","name":"Erebus line","color":"#3b3f8f","paths":[["chaos","erebus","aether"],["erebus","hemera"],["erebus","charon"]]},{"id":"foam","name":"Foam line","color":"#62b5e5","paths":[["uranus","aphrodite"]]},{"id":"forge","name":"Forge line","color":"#ee7a12","paths":[["uranus","elder_cyclopes"],["uranus","hecatoncheires"]]}],"levelNames":["Origin","Primordials","Primordial children","Titans and contemporaries","Olympians and younger Titans","Olympian children and contemporaries"]};
+const VARIANTS=[{key:'ltr',name:'A · Left to right'},{key:'ring',name:'B · Square rings'},{key:'free',name:'C · Free zones'}];
 const byId=Object.fromEntries(DATA.people.map(p=>[p.id,p]));
 const LINES=DATA.lines,lineById=Object.fromEntries(LINES.map(l=>[l.id,l]));
 const FONT='Inter, "Helvetica Neue", Arial, sans-serif';
@@ -111,11 +111,32 @@ function routeOcti(P,Q){
   const h=(ay-ax)/2*Math.sign(dy);return [P,V(P.x,P.y+h),V(Q.x,Q.y-h),Q];
 }
 
+// Replace any leg that isn't at 0°, 45° or 90° with an octilinear two-bend route between its ends.
+function octilinear(pts){
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const a=out.at(-1),b=pts[i],ax=Math.abs(b.x-a.x),ay=Math.abs(b.y-a.y);
+    if(ax<.5||ay<.5||Math.abs(ax-ay)<.5)out.push(b);else out.push(...routeOcti(a,b).slice(1));
+  }
+  return clean(out);
+}
+
 // ---------- Variant A: zones as vertical bands, rows chosen greedily ----------
+// Hill-climb an ordering by moving one item to another position until nothing improves; exhaustive when short.
+function improveOrder(items,evaluate,maxEvals=1e9){
+  let tried=0,best=null;const run=o=>{if(tried>=maxEvals)return false;tried++;const r=evaluate(o);if(!best||r.c.cost<best.c.cost-1e-6){best={...r,order:o};return true}return false};
+  if(items.length<=5){for(const p of permutations(items))run(p);return {best,tried}}
+  run(items);
+  for(let pass=0;pass<4;pass++){let improved=false;
+    for(let i=0;i<items.length;i++)for(let j=0;j<items.length;j++){if(i===j)continue;const o=best.order.slice(),[x]=o.splice(i,1);o.splice(j,0,x);if(run(o))improved=true}
+    if(!improved)break}
+  return {best,tried};
+}
 function searchLTR(){
-  const [first,...rest]=LINES;let best=null,tried=0;
-  for(const perm of permutations(rest)){tried++;const lay=layoutLTR([first,...perm]),c=layoutCost(lay);if(!best||c.cost<best.c.cost)best={lay,c}}
-  return Object.assign(best.lay,{search:`${tried} line placement orders`,score:best.c});
+  const [first,...rest]=LINES;
+  const {best,tried}=improveOrder(rest,o=>{const lay=layoutLTR([first,...o]);return {lay,c:layoutCost(lay)}});
+  const moves=refine(best.lay.pos,{route:routeLTR,G:best.lay.ROW,MIN:best.lay.ROW-1,offsets:[-4,-3,-2,-1,1,2,3,4].map(j=>V(0,j))});
+  return Object.assign(best.lay,{search:`${tried} line placement orders + ${moves} station moves`,score:layoutCost(best.lay)});
 }
 function layoutLTR(order){
   const ZW=300,ROW=64,P=(z,r)=>V(z*ZW,r*ROW);
@@ -124,7 +145,7 @@ function layoutLTR(order){
     if(!k)return;const a=path[k-1],za=byId[a].depth,zb=byId[b].depth;
     if(row[b]===undefined){
       const ra=row[a];let best=null;
-      for(let r=ra-9;r<=ra+9;r++){
+      for(let r=ra-12;r<=ra+12;r++){
         if(occ.has(zb+','+r))continue;
         let blocked=false;for(let z=za+1;z<zb;z++)if(occ.get(z+','+r)==='s')blocked=true;if(blocked)continue;
         const poly=routeLTR(P(za,ra),P(zb,r));let cr=0;for(const q of placed)cr+=polyCross(poly,q);
@@ -136,7 +157,7 @@ function layoutLTR(order){
     placed.push(routeLTR(P(za,row[a]),P(zb,row[b])));
   })));
   const pos={};for(const id of stations)pos[id]=P(byId[id].depth,row[id]);
-  return {kind:'ltr',pos,ZW,route:(s,A,B)=>routeLTR(A,B),labelPrefs:()=>['N','S','NE','SE','E','NW','SW','W'],lanes:{}};
+  return {kind:'ltr',pos,ZW,ROW,route:(s,A,B)=>routeLTR(A,B),labelPrefs:()=>['N','S','NE','SE','E','NW','SW','W'],lanes:{}};
 }
 
 // ---------- Variant B: zones as square rings, lines travel along zone boundaries ----------
@@ -144,9 +165,9 @@ function layoutLTR(order){
 function searchRing(){
   const orders={};let best={lay:layoutRing(orders)};best.c=layoutCost(best.lay);let tried=1;
   for(let round=0;round<2;round++)for(const v of stations){
-    if(kids[v].length<2)continue;let keep=orders[v];
-    for(const perm of permutations(kids[v])){tried++;orders[v]=perm;const lay=layoutRing(orders),c=layoutCost(lay);if(c.cost<best.c.cost-1e-6){best={lay,c};keep=perm}}
-    orders[v]=keep;
+    if(kids[v].length<2)continue;
+    const r=improveOrder(orders[v]??kids[v],o=>{const lay=layoutRing({...orders,[v]:o});return {lay,c:layoutCost(lay)}});
+    tried+=r.tried;if(r.best.c.cost<best.c.cost-1e-6){best=r.best;orders[v]=r.best.order}
   }
   return Object.assign(best.lay,{search:`${tried} sibling orders`,score:best.c});
 }
@@ -199,6 +220,14 @@ function layoutRing(orders={}){
     if(u.x)return V(Math.sign(u.x)*so,Math.max(-so,Math.min(so,p.y)));
     return V(Math.max(-so,Math.min(so,p.x)),Math.sign(u.y)*so);
   }
+  // Points from p to the boundary square, moving perpendicular to p's side. If p lies beyond the
+  // boundary's corner (a lane can shrink it), continue along the boundary line to the corner rather than slanting.
+  function legTo(p,u,so){
+    if(u.x&&u.y)return [toSquare(p,u,so,Math.max(u.x*p.x,u.y*p.y)<so)];
+    const e=u.x?V(Math.sign(u.x)*so,p.y):V(p.x,Math.sign(u.y)*so),c=u.x?p.y:p.x;
+    if(Math.abs(c)<=so)return [e];
+    return [e,u.x?V(e.x,Math.sign(c)*so):V(Math.sign(c)*so,e.y)];
+  }
   function orbit(P,Q,s){
     const T=8*s,tp=tOf(P,s),tq=tOf(Q,s);let d=tq-tp;if(d>T/2)d-=T;if(d<-T/2)d+=T;const dir=Math.sign(d),out=[];
     for(const cT of [s,3*s,5*s,7*s]){const rel=((((cT-tp)*dir)%T)+T)%T;if(rel>1e-6&&rel<Math.abs(d)-1e-6)out.push({rel,p:pOf(cT,s)})}
@@ -208,7 +237,7 @@ function layoutRing(orders={}){
   const lanes={},byOrbit={};
   for(const s of segs){
     const ka=byId[s.a].depth;if(!ka)continue;const so=(ka+.5)*R;
-    const P1=toSquare(pos[s.a],outward(pos[s.a]),so,true),Q1=toSquare(pos[s.b],outward(pos[s.b]),so,false);
+    const P1=legTo(pos[s.a],outward(pos[s.a]),so).at(-1),Q1=legTo(pos[s.b],outward(pos[s.b]),so).at(-1);
     const T=8*so;let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1)continue;
     const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;(byOrbit[ka]??=[]).push({key:s.key,a,b:a+Math.abs(dl)});
   }
@@ -222,12 +251,146 @@ function layoutRing(orders={}){
     const ka=byId[s.a].depth;if(!ka)return routeOcti(A,B);
     const so=(ka+.5)*R+(lanes[s.key]||0);
     const P1=toSquare(A,outward(pos[s.a]),so,true),Q1=toSquare(B,outward(pos[s.b]),so,false);
-    return clean([A,P1,...orbit(P1,Q1,so),Q1,B]);
+    return octilinear(clean([A,P1,...orbit(P1,Q1,so),Q1,B]));
   }
   const prefDirs={E:['E','NE','SE','N','S','W','NW','SW'],W:['W','NW','SW','N','S','E','NE','SE'],N:['N','NE','NW','E','W','S','SE','SW'],S:['S','SE','SW','E','W','N','NE','NW'],
     NE:['NE','E','N','SE','NW','S','W','SW'],NW:['NW','W','N','SW','NE','S','E','SE'],SE:['SE','E','S','NE','SW','N','W','NW'],SW:['SW','W','S','NW','SE','N','E','NE']};
   return {kind:'ring',pos,R,route,lanes,labelPrefs:id=>id==='chaos'?['NW','SW','N','S','W','NE','SE','E']:prefDirs[sideKey(pos[id])]};
 }
+
+// ---------- Variant C: free octilinear placement, zones drawn afterwards as contours ----------
+const FREE={G:60,RZ:165,MIN:100,REACH:5};
+function searchFree(){
+  const [first,...rest]=LINES;
+  const {best,tried}=improveOrder(rest,o=>{const lay=layoutFree([first,...o]);return {lay,c:layoutCost(lay)}},90);
+  const moves=refine(best.lay.pos,{route:routeOcti,G:FREE.G,MIN:FREE.MIN,offsets:[-4,-3,-2,-1,1,2,3,4].flatMap(i=>[-4,-3,-2,-1,0,1,2,3,4].map(j=>V(i,j))).concat([-4,-3,-2,-1,1,2,3,4].map(j=>V(0,j))),radial:FREE.RZ});
+  return Object.assign(best.lay,{search:`${tried} line placement orders + ${moves} station moves`,score:layoutCost(best.lay)});
+}
+// Local search: move single stations to nearby grid points while that lowers crossings, pass-throughs and track length.
+function refine(pos,{route,G,MIN,offsets,radial}){
+  let moves=0;
+  const incident=v=>segs.filter(s=>s.a===v||s.b===v);
+  function localCost(v){
+    const mine=incident(v),routes=new Map(segs.map(s=>[s,route(pos[s.a],pos[s.b])]));let c=radial?Math.abs(len(pos[v])-byId[v].depth*radial)/radial*3:0;
+    for(const s of mine){
+      const r=routes.get(s);for(let k=1;k<r.length;k++)c+=dist(r[k-1],r[k])/G*.35;c+=(r.length-2)*.7;
+      for(const o of segs){if(mine.includes(o))continue;c+=polyCross(r,routes.get(o))*60}
+      for(const u of stations){if(u===s.a||u===s.b)continue;for(let k=1;k<r.length;k++)if(pointSegDist(pos[u],r[k-1],r[k])<28){c+=60;break}}
+    }
+    for(const o of segs){if(mine.includes(o))continue;const r=routes.get(o);for(let k=1;k<r.length;k++)if(pointSegDist(pos[v],r[k-1],r[k])<34){c+=60;break}}
+    return c;
+  }
+  for(let round=0;round<3;round++){let moved=false;
+    for(const v of stations){
+      if(v==='chaos')continue;const home=pos[v];let best={p:home,c:localCost(v)};
+      for(const o of offsets){
+        const P=add(home,mul(o,G));
+        if(stations.some(u=>u!==v&&dist(pos[u],P)<MIN))continue;
+        pos[v]=P;const c=localCost(v);if(c<best.c-1e-6)best={p:P,c};
+      }
+      pos[v]=best.p;if(best.p!==home){moves++;moved=true}
+    }
+    if(!moved)break}
+  return moves;
+}
+// Each new station takes a grid point near its parent, reached by a 45° route with at most two bends.
+// It prefers to carry on in the direction of travel, to sit at its generation's distance from Chaos,
+// and never to cross, crowd or run alongside track already laid.
+function layoutFree(order){
+  const {G,RZ,MIN,REACH}=FREE,pos={chaos:V(0,0)},inDir={},tracks=[];
+  const lay=(r)=>{for(let i=1;i<r.length;i++)tracks.push([r[i-1],r[i]])};
+  // Seat a whole generation before the next, so a hub's children claim space before its grandchildren do.
+  const steps=order.flatMap(L=>L.paths.flatMap(path=>path.slice(1).map((b,k)=>[path[k],b])));
+  steps.sort((x,y)=>byId[x[1]].depth-byId[y[1]].depth);
+  // Score the route from a placed parent to a candidate spot; null if it would run through a station.
+  function legCost(a,P){
+    const A=pos[a],r=routeOcti(A,P);let cr=0,near=0;
+    for(let s=1;s<r.length;s++){
+      for(const v of stations)if(pos[v]&&v!==a&&pointSegDist(pos[v],r[s-1],r[s])<28)return null;
+      for(const [p,q] of tracks)if(segX(r[s-1],r[s],p,q))cr++;
+      for(let t=.25;t<=.75;t+=.25){const m=add(r[s-1],mul(sub(r[s],r[s-1]),t));if(dist(m,A)<20)continue;for(const [p,q] of tracks)if(pointSegDist(m,p,q)<18){near++;break}}
+    }
+    return {r,cost:cr*60+near*25+dist(A,P)/G*.35+(r.length-2)*.7};
+  }
+  steps.forEach(([a,b])=>{
+    const A=pos[a];
+    if(!pos[b]){
+      const ref=inDir[a],out=len(A)>1?norm(A):null,target=byId[b].depth*RZ;let best=null;
+      // A station where two lines meet is placed against both parents' routes at once.
+      const others=inTo(b).map(s=>s.a).filter(p=>p!==a&&pos[p]);
+      for(let reach=REACH;!best&&reach<=REACH*3;reach+=REACH)for(let i=-reach;i<=reach;i++)for(let j=-reach;j<=reach;j++){
+        if(Math.max(Math.abs(i),Math.abs(j))<=reach-REACH)continue;const P=add(A,V(i*G,j*G));
+        if(Object.values(pos).some(q=>dist(q,P)<MIN))continue;
+        if(tracks.some(([p,q])=>pointSegDist(P,p,q)<34))continue;
+        if(out&&dot(norm(sub(P,A)),out)<-.2)continue;
+        const leg=legCost(a,P);if(!leg)continue;const r=leg.r,d0=norm(sub(r[1],r[0]));
+        let cost=leg.cost+Math.abs(len(P)-target)/RZ*3,ok=true;
+        for(const o of others){const l2=legCost(o,P);if(!l2){ok=false;break}cost+=l2.cost}
+        if(!ok)continue;
+        if(ref){const c=dot(d0,ref);cost+=c>.99?0:c>.7?.6:c>-.01?2.5:20}else cost+=(1-d0.x)*.3;
+        if(!best||cost<best.cost)best={P,d:norm(sub(r.at(-1),r.at(-2))),cost};
+      }
+      if(!best){const d=ref??V(1,0);best={P:add(A,mul(d,G*(REACH+1))),d}}
+      pos[b]=best.P;inDir[b]=best.d;
+    }
+    lay(routeOcti(A,pos[b]));
+  });
+  const prefs=id=>{const d=inDir[id];if(!d)return ['NW','SW','N','S','W','NE','SE','E'];if(Math.abs(d.y)<.1)return ['N','S','NE','SE','NW','SW','E','W'];if(Math.abs(d.x)<.1)return ['E','W','NE','SE','NW','SW','N','S'];return d.x*d.y>0?['NE','SW','E','W','N','S','SE','NW']:['SE','NW','E','W','S','N','NE','SW']};
+  return {kind:'free',pos,route:(s,A,B)=>routeOcti(A,B),labelPrefs:prefs,lanes:{}};
+}
+// Generation field: inverse-distance blend of station depths and of depths interpolated along the track.
+function zoneField(tracksDrawn,pos,bounds,cell){
+  const pts=stations.map(v=>({p:pos[v],z:byId[v].depth}));
+  for(const s of segs){const A=pos[s.a],B=pos[s.b],n=Math.max(1,Math.round(dist(A,B)/45));for(let i=1;i<n;i++)pts.push({p:add(A,mul(sub(B,A),i/n)),z:byId[s.a].depth+(byId[s.b].depth-byId[s.a].depth)*i/n})}
+  const cols=Math.ceil(bounds.w/cell)+1,rows=Math.ceil(bounds.h/cell)+1,F=new Float32Array(cols*rows);
+  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+    const x=bounds.x+i*cell,y=bounds.y+j*cell;let sw=0,sz=0;
+    for(const q of pts){const dx=x-q.p.x,dy=y-q.p.y,d2=dx*dx+dy*dy+1,w=1/(d2*d2);sw+=w;sz+=w*q.z}
+    // Far from the network, fall back to concentric generations so empty space has no islands.
+    const w0=1/Math.pow(FREE.RZ*.9,4);sw+=w0;sz+=w0*Math.hypot(x,y)/FREE.RZ;
+    F[j*cols+i]=sz/sw;
+  }
+  const Z={F,cols,rows,cell,bounds,pts};
+  blurField(Z,5);blurField(Z,5);const merged=mergeIslands(Z,Math.round((150/cell)**2));blurField(Z,2);
+  Z.merged=merged;Z.misplaced=stations.filter(v=>zoneAt(Z,pos[v])!==byId[v].depth).length;
+  return Z;
+}
+const zoneAt=(Z,p)=>{const i=Math.round((p.x-Z.bounds.x)/Z.cell),j=Math.round((p.y-Z.bounds.y)/Z.cell);return Math.round(Z.F[Math.max(0,Math.min(Z.rows-1,j))*Z.cols+Math.max(0,Math.min(Z.cols-1,i))])};
+// Separable box blur, so zone boundaries become smooth curves instead of following every station.
+function blurField(Z,r){
+  const {cols,rows}=Z;let F=Z.F;
+  for(const horiz of [true,false]){
+    const out=new Float32Array(F.length);
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){let s=0,n=0;for(let k=-r;k<=r;k++){const ii=horiz?i+k:i,jj=horiz?j:j+k;if(ii<0||jj<0||ii>=cols||jj>=rows)continue;s+=F[jj*cols+ii];n++}out[j*cols+i]=s/n}
+    F=out;
+  }
+  Z.F=F;
+}
+// Any patch of a zone smaller than minCells joins the zone that surrounds it most.
+function mergeIslands(Z,minCells){
+  const {cols,rows}=Z,band=i=>Math.round(Z.F[i]),seen=new Int32Array(cols*rows).fill(-1);let merged=0;
+  const home=new Map();for(const q of Z.pts.slice(0,stations.length)){const i=Math.round((q.p.x-Z.bounds.x)/Z.cell),j=Math.round((q.p.y-Z.bounds.y)/Z.cell);home.set(j*cols+i,q.z)}
+  for(let start=0;start<cols*rows;start++){
+    if(seen[start]>=0)continue;const k=band(start),cells=[start],around={};seen[start]=start;
+    for(let q=0;q<cells.length;q++){const c=cells[q],i=c%cols,j=(c-i)/cols;
+      for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const ii=i+di,jj=j+dj;if(ii<0||jj<0||ii>=cols||jj>=rows)continue;const n=jj*cols+ii;
+        if(band(n)!==k){around[band(n)]=(around[band(n)]||0)+1;continue}if(seen[n]<0){seen[n]=start;cells.push(n)}}}
+    const keys=Object.keys(around);
+    if(cells.length<minCells&&keys.length&&!cells.some(c=>home.get(c)===k)){const to=+keys.sort((a,b)=>around[b]-around[a])[0];for(const c of cells)Z.F[c]=to;merged++}
+  }
+  return merged;
+}
+function contourPath(Z,level){
+  const {F,cols,rows,cell,bounds}=Z;let d='';
+  const P=(i,j)=>V(bounds.x+i*cell,bounds.y+j*cell),lerp=(a,b,fa,fb)=>add(a,mul(sub(b,a),(level-fa)/(fb-fa)));
+  for(let j=0;j<rows-1;j++)for(let i=0;i<cols-1;i++){
+    const f=[F[j*cols+i],F[j*cols+i+1],F[(j+1)*cols+i+1],F[(j+1)*cols+i]],c=[P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)],e=[];
+    for(let k=0;k<4;k++){const a=f[k],b=f[(k+1)%4];if((a<level)!==(b<level))e.push(lerp(c[k],c[(k+1)%4],a,b))}
+    for(let k=0;k+1<e.length;k+=2)d+=`M${f2(e[k])}L${f2(e[k+1])}`;
+  }
+  return d;
+}
+const f2=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
 
 // ---------- shared: line order, bundles, stations, labels ----------
 function countCrossings(rank,pos){
@@ -246,7 +409,7 @@ function countCrossings(rank,pos){
 
 const layoutCache={};
 function build(variant,showOthers){
-  const lay=layoutCache[variant]??=variant==='ring'?searchRing():searchLTR(),pos=lay.pos;
+  const lay=layoutCache[variant]??={ring:searchRing,free:searchFree,ltr:searchLTR}[variant](),pos=lay.pos;
   const shared=[...new Set(segs.filter(s=>s.lines.length>1).flatMap(s=>s.lines))];
   let best=null,tried=0;
   for(const perm of permutations(shared)){
@@ -264,14 +427,20 @@ function build(variant,showOthers){
     ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*GAP);
   }
   const laneIn=(l,v)=>{const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
   const startOff={};
+  for(const v of stations){
+    const ref=inTo(v)[0]??outOf(v).find(s=>s.lines.length>1);if(!ref)continue;
+    const d=inTo(v).includes(ref)?endDir(ref):startDir(ref),n=leftN(d),half=(ref.lines.length-1)/2*GAP;
+    const starters=outOf(v).filter(s=>s.lines.length===1&&!laneIn(s.lines[0],v)).map(s=>({l:s.lines[0],k:dot(n,norm(sub(pos[s.b],pos[v])))}));
+    for(const sg of [1,-1])starters.filter(x=>(x.k>=0?1:-1)===sg).sort((a,b)=>Math.abs(a.k)-Math.abs(b.k)).forEach((x,i)=>startOff[v+'|'+x.l]={off:sg*(half+GAP*(i+1)),n});
+  }
   function segPoly(s,l){
     if(s.lines.length>1)return offsetPoly(base[s.key],offOn(s,l));
-    let A=pos[s.a];const li=laneIn(l,s.a);
+    let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
     if(li)A=add(A,mul(li.n,li.off));
-    else{const m=outOf(s.a).find(x=>x.lines.length>1);if(m){const d=startDir(m),half=(m.lines.length-1)/2*GAP,sg=dot(leftN(d),sub(pos[s.b],pos[s.a]))>=0?1:-1;startOff[s.a+'|'+l]=sg*(half+GAP);A=add(A,mul(leftN(d),sg*(half+GAP)))}}
     const eo=endOff[s.key]||0,B=eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
-    return lay.route(s,A,B);
+    return octilinear(lay.route(s,A,B));
   }
   const tracks=[];
   for(const L of LINES)for(const path of L.paths){const pts=[];for(let i=1;i<path.length;i++)pts.push(...segPoly(segMap.get(path[i-1]+'>'+path[i]),L.id));tracks.push({line:L,pts:clean(pts)})}
@@ -281,10 +450,10 @@ function build(variant,showOthers){
     const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v),outs=outOf(v);
     const d=ins.length?endDir(ins[0]):startDir(outs[0]),n=leftN(ms?(inTo(v).includes(ms)?endDir(ms):startDir(ms)):d);
     if(ms){
-      const offs=ms.lines.map(l=>offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l]!==undefined)offs.push(startOff[v+'|'+l]);
+      const offs=ms.lines.map(l=>offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
       return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
     }
-    if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]||0);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
+    if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]||0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
     return {v,type:'tick',n,color:lineById[[...linesAt[v]][0]].color};
   });
   const markerBox=m=>{const R=m.type==='pill'?11:9,a=m.a||pos[m.v],b=m.b||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
@@ -318,14 +487,15 @@ const txt=(parent,x,y,s,attrs={})=>{const t=el('text',{x,y,'font-family':FONT,..
 function wrap(s,width,size){const words=s.split(' '),out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(measure(t,size,500)>width&&cur){out.push(cur);cur=w}else cur=t}if(cur)out.push(cur);return out}
 
 function render(variant,showOthers){
-  const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';
+  const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';let zoneNote='';
   // map bounds
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const grow=(x,y)=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)};
   for(const t of B.tracks)for(const p of t.pts)grow(p.x,p.y);for(const l of B.labels)if(l){grow(l.r.x,l.r.y);grow(l.r.x+l.r.w,l.r.y+l.r.h)}
   const maxZone=Math.max(...stations.map(id=>byId[id].depth));
   if(lay.kind==='ltr'){grow(-lay.ZW/2,y0);grow(maxZone*lay.ZW+lay.ZW/2,y0);y0-=96;y1+=40}
-  else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
-  const pad=56,header=170,footer=300,W=Math.max(x1-x0+2*pad,1500),H=header+(y1-y0)+2*pad+footer;
+  else if(lay.kind==='ring'){const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
+  else{x0-=80;y0-=80;x1+=80;y1+=80}
+  const pad=56,header=170,footer=Math.max(300,110+LINES.length*30),W=Math.max(x1-x0+2*pad,1500),H=header+(y1-y0)+2*pad+footer;
   const left=(x0+x1)/2-W/2,top=y0-pad-header;
   svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
   el('rect',{x:left,y:top,width:W,height:H,fill:'#fbfaf6'},svg);
@@ -333,12 +503,37 @@ function render(variant,showOthers){
   // header
   txt(svg,left+pad,top+52,'A NEW MAP OF THE GENEALOGY',{'font-size':12,'font-weight':800,'letter-spacing':'.2em',fill:'#7a776d'});
   txt(svg,left+pad,top+108,'Theogony Underground',{'font-size':54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
-  txt(svg,left+pad,top+142,`Seven lineages from Chaos, drawn as a transit map. Fare zones are generations. Prototype · automatic layout · ${VARIANTS.find(v=>v.key===variant).name}`,{'font-size':16,'font-weight':500,fill:'#5a5a52'});
+  txt(svg,left+pad,top+142,`${LINES.length} lineages from Chaos, drawn as a transit map. Fare zones are generations. Prototype · automatic layout · ${VARIANTS.find(v=>v.key===variant).name}`,{'font-size':16,'font-weight':500,fill:'#5a5a52'});
   el('line',{x1:left+pad,x2:left+W-pad,y1:top+header-12,y2:top+header-12,stroke:'#dedcd3'},svg);
 
   // zones
   const zg=el('g',{},svg),zoneFill=k=>k%2?'#efede4':'#f7f5ef';
-  if(lay.kind==='ltr'){
+  if(lay.kind==='free'){
+    const bounds={x:x0,y:y0,w:x1-x0,h:y1-y0},Z=zoneField(B.tracks,pos,bounds,6);zoneNote=` · zones: ${Z.merged} islands merged, ${Z.misplaced} stations outside their zone`;
+    const cv=document.createElement('canvas');cv.width=Z.cols;cv.height=Z.rows;const ctx=cv.getContext('2d'),img=ctx.createImageData(Z.cols,Z.rows);
+    const rgb=k=>k%2?[235,232,221]:[248,246,240];
+    for(let i=0;i<Z.F.length;i++){const c=rgb(Math.max(0,Math.min(maxZone,Math.round(Z.F[i]))));img.data.set([...c,255],i*4)}
+    ctx.putImageData(img,0,0);
+    const clip=el('clipPath',{id:'zoneClip'},el('defs',{},zg));el('rect',{x:x0,y:y0,width:x1-x0,height:y1-y0,rx:40},clip);
+    el('rect',{x:x0-22,y:y0-22,width:x1-x0+44,height:y1-y0+44,rx:56,fill:'none',stroke:'#cfe3ee','stroke-width':26},zg);
+    txt(zg,(x0+x1)/2,y0-17,'O K E A N O S',{'font-size':13,'font-weight':700,'text-anchor':'middle',fill:'#6f9bb6','font-style':'italic'});
+    const g=el('g',{'clip-path':'url(#zoneClip)'},zg);
+    el('image',{href:cv.toDataURL(),x:x0-Z.cell/2,y:y0-Z.cell/2,width:Z.cols*Z.cell,height:Z.rows*Z.cell,preserveAspectRatio:'none'},g);
+    for(let k=0;k<maxZone;k++)el('path',{d:contourPath(Z,k+.5),fill:'none',stroke:'#cbc6b8','stroke-width':1.8},g);
+    // zone label: a clear spot inside the zone, as close as possible to that zone's own stations
+    for(let k=0;k<=maxZone;k++){
+      let best=null;const own=stations.filter(v=>byId[v].depth===k).map(v=>pos[v]);
+      for(let j=4;j<Z.rows-4;j+=4)for(let i=4;i<Z.cols-14;i+=4){
+        if(Math.round(Z.F[j*Z.cols+i])!==k||Math.round(Z.F[j*Z.cols+i+12])!==k)continue;
+        const p=V(x0+i*Z.cell,y0+j*Z.cell);let m=1e9;for(const q of Z.pts)m=Math.min(m,dist(p,q.p));
+        for(const l of B.labels)if(l)m=Math.min(m,dist(p,V(l.r.x+l.r.w/2,l.r.y+l.r.h/2))*1.4);
+        const sc=Math.min(m,70)-.08*Math.min(...own.map(q=>dist(p,q)));
+        if(!best||sc>best.sc)best={p,sc};
+      }
+      if(best)txt(g,best.p.x,best.p.y,`ZONE ${k}`,{'font-size':12,'font-weight':800,'letter-spacing':'.16em',fill:'#a4a093'});
+    }
+  }
+  else if(lay.kind==='ltr'){
     for(let k=0;k<=maxZone;k++){
       const zx=k*lay.ZW-lay.ZW/2;el('rect',{x:zx,y:y0,width:lay.ZW,height:y1-y0,fill:zoneFill(k)},zg);
       txt(zg,zx+16,y0+26,`ZONE ${k}`,{'font-size':12,'font-weight':800,'letter-spacing':'.16em',fill:'#8c897e'});
@@ -382,10 +577,10 @@ function render(variant,showOthers){
     else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
   [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track'],['dash','Other parent, not on a line (toggle)']].forEach(([k,s],i)=>{const y=fy+74+i*30;ex(y,k);txt(svg,rx+54,y,s,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  wrap('Consecutive stops on a line are parent and child. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.',colW-30,13.5)
+  wrap('Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.',colW-30,13.5)
     .forEach((s,i)=>txt(svg,rx,fy+178+i*19,s,{'font-size':13.5,'font-weight':500,fill:'#5f5d55'}));
 
-  document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
+  document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}${zoneNote}`;
 }
 
 // ---------- prototype switcher ----------
