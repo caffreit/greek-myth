@@ -9,7 +9,7 @@ const links = people.flatMap(p => p.relations.filter(r => r.boundary_include).ma
 const parentLinks = new Set(links.map(([a, b]) => `${a}>${b}`));
 
 const lines = [
-  { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe']] },
+  { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites']] },
   { id: 'promethean', name: 'Promethean line', color: '#7a4ea6', paths: [['chaos', 'gaia', 'uranus', 'iapetus', 'prometheus'], ['iapetus', 'atlas']] },
   { id: 'sea', name: 'Sea line', color: '#13a19d', paths: [['chaos', 'gaia', 'pontus', 'nereus', 'nereids']] },
   { id: 'ocean', name: 'Ocean line', color: '#1f5ea8', paths: [['chaos', 'gaia', 'uranus', 'oceanus', 'doris', 'nereids'], ['oceanus', 'eurynome', 'charites']] },
@@ -29,6 +29,17 @@ const lines = [
 for (const line of lines) for (const path of line.paths) for (let i = 1; i < path.length; i++) {
   if (!parentLinks.has(`${path[i - 1]}>${path[i]}`)) throw new Error(`${line.name}: ${path[i - 1]} is not a recorded parent of ${path[i]}`);
 }
+// Couples whose shared children are drawn with both parents' lines; the layout keeps heavier pairs closer together.
+const couples = [
+  { a: 'zeus', b: 'hera', weight: 3 },
+  { a: 'zeus', b: 'demeter', weight: 1 },
+  { a: 'zeus', b: 'eurynome', weight: 1 },
+];
+const onMap = new Set(lines.flatMap(l => l.paths.flat()));
+for (const { a, b } of couples) {
+  if (!onMap.has(a) || !onMap.has(b)) throw new Error(`Couple ${a}–${b} must both be stations`);
+  if (!people.some(p => [a, b].every(id => parentLinks.has(`${id}>${p.id}`)))) throw new Error(`Couple ${a}–${b} has no recorded shared child`);
+}
 
 const depthMemo = {};
 function depth(id) {
@@ -43,6 +54,7 @@ const data = {
   people: people.map(p => ({ id: p.id, name: p.name, depth: depthMemo[p.id] })),
   links,
   lines,
+  couples,
   levelNames: ['Origin', 'Primordials', 'Primordial children', 'Titans and contemporaries', 'Olympians and younger Titans', 'Olympian children and contemporaries'],
 };
 const template = await readFile('topology/prototype_underground_lines.template.html', 'utf8');
