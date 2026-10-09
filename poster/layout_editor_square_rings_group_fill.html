@@ -96,10 +96,10 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 @media(max-width:650px){.layout-controls{top:54px}}
 .hide-ring-guides .ring-guide{display:none}
 #canvas .person.role-collective .node,#canvas .person .stack-card{fill:rgba(255,255,255,.3);stroke:rgba(32,33,30,.24);stroke-width:1;stroke-dasharray:none}
-#canvas .person .node,#canvas .person.role-collective .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
-#canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}
-#canvas .person.selected .node{stroke:#20211e;stroke-width:2.6}
-#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e;stroke-width:2}
+#canvas .person .node,#canvas .person.role-collective .node{stroke-width:1.4;stroke-dasharray:none}
+#canvas .person .stack-card{stroke-width:1.2}
+#canvas .person.selected .node{stroke:#20211e!important;stroke-width:2.6}
+#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e!important;stroke-width:2}
 .family-outline{pointer-events:none}.family-outline.dim{opacity:.12}.family-outline.emph{opacity:1}
 .family-outline .family-focus-fill{opacity:0}.family-outline.emph .family-focus-fill{opacity:.16}
 </style>
@@ -1527,7 +1527,6 @@ function render(){
     if(drag?.id===id) classes.push('dragging');
     const g=makeSvg('g',{class:classes.join(' '),'data-person':id,transform:`translate(${x},${y})`});
     const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
-    g.setAttribute('style',`--box-fill:${mixWithWhite(groupColor,.55)};--box-stroke:${groupColor}`);
     const stack=people[id].role==='collective'?6:0;
     if(stack)[[6,0],[3,3]].forEach(([sx,sy])=>g.append(makeSvg('rect',{class:'stack-card',x:sx,y:sy,width:w-stack,height:h-stack,rx:7,ry:7})));
     const rect=makeSvg('rect',{class:'node',x:0,y:stack,width:w-stack,height:h-stack});
@@ -1536,6 +1535,7 @@ function render(){
     const text=makeSvg('text',{class:`label text-${treatment}`,x:w/2,y:isCollective?h/2-13:h/2});text.textContent=people[id].name;
     text.setAttribute('style',`font-family:${currentTypeface()}`);
     g.append(rect,text);
+    for(const box of g.querySelectorAll('.node,.stack-card'))box.setAttribute('style',`fill:${mixWithWhite(groupColor,.55)};stroke:${groupColor}`);
     if(isCollective){
       (people[id].member_lines||[]).slice(0,2).forEach((line,index)=>{
         const detail=makeSvg('text',{class:'collective-detail',x:w/2,y:h/2+5+index*12});

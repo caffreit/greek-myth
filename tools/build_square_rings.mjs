@@ -688,17 +688,20 @@ function appendInsetFamilyRegion(`);
   swap('lane=>BASE_FAMILY_INSET+lane*FAMILY_INSET_STEP','lane=>FAMILY_LANE_START+lane*FAMILY_LANE_STEP');
   swap('appendInsetFamilyRegion(svg,gid,d,macroDef.color,familyOpacity);','appendFamilyOutline(svg,gid,d,macroDef.color);');
   swap("    const stack=people[id].role==='collective'?6:0;",`    const groupColor=MACRO_GROUPS[familyMacroId(id)].color;
-    g.setAttribute('style',\`--box-fill:\${mixWithWhite(groupColor,.55)};--box-stroke:\${groupColor}\`);
     const stack=people[id].role==='collective'?6:0;`);
+  // Inline colours rather than CSS variables, which many SVG viewers ignore.
+  swap("    g.append(rect,text);\n",`    g.append(rect,text);
+    for(const box of g.querySelectorAll('.node,.stack-card'))box.setAttribute('style',\`fill:\${mixWithWhite(groupColor,.55)};stroke:\${groupColor}\`);
+`);
   swap("fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));",
     "fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));");
   swap("A coloured region surrounds the children of one parent. It is drawn in that parent's group colour. Where two regions overlap,","Each box takes its own group's colour. An outline surrounds the children of one parent, drawn in that parent's group colour. Where two outlines overlap,");
   swap("sits where Cronus's region (Earth & sky) overlaps","sits where Cronus's outline (Earth & sky) overlaps");
   out=out.replaceAll('greek-square-rings-v1','greek-square-rings-group-fill-v1');
-  swap('</style>',`#canvas .person .node,#canvas .person.role-collective .node{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.4;stroke-dasharray:none}
-#canvas .person .stack-card{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1.2}
-#canvas .person.selected .node{stroke:#20211e;stroke-width:2.6}
-#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e;stroke-width:2}
+  swap('</style>',`#canvas .person .node,#canvas .person.role-collective .node{stroke-width:1.4;stroke-dasharray:none}
+#canvas .person .stack-card{stroke-width:1.2}
+#canvas .person.selected .node{stroke:#20211e!important;stroke-width:2.6}
+#canvas .person.parent .node,#canvas .person.child .node{stroke:#20211e!important;stroke-width:2}
 .family-outline{pointer-events:none}.family-outline.dim{opacity:.12}.family-outline.emph{opacity:1}
 .family-outline .family-focus-fill{opacity:0}.family-outline.emph .family-focus-fill{opacity:.16}
 </style>`);
