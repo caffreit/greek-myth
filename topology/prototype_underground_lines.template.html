@@ -479,37 +479,65 @@ function render(variant,showOthers){
   const maxZone=Math.max(...stations.map(id=>byId[id].depth));
   if(lay.kind==='ltr'){grow(-lay.ZW/2,y0);grow(maxZone*lay.ZW+lay.ZW/2,y0);y0-=96;y1+=40}
   else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
-  const pad=56,header=140,lineRows=Math.ceil(LINES.length/2),zoneRows=maxZone+1,legendGap=8,legendPad=14;
+  const pad=56,header=140,legendGap=8,legendPad=14;
   const readingCopy='Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.';
-  const legendFooter=W=>{const colW=(W-2*pad)/4,readingLines=wrap(readingCopy,colW-30,13.5).length,body=Math.max(74+lineRows*30,74+zoneRows*30,74+100+readingLines*19);return legendGap+42+body+legendPad};
+  const largeLegend=lay.kind==='ltr',headingSize=largeLegend?24:19,nameSize=largeLegend?19:15,detailSize=largeLegend?16:13.5,bodySize=largeLegend?18:15,bodyLeading=largeLegend?24:19,rowPitch=largeLegend?36:30;
+  const legendLayout=W=>{
+    const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2),heights=[74,74];
+    const entries=LINES.map((L,i)=>{
+      const column=i<lineSplit?0:1,y=heights[column],nameWidth=measure(L.name,nameSize,700);
+      const all=L.paths.map(p=>byId[p.at(-1)].name),ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
+      const inline=54+nameWidth+10+measure(copy,detailSize,500)<=colW-24;
+      const details=inline?[copy]:wrap(copy,colW-54-24,detailSize);
+      heights[column]+=inline?rowPitch:rowPitch+details.length*bodyLeading;
+      return {column,y,nameWidth,inline,details};
+    });
+    let zoneY=74;
+    const zones=DATA.levelNames.slice(0,maxZone+1).map(n=>{const y=zoneY,lines=wrap(n,colW-54-24,bodySize);zoneY+=Math.max(rowPitch,lines.length*bodyLeading+12);return {y,lines}});
+    const readingLines=wrap(readingCopy,colW-30,detailSize),readingOffset=largeLegend?116:100;
+    const body=Math.max(...heights,zoneY,74+readingOffset+readingLines.length*bodyLeading);
+    return {colW,entries,zones,readingLines,readingOffset,footer:legendGap+42+body+legendPad};
+  };
+  const legendFooter=W=>legendLayout(W).footer;
+  // Landscape A-series for the left-to-right map. The square rings use the same ratio turned portrait.
+  const portrait=lay.kind==='ring';
   let mapScale=1.3,W,H,mapBottom,footer,contentH;
   for(let i=0;i<48;i++){
     mapBottom=y0+mapScale*(y1-y0);
     const contentW=Math.max((x1-x0)*mapScale+2*pad,1500);
     footer=legendFooter(contentW);
     contentH=header+(mapBottom-y0)+pad+footer;
-    W=Math.max(contentW,contentH*Math.SQRT2);
-    H=W/Math.SQRT2;
+    if(portrait){W=Math.max(contentW,contentH/Math.SQRT2);H=W*Math.SQRT2}
+    else{W=Math.max(contentW,contentH*Math.SQRT2);H=W/Math.SQRT2}
     footer=legendFooter(W);
     contentH=header+(mapBottom-y0)+pad+footer;
-    if(H-contentH<10)break;
+    const slack=portrait?W-((x1-x0)*mapScale+2*pad):H-contentH;
+    if(slack<10)break;
     mapScale+=0.03;
   }
   const left=(x0+x1)/2-W/2,top=y0-pad-header;
   svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
   el('rect',{x:left,y:top,width:W,height:H,fill:'#fbfaf6'},svg);
 
-  // header
-  txt(svg,left+pad,top+88,'Theogony Underground',{'font-size':54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
-  el('line',{x1:left+pad,x2:left+W-pad,y1:top+header-12,y2:top+header-12,stroke:'#dedcd3'},svg);
+  const headerRule=top+header-12,fy=mapBottom+legendGap+(portrait?Math.max(0,H-contentH):0);
+  // Center the LTR zone panels between the rules, moving station names with the tracks.
+  const mapOffsetY=portrait?0:(headerRule+fy-y0-mapBottom)/2;
 
-  const mapCenterX=(x0+x1)/2,mapGroup=el('g',{transform:`translate(${(1-mapScale)*mapCenterX} ${(1-mapScale)*y0}) scale(${mapScale})`},svg);
+  // header
+  txt(svg,left+pad,top+88,'Theogony Underground',{'font-size':largeLegend?72:54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
+  el('line',{x1:left+pad,x2:left+W-pad,y1:headerRule,y2:headerRule,stroke:'#dedcd3'},svg);
+
+  // LTR is a little taller than the A-series slot, so widen it to the side margins. Ring zones stay square.
+  const mapCenterX=(x0+x1)/2,scaleY=mapScale,scaleX=lay.kind==='ltr'?(W-2*pad)/(x1-x0):scaleY;
+  const mapGroup=el('g',{transform:`translate(${(1-scaleX)*mapCenterX} ${(1-scaleY)*y0+mapOffsetY}) scale(${scaleX} ${scaleY})`},svg);
+  const mapX=x=>mapCenterX+(x-mapCenterX)*scaleX,mapY=y=>y0+mapOffsetY+(y-y0)*scaleY;
+  const mapTxt=(parent,x,y,s,attrs)=>{const t=txt(parent,x,y,s,attrs);if(scaleX!==scaleY)t.setAttribute('transform',`translate(${x} ${y}) scale(${scaleY/scaleX} 1) translate(${-x} ${-y})`);return t};
   // zones
   const zg=el('g',{},mapGroup),zoneFill=k=>k%2?'#efede4':'#f7f5ef';
   if(lay.kind==='ltr'){
     for(let k=0;k<=maxZone;k++){
       const zx=k*lay.ZW-lay.ZW/2;el('rect',{x:zx,y:y0,width:lay.ZW,height:y1-y0,fill:zoneFill(k)},zg);
-      txt(zg,zx+lay.ZW/2,y0+68,String(k),{'font-size':32,'font-weight':700,'text-anchor':'middle',fill:'#8c897e',opacity:.72});
+      mapTxt(zg,zx+lay.ZW/2,y0+68,String(k),{'font-size':32,'font-weight':700,'text-anchor':'middle',fill:'#8c897e',opacity:.72});
     }
   }else{
     const R=lay.R,river=(maxZone+.5)*R+34;
@@ -533,27 +561,25 @@ function render(variant,showOthers){
     if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
     else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
   }
-  const lg=el('g',{},mapGroup);
-  B.labels.forEach(l=>{if(l)txt(lg,l.r.x+1,l.r.y+l.size*.86,l.name,{'font-size':l.size,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em'})});
+  // Keep names the uniform poster size and the same distance from their station; only the map geometry widens.
+  B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scaleY,mapY(p.y)+(ty-p.y)*scaleY,l.name,{'font-size':l.size*scaleY,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em'})});
 
   // footer key
-  const fy=mapBottom+legendGap,colW=(W-2*pad)/4,fx=left+pad;
+  const {colW,entries,zones,readingLines,readingOffset}=legendLayout(W),fx=left+pad;
   el('line',{x1:fx,x2:left+W-pad,y1:fy,y2:fy,stroke:'#dedcd3'},svg);
-  txt(svg,fx,fy+42,'Lines',{'font-size':19,'font-weight':800,fill:'#22231f'});
-  const lineSplit=Math.ceil(LINES.length/2);
-  LINES.forEach((L,i)=>{const column=i<lineSplit?0:1,row=i<lineSplit?i:i-lineSplit,x=fx+column*colW,y=fy+74+row*30;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':15,'font-weight':700,fill:'#26271f'});
-    const all=L.paths.map(p=>byId[p.at(-1)].name);
-    const ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · ');txt(svg,x+54+measure(L.name,15,700)+10,y,`to ${ends}`,{'font-size':13.5,'font-weight':500,fill:'#6b685f'})});
-  const zx=fx+2*colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':19,'font-weight':800,fill:'#22231f'});
-  DATA.levelNames.slice(0,maxZone+1).forEach((n,k)=>{const y=fy+74+k*30;el('rect',{x:zx,y:y-16,width:40,height:22,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+20,y,String(k),{'font-size':13,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});txt(svg,zx+54,y,n,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':19,'font-weight':800,fill:'#22231f'});
+  txt(svg,fx,fy+42,'Lines',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
+  LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
+    entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
+  const zx=fx+2*colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
+  zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-16,width:40,height:22,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+20,y,String(k),{'font-size':largeLegend?16:13,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+54,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
+  const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
   const readingY=fy+74;
   const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
     else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
-  [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track']].forEach(([k,s],i)=>{const y=readingY+34+i*30;ex(y,k);txt(svg,rx+54,y,s,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  wrap(readingCopy,colW-30,13.5)
-    .forEach((s,i)=>txt(svg,rx,readingY+100+i*19,s,{'font-size':13.5,'font-weight':500,fill:'#5f5d55'}));
+  [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
+  readingLines
+    .forEach((s,i)=>txt(svg,rx,readingY+readingOffset+i*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#5f5d55'}));
 
   document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
 }
