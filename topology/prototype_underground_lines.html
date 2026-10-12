@@ -479,7 +479,22 @@ function render(variant,showOthers){
   const maxZone=Math.max(...stations.map(id=>byId[id].depth));
   if(lay.kind==='ltr'){grow(-lay.ZW/2,y0);grow(maxZone*lay.ZW+lay.ZW/2,y0);y0-=96;y1+=40}
   else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
-  const pad=56,header=140,lineRows=Math.ceil(LINES.length/2),zoneRows=maxZone+1,footer=Math.max(300,110+Math.max(lineRows,zoneRows+6)*30),mapScale=1.12,mapBottom=y0+mapScale*(y1-y0),contentW=Math.max((x1-x0)*mapScale+2*pad,1500),contentH=header+(mapBottom-y0)+2*pad+footer,W=Math.max(contentW,contentH*Math.SQRT2),H=W/Math.SQRT2;
+  const pad=56,header=140,lineRows=Math.ceil(LINES.length/2),zoneRows=maxZone+1,legendGap=8,legendPad=14;
+  const readingCopy='Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.';
+  const legendFooter=W=>{const colW=(W-2*pad)/4,readingLines=wrap(readingCopy,colW-30,13.5).length,body=Math.max(74+lineRows*30,74+zoneRows*30,74+100+readingLines*19);return legendGap+42+body+legendPad};
+  let mapScale=1.3,W,H,mapBottom,footer,contentH;
+  for(let i=0;i<48;i++){
+    mapBottom=y0+mapScale*(y1-y0);
+    const contentW=Math.max((x1-x0)*mapScale+2*pad,1500);
+    footer=legendFooter(contentW);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    W=Math.max(contentW,contentH*Math.SQRT2);
+    H=W/Math.SQRT2;
+    footer=legendFooter(W);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    if(H-contentH<10)break;
+    mapScale+=0.03;
+  }
   const left=(x0+x1)/2-W/2,top=y0-pad-header;
   svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
   el('rect',{x:left,y:top,width:W,height:H,fill:'#fbfaf6'},svg);
@@ -522,7 +537,7 @@ function render(variant,showOthers){
   B.labels.forEach(l=>{if(l)txt(lg,l.r.x+1,l.r.y+l.size*.86,l.name,{'font-size':l.size,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em'})});
 
   // footer key
-  const fy=mapBottom+pad+10,colW=(W-2*pad)/3,fx=left+pad;
+  const fy=mapBottom+legendGap,colW=(W-2*pad)/4,fx=left+pad;
   el('line',{x1:fx,x2:left+W-pad,y1:fy,y2:fy,stroke:'#dedcd3'},svg);
   txt(svg,fx,fy+42,'Lines',{'font-size':19,'font-weight':800,fill:'#22231f'});
   const lineSplit=Math.ceil(LINES.length/2);
@@ -531,12 +546,13 @@ function render(variant,showOthers){
     const ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · ');txt(svg,x+54+measure(L.name,15,700)+10,y,`to ${ends}`,{'font-size':13.5,'font-weight':500,fill:'#6b685f'})});
   const zx=fx+2*colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':19,'font-weight':800,fill:'#22231f'});
   DATA.levelNames.slice(0,maxZone+1).forEach((n,k)=>{const y=fy+74+k*30;el('rect',{x:zx,y:y-16,width:40,height:22,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+20,y,String(k),{'font-size':13,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});txt(svg,zx+54,y,n,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  const rx=fx+2*colW,readingY=fy+74+zoneRows*30+24;txt(svg,rx,readingY,'Reading the map',{'font-size':19,'font-weight':800,fill:'#22231f'});
+  const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':19,'font-weight':800,fill:'#22231f'});
+  const readingY=fy+74;
   const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
     else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
   [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track']].forEach(([k,s],i)=>{const y=readingY+34+i*30;ex(y,k);txt(svg,rx+54,y,s,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  wrap('Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.',colW-30,13.5)
+  wrap(readingCopy,colW-30,13.5)
     .forEach((s,i)=>txt(svg,rx,readingY+100+i*19,s,{'font-size':13.5,'font-weight':500,fill:'#5f5d55'}));
 
   document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
