@@ -479,24 +479,22 @@ function render(variant,showOthers){
   const maxZone=Math.max(...stations.map(id=>byId[id].depth));
   if(lay.kind==='ltr'){grow(-lay.ZW/2,y0);grow(maxZone*lay.ZW+lay.ZW/2,y0);y0-=96;y1+=40}
   else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
-  const pad=56,header=170,footer=Math.max(300,110+LINES.length*30),W=Math.max(x1-x0+2*pad,1500),H=header+(y1-y0)+2*pad+footer;
+  const pad=56,header=140,lineRows=Math.ceil(LINES.length/2),zoneRows=maxZone+1,footer=Math.max(300,110+Math.max(lineRows,zoneRows+6)*30),mapScale=1.12,mapBottom=y0+mapScale*(y1-y0),contentW=Math.max((x1-x0)*mapScale+2*pad,1500),contentH=header+(mapBottom-y0)+2*pad+footer,W=Math.max(contentW,contentH*Math.SQRT2),H=W/Math.SQRT2;
   const left=(x0+x1)/2-W/2,top=y0-pad-header;
   svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
   el('rect',{x:left,y:top,width:W,height:H,fill:'#fbfaf6'},svg);
 
   // header
-  txt(svg,left+pad,top+52,'A NEW MAP OF THE GENEALOGY',{'font-size':12,'font-weight':800,'letter-spacing':'.2em',fill:'#7a776d'});
-  txt(svg,left+pad,top+108,'Theogony Underground',{'font-size':54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
-  txt(svg,left+pad,top+142,`${LINES.length} lineages from Chaos, drawn as a transit map. Fare zones are generations. Prototype · automatic layout · ${VARIANTS.find(v=>v.key===variant).name}`,{'font-size':16,'font-weight':500,fill:'#5a5a52'});
+  txt(svg,left+pad,top+88,'Theogony Underground',{'font-size':54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
   el('line',{x1:left+pad,x2:left+W-pad,y1:top+header-12,y2:top+header-12,stroke:'#dedcd3'},svg);
 
+  const mapCenterX=(x0+x1)/2,mapGroup=el('g',{transform:`translate(${(1-mapScale)*mapCenterX} ${(1-mapScale)*y0}) scale(${mapScale})`},svg);
   // zones
-  const zg=el('g',{},svg),zoneFill=k=>k%2?'#efede4':'#f7f5ef';
+  const zg=el('g',{},mapGroup),zoneFill=k=>k%2?'#efede4':'#f7f5ef';
   if(lay.kind==='ltr'){
     for(let k=0;k<=maxZone;k++){
       const zx=k*lay.ZW-lay.ZW/2;el('rect',{x:zx,y:y0,width:lay.ZW,height:y1-y0,fill:zoneFill(k)},zg);
-      txt(zg,zx+16,y0+26,`ZONE ${k}`,{'font-size':12,'font-weight':800,'letter-spacing':'.16em',fill:'#8c897e'});
-      wrap(DATA.levelNames[k],lay.ZW-32,13).forEach((s,i)=>txt(zg,zx+16,y0+46+i*17,s,{'font-size':13,'font-weight':560,fill:'#6b685f'}));
+      txt(zg,zx+lay.ZW/2,y0+68,String(k),{'font-size':32,'font-weight':700,'text-anchor':'middle',fill:'#8c897e',opacity:.72});
     }
   }else{
     const R=lay.R,river=(maxZone+.5)*R+34;
@@ -507,38 +505,39 @@ function render(variant,showOthers){
   }
 
   // other-parent links
-  if(showOthers){const og=el('g',{},svg);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
+  if(showOthers){const og=el('g',{},mapGroup);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
 
   // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
-  const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},svg);
+  const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},mapGroup);
   for(const L of LINES){const paths=B.tracks.filter(t=>t.line.id===L.id).map(t=>roundedD(t.pts,CORNER));for(const d of paths)el('path',{d,stroke:'#fbfaf6','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
 
   // stations
-  const sg=el('g',{},svg);
+  const sg=el('g',{},mapGroup);
   for(const m of B.markers){
     const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
     if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
     else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
   }
-  const lg=el('g',{},svg);
+  const lg=el('g',{},mapGroup);
   B.labels.forEach(l=>{if(l)txt(lg,l.r.x+1,l.r.y+l.size*.86,l.name,{'font-size':l.size,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em'})});
 
   // footer key
-  const fy=y1+pad+10,colW=(W-2*pad)/3,fx=left+pad;
+  const fy=mapBottom+pad+10,colW=(W-2*pad)/3,fx=left+pad;
   el('line',{x1:fx,x2:left+W-pad,y1:fy,y2:fy,stroke:'#dedcd3'},svg);
   txt(svg,fx,fy+42,'Lines',{'font-size':19,'font-weight':800,fill:'#22231f'});
-  LINES.forEach((L,i)=>{const y=fy+74+i*30;el('line',{x1:fx,x2:fx+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,fx+54,y,L.name,{'font-size':15,'font-weight':700,fill:'#26271f'});
+  const lineSplit=Math.ceil(LINES.length/2);
+  LINES.forEach((L,i)=>{const column=i<lineSplit?0:1,row=i<lineSplit?i:i-lineSplit,x=fx+column*colW,y=fy+74+row*30;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':15,'font-weight':700,fill:'#26271f'});
     const all=L.paths.map(p=>byId[p.at(-1)].name);
-    const ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · ');txt(svg,fx+54+measure(L.name,15,700)+10,y,`to ${ends}`,{'font-size':13.5,'font-weight':500,fill:'#6b685f'})});
-  const zx=fx+colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':19,'font-weight':800,fill:'#22231f'});
+    const ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · ');txt(svg,x+54+measure(L.name,15,700)+10,y,`to ${ends}`,{'font-size':13.5,'font-weight':500,fill:'#6b685f'})});
+  const zx=fx+2*colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':19,'font-weight':800,fill:'#22231f'});
   DATA.levelNames.slice(0,maxZone+1).forEach((n,k)=>{const y=fy+74+k*30;el('rect',{x:zx,y:y-16,width:40,height:22,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+20,y,String(k),{'font-size':13,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});txt(svg,zx+54,y,n,{'font-size':15,'font-weight':560,fill:'#30312b'})});
-  const rx=fx+2*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':19,'font-weight':800,fill:'#22231f'});
+  const rx=fx+2*colW,readingY=fy+74+zoneRows*30+24;txt(svg,rx,readingY,'Reading the map',{'font-size':19,'font-weight':800,fill:'#22231f'});
   const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
     else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
-  [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track'],['dash','Other parent, not on a line (toggle)']].forEach(([k,s],i)=>{const y=fy+74+i*30;ex(y,k);txt(svg,rx+54,y,s,{'font-size':15,'font-weight':560,fill:'#30312b'})});
+  [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track']].forEach(([k,s],i)=>{const y=readingY+34+i*30;ex(y,k);txt(svg,rx+54,y,s,{'font-size':15,'font-weight':560,fill:'#30312b'})});
   wrap('Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.',colW-30,13.5)
-    .forEach((s,i)=>txt(svg,rx,fy+178+i*19,s,{'font-size':13.5,'font-weight':500,fill:'#5f5d55'}));
+    .forEach((s,i)=>txt(svg,rx,readingY+100+i*19,s,{'font-size':13.5,'font-weight':500,fill:'#5f5d55'}));
 
   document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
 }

@@ -74,7 +74,9 @@ for (const [id, p] of Object.entries(pos)) for (const [other, q] of Object.entri
 for (const track of tracks) for (const p of track.pts) assert(Number.isFinite(p.x) && Number.isFinite(p.y));
 
 const svg = elements.poster;
-const trackGroup = svg.children.find(g => g.attrs['stroke-linejoin'] === 'round');
+const descendants = node => [node, ...node.children.flatMap(descendants)];
+const renderedElements = descendants(svg);
+const trackGroup = renderedElements.find(g => g.attrs['stroke-linejoin'] === 'round');
 function flattenPath(d) {
   const tokens = d.match(/[MLQ]|-?\d+(?:\.\d+)?/g), points = [];
   let current, i = 0;
@@ -113,7 +115,7 @@ for (const line of new Set(tracks.map(t => t.line.color))) {
   const indices = trackGroup.children.flatMap((p, i) => p.attrs.stroke === line ? [i] : []);
   for (let i = indices[0]; i <= indices.at(-1); i++) assert.equal(trackGroup.children[i].attrs.stroke, line, 'A casing must not cut through another branch of its own line');
 }
-const stationGroup = svg.children.find(g => g.children.some(c => c.attrs['data-station']));
+const stationGroup = renderedElements.find(g => g.children.some(c => c.attrs['data-station']));
 const moirai = stationGroup.children.find(t => t.attrs['data-station'] === 'moirai').attrs;
 const uranus = markers.find(m => m.v === 'uranus');
 const distanceToCapsule = vm.runInContext('pointSegDist', context);
