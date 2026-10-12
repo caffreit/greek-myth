@@ -104,7 +104,7 @@ button:hover,.file-label:hover{background:#f1f1ec}button:disabled{opacity:.4;cur
 .family-outline .family-focus-fill{opacity:0}.family-outline.emph .family-focus-fill{opacity:.16}
 </style>
 </head>
-<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
+<body><div id="ringAssignment" role="status"></div><div class="layout-controls" aria-label="Layout files"><button id="saveBtn">Save layout JSON</button><label class="file-label">Import layout<input id="importFile" type="file" accept="application/json,.json"></label></div><div class="experiment-controls"><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><a href="layout_editor_square_rings_frameless.html">Frameless</a><a href="layout_editor_square_rings_frameless_outlines.html">Frameless outlines</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>
 <div class="app">
   <div class="toolbar">
     <div class="title">Greek theogony, extended · poster design V27.0 <span style="font-size:10px;color:#777;font-weight:650;letter-spacing:.04em">SHAREABLE SVG EXPORT</span></div>
@@ -1869,7 +1869,7 @@ function renderPosterKey(svg,b,W,keyY){
   keyHeading.setAttribute('style',bodyFont+';font-size:26px');
   keyG.append(keyHeading);
   const swatchW=46, swatchH=32, nameGap=14, colGap=32, edgeGap=16, maxFont=22;
-  const rows=Math.ceil(macroIds.length/2), keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2;
+  const keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2, listH=keyBottom-keyTop;
   const names=macroIds.map(id=>{
     const name=makeSvg('text',{class:'poster-key-row-name'});
     name.setAttribute('style',bodyFont+';font-size:'+maxFont+'px;font-weight:600');
@@ -1877,15 +1877,18 @@ function renderPosterKey(svg,b,W,keyY){
     keyG.append(name);
     return name;
   });
+  const leftCount=Math.min(macroIds.length-1, Math.max(1, Math.floor((listH-swatchH)/54)+1));
+  const pitch=leftCount>1?(listH-swatchH)/(leftCount-1):0;
   // Names stay on one line; the font shrinks if both columns would not fit before the divider.
-  const colTextW=[0,1].map(col=>Math.max(...names.filter((_,i)=>i%2===col).map(name=>name.getComputedTextLength())));
+  const colTextW=[0,1].map(col=>{const w=names.filter((_,i)=>(i<leftCount?0:1)===col).map(name=>name.getComputedTextLength()); return w.length?Math.max(...w):0;});
   const textRoom=keyW+gap/2-edgeGap-padX-(swatchW+nameGap)*2-colGap;
   const scale=Math.min(1,textRoom/(colTextW[0]+colTextW[1]));
   if(scale<1)names.forEach(name=>name.style.fontSize=maxFont*scale+'px');
   const colX=[outerX+padX, outerX+padX+swatchW+nameGap+colTextW[0]*scale+colGap];
-  const firstCentre=keyTop+swatchH/2, pitch=(keyBottom-swatchH-keyTop)/(rows-1);
+  const firstCentre=keyTop+swatchH/2;
   names.forEach((name,index)=>{
-    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+Math.floor(index/2)*pitch, x=colX[index%2];
+    const col=index<leftCount?0:1, row=index<leftCount?index:index-leftCount;
+    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+row*pitch, x=colX[col];
     keyG.append(makeSvg('rect',{x,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:7,ry:7,fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));
     name.setAttribute('x',x+swatchW+nameGap);
     name.setAttribute('y',centre+8);

@@ -342,7 +342,7 @@ html=html.replace('</style>',`/* Fit the complete poster width on initial load; 
 .hide-ring-guides .ring-guide{display:none}
 #canvas .person.role-collective .node,#canvas .person .stack-card{fill:rgba(255,255,255,.3);stroke:rgba(32,33,30,.24);stroke-width:1;stroke-dasharray:none}
 </style>`);
-html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
+html=html.replace('<body>',`<body><div class="experiment-controls"><a href="layout_editor_square_rings.html">Translucent fill</a><a href="layout_editor_square_rings_group_fill.html">Outlines</a><a href="layout_editor_square_rings_frameless.html">Frameless</a><a href="layout_editor_square_rings_frameless_outlines.html">Frameless outlines</a><label><input type="checkbox" checked onchange="document.body.classList.toggle('hide-ring-guides',!this.checked)"> Ring guides</label></div>`);
 // Move the existing controls out of the hidden development toolbar. Keeping
 // their IDs preserves the original save/import handlers and keyboard shortcuts.
 const saveControl='<button id="saveBtn">Save layout JSON</button>';
@@ -544,7 +544,7 @@ const groupLoopStart=keyMarkup.indexOf('  for(let ci=0;ci<macroIds.length;ci++){
 const groupLoopEnd=keyMarkup.indexOf('\n  }\n',groupLoopStart)+5;
 if(groupLoopStart<0)throw new Error('Missing group key loop');
 keyMarkup=keyMarkup.slice(0,groupLoopStart)+String.raw`  const swatchW=46, swatchH=32, nameGap=14, colGap=32, edgeGap=16, maxFont=22;
-  const rows=Math.ceil(macroIds.length/2), keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2;
+  const keyTop=y+padTop+56, keyBottom=keyTop+ringW-padX*2, listH=keyBottom-keyTop;
   const names=macroIds.map(id=>{
     const name=makeSvg('text',{class:'poster-key-row-name'});
     name.setAttribute('style',bodyFont+';font-size:'+maxFont+'px;font-weight:600');
@@ -552,15 +552,18 @@ keyMarkup=keyMarkup.slice(0,groupLoopStart)+String.raw`  const swatchW=46, swatc
     keyG.append(name);
     return name;
   });
+  const leftCount=Math.min(macroIds.length-1, Math.max(1, Math.floor((listH-swatchH)/54)+1));
+  const pitch=leftCount>1?(listH-swatchH)/(leftCount-1):0;
   // Names stay on one line; the font shrinks if both columns would not fit before the divider.
-  const colTextW=[0,1].map(col=>Math.max(...names.filter((_,i)=>i%2===col).map(name=>name.getComputedTextLength())));
+  const colTextW=[0,1].map(col=>{const w=names.filter((_,i)=>(i<leftCount?0:1)===col).map(name=>name.getComputedTextLength()); return w.length?Math.max(...w):0;});
   const textRoom=keyW+gap/2-edgeGap-padX-(swatchW+nameGap)*2-colGap;
   const scale=Math.min(1,textRoom/(colTextW[0]+colTextW[1]));
   if(scale<1)names.forEach(name=>name.style.fontSize=maxFont*scale+'px');
   const colX=[outerX+padX, outerX+padX+swatchW+nameGap+colTextW[0]*scale+colGap];
-  const firstCentre=keyTop+swatchH/2, pitch=(keyBottom-swatchH-keyTop)/(rows-1);
+  const firstCentre=keyTop+swatchH/2;
   names.forEach((name,index)=>{
-    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+Math.floor(index/2)*pitch, x=colX[index%2];
+    const col=index<leftCount?0:1, row=index<leftCount?index:index-leftCount;
+    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+row*pitch, x=colX[col];
     keyG.append(makeSvg('rect',{x,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:7,ry:7,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
     name.setAttribute('x',x+swatchW+nameGap);
     name.setAttribute('y',centre+8);
@@ -708,9 +711,200 @@ function appendInsetFamilyRegion(`);
   new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
   return out;
 }
+// Frameless variant. The page is sized to the map with no panel or footer
+// band. The title sits in a slim row above the map, clear of the ring guides;
+// the site name and logo are centred at the foot of the page. The legend
+// sits on a cream band under the map. Nereus's region is dropped: it only held
+// the Nereids and forced an extra column on both sides of Chaos. An asterisk
+// on Nereus points to a note instead.
+function framelessVariant(base){
+  let out=base;
+  const swap=(before,after)=>{
+    if(!out.includes(before))throw new Error('Missing frameless fragment: '+before);
+    out=out.replace(before,after);
+  };
+  swap('{"id":"nereids","name":"Nereids","role":"collective","member_lines":["Thetis · Amphitrite","Galatea · · ·"],"relations":[{"parent_id":"nereus","kind":"parent","boundary_include":true}',
+    '{"id":"nereids","name":"Nereids","role":"collective","member_lines":["Thetis · Amphitrite","Galatea · · ·"],"relations":[{"parent_id":"nereus","kind":"parent","boundary_include":false}');
+  const styles=JSON.parse(out.match(/const STYLES = (.*);\nconst MACRO_GROUPS/)[1]);
+  delete styles.nereus;
+  out=out.replace(/const STYLES = .*;\nconst MACRO_GROUPS/,()=>`const STYLES = ${JSON.stringify(styles)};\nconst MACRO_GROUPS`);
+  swap('const PAGE_MARGIN = 48,','const PAGE_MARGIN = 60,');
+  // Side margins are wider than the top and bottom. Since the page is 1:√2,
+  // each unit of side margin also buys √2 units of height for the legend.
+  swap('const KEY_GAP = 20, KEY_PANEL_H = 500, FOOTER_H = 72;',
+    '// The legend is laid out at the old poster width and scaled to fit under the map.\nconst KEY_GAP = 48, KEY_BAND_PAD = 24, KEY_DESIGN_W = 1584;\nconst SIDE_MARGIN = 96, TITLE_H = 96;\nlet KEY_PANEL_H = 500;');
+  swap(`  const panelX=PAGE_MARGIN, panelY=PAGE_MARGIN+HEADER_H;
+  const gridW=PANEL_PAD_X*2+DIAGRAM_GUTTER_X*2+cols*CELL_W;
+  const gridH=PANEL_PAD_Y*2+DIAGRAM_GUTTER_Y*2+rows*CELL_H;
+  const chromeH=PAGE_MARGIN*2+HEADER_H+KEY_GAP+(showPosterKey?KEY_PANEL_H+KEY_GAP:0)+FOOTER_H;
+  const fillX=Math.max(0,(chromeH+gridH)/Math.SQRT2-PAGE_MARGIN*2-gridW)/2;
+  const fillY=Math.max(0,(PAGE_MARGIN*2+gridW)*Math.SQRT2-chromeH-gridH)/2;
+  const panelW=gridW+fillX*2, panelH=gridH+fillY*2;
+  LEFT=PAGE_MARGIN+PANEL_PAD_X+DIAGRAM_GUTTER_X+fillX;
+  TOP=PAGE_MARGIN+HEADER_H+PANEL_PAD_Y+DIAGRAM_GUTTER_Y+fillY;
+  const W=PAGE_MARGIN*2+panelW;
+  const keyY=panelY+panelH+KEY_GAP;
+  const H=keyY+(showPosterKey?KEY_PANEL_H+KEY_GAP:0)+FOOTER_H+PAGE_MARGIN;`,
+  `  const W=SIDE_MARGIN*2+cols*CELL_W, H=W*Math.SQRT2;
+  LEFT=SIDE_MARGIN;TOP=PAGE_MARGIN+TITLE_H;
+  const keyY=TOP+rows*CELL_H+KEY_GAP, keyScale=(W-SIDE_MARGIN*2)/KEY_DESIGN_W;
+  KEY_PANEL_H=(H-PAGE_MARGIN-keyY)/keyScale;`);
+  swap('  renderPosterScaffold(svg,W,H,panelX,panelY,panelW,panelH,keyY,showPosterKey);','  renderPosterScaffold(svg,W,H);');
+  swap('text.textContent=people[id].name;','text.textContent=people[id].name+(FOOTNOTE_MARKS[id]||\'\');');
+  swap(`  if(showPosterKey) renderPosterKey(svg,b,W,keyY);
+  renderPosterFooter(svg,W,H);`,`  if(showPosterKey){
+    svg.append(makeSvg('rect',{class:'poster-key-band',x:0,y:keyY-KEY_BAND_PAD,width:W,height:H-keyY+KEY_BAND_PAD,style:'fill:#faf8f3'}));
+    // The legend's outer edges line up with the map's outermost boxes.
+    const keyLeft=LEFT+NODE_INSET_X, keyW=cols*CELL_W-NODE_INSET_X*2;
+    const keyLayer=makeSvg('g',{class:'poster-key-layer',transform:\`translate(\${keyLeft-PAGE_MARGIN*keyScale} \${keyY}) scale(\${keyScale})\`});
+    svg.append(keyLayer);
+    renderPosterKey(keyLayer,b,keyW/keyScale+PAGE_MARGIN*2,0);
+  }
+  renderPosterFooter(svg,W,H);`);
+  const scaffoldStart=out.indexOf('function renderPosterScaffold(');
+  const scaffoldEnd=out.indexOf('function ringKeyWidth(',scaffoldStart);
+  if(scaffoldStart<0||scaffoldEnd<0)throw new Error('Missing poster scaffold');
+  const logoHref=out.slice(scaffoldStart,scaffoldEnd).match(/class:'poster-header-logo',[^\n]*?href:("data:[^"]+")/)?.[1];
+  if(!logoHref)throw new Error('Missing poster logo');
+  out=out.slice(0,scaffoldStart)+`const FOOTNOTE_MARKS={nereus:'*'};
+function renderPosterScaffold(svg,W,H){
+  svg.append(makeSvg('rect',{class:'poster-page',x:0,y:0,width:W,height:H,style:'fill:#fff'}));
+  const title=makeSvg('text',{class:'poster-header-title',x:LEFT+NODE_INSET_X,y:PAGE_MARGIN+48});
+  title.textContent='Greek Theogony';
+  svg.append(title);
+}
+// The site name and logo sit together, centred in the bottom margin. The
+// logo is centred on the caps; the pair is centred on its drawn glyphs, as
+// trailing letter-spacing would otherwise pull it off-centre.
+function renderPosterFooter(svg,W,H){
+  const baseline=H-PAGE_MARGIN/2+4, logoW=27, logoH=18, capMid=baseline-4.7;
+  const g=makeSvg('g',{class:'poster-footer'});
+  svg.append(g);
+  const site=makeSvg('text',{class:'poster-footer-left',x:0,y:baseline});
+  site.textContent='DRDIMG.COM';
+  g.append(site);
+  const textW=site.getBBox().width-parseFloat(getComputedStyle(site).letterSpacing||0);
+  g.append(makeSvg('image',{class:'poster-header-logo',x:textW+10,y:capMid-logoH/2,width:logoW,height:logoH,href:${logoHref},preserveAspectRatio:'xMidYMid meet'}));
+  g.setAttribute('transform',\`translate(\${(W-textW-10-logoW)/2} 0)\`);
+}
+
+`+out.slice(scaffoldEnd);
+  const notes=JSON.parse(out.match(/const NOTE_PARAGRAPHS=(.*);\n/)[1]);
+  notes.push("*Nereus is also the father of the Nereids, with Doris. Only Doris's region is drawn.");
+  out=out.replace(/const NOTE_PARAGRAPHS=.*;\n/,()=>`const NOTE_PARAGRAPHS=${JSON.stringify(notes)};\n`);
+  // Legend columns are sized to their content, with the same gutter either
+  // side of each divider. The notes, the tallest column, take the remaining
+  // width. The outer edges sit flush with the layer's bounds.
+  const ringStart=out.indexOf('function ringKeyWidth(');
+  const ringEnd=out.indexOf('const NOTE_PARAGRAPHS=',ringStart);
+  if(ringStart<0||ringEnd<0)throw new Error('Missing ring key');
+  out=out.slice(0,ringStart)+`function ringKeySize(depth){return ${RING_KEY_CORE}+depth*2*${RING_KEY_BAND};}
+function renderRingKey(svg,x0,y,padTop,bodyFont){
+  const g=makeSvg('g',{class:'poster-ring-key'});
+  svg.append(g);
+  const heading=makeSvg('text',{x:x0,y:y+padTop+10,class:'poster-key-note-head'});
+  heading.textContent='Rings';
+  heading.setAttribute('style',bodyFont+';font-size:26px');
+  g.append(heading);
+  const rings=levelBounds.slice(0,-1), band=${RING_KEY_BAND}, outer=ringKeySize(rings.length-1), cx=x0+outer/2, cy=y+padTop+56+outer/2;
+  // Painted outermost first so each ring's band shows around the next. On the
+  // cream band the light rings are white.
+  [...rings.keys()].reverse().forEach(index=>{
+    const s=ringKeySize(index), rx=cx-s/2, ry=cy-s/2;
+    g.append(makeSvg('rect',{x:rx,y:ry,width:s,height:s,rx:4,fill:index%2?'#fff':'#e8e4d8'}));
+    const label=makeSvg('text',{x:cx,y:index?ry+band/2:cy,dy:'.35em','text-anchor':'middle',class:'poster-key-row-name'});
+    label.textContent=LEVEL_NAMES[index];
+    label.setAttribute('style',bodyFont+';font-weight:600');
+    g.append(label);
+  });
+}
+`+out.slice(ringEnd);
+  const keyStart=out.indexOf('function renderPosterKey(');
+  const keyEnd=out.indexOf('function setStatus(',keyStart);
+  if(keyStart<0||keyEnd<0)throw new Error('Missing poster key');
+  out=out.slice(0,keyStart)+`function renderPosterKey(svg,b,W,keyY){
+  const y=keyY, outerX=PAGE_MARGIN, outerW=W-PAGE_MARGIN*2, padTop=40, gutter=40;
+  const bodyFont='font-family:'+currentTypeface()+';font-size:20px';
+  const macroIds=Object.keys(MACRO_GROUPS);
+  const keyG=makeSvg('g',{class:'poster-key'});
+  svg.append(keyG);
+  const heading=(parent,x,text)=>{
+    const el=makeSvg('text',{x,y:y+padTop+10,class:'poster-key-note-head'});
+    el.textContent=text;
+    el.setAttribute('style',bodyFont+';font-size:26px');
+    parent.append(el);
+  };
+  heading(keyG,outerX,'Groups');
+  const swatchW=36, swatchH=26, nameGap=12, colGap=28, rowPitch=54;
+  const names=macroIds.map(id=>{
+    const name=makeSvg('text',{class:'poster-key-row-name'});
+    name.setAttribute('style',bodyFont+';font-size:22px;font-weight:600');
+    name.textContent=MACRO_GROUPS[id].label;
+    keyG.append(name);
+    return name;
+  });
+  const rings=levelBounds.slice(0,-1), ringOuter=ringKeySize(rings.length-1);
+  const keyTop=y+padTop+56;
+  const leftCount=Math.min(macroIds.length-1, Math.max(1, Math.floor((ringOuter-swatchH)/rowPitch)+1));
+  const pitch=leftCount>1?(ringOuter-swatchH)/(leftCount-1):0;
+  const colTextW=[0,1].map(col=>{const w=names.filter((_,i)=>(i<leftCount?0:1)===col).map(name=>name.getComputedTextLength()); return w.length?Math.max(...w):0;});
+  const groupsW=(swatchW+nameGap)*2+colTextW[0]+colGap+colTextW[1];
+  const ringsX=outerX+groupsW+gutter*2, ringsW=ringOuter;
+  const noteX=ringsX+ringsW+gutter*2, noteW=outerX+outerW-noteX;
+  // Fill the first column down to the ring key foot; the rest sit in a second column.
+  const colX=[outerX, outerX+swatchW+nameGap+colTextW[0]+colGap];
+  const firstCentre=keyTop+swatchH/2;
+  names.forEach((name,index)=>{
+    const col=index<leftCount?0:1, row=index<leftCount?index:index-leftCount;
+    const def=MACRO_GROUPS[macroIds[index]], centre=firstCentre+row*pitch, x=colX[col];
+    keyG.append(makeSvg('rect',{x,y:centre-swatchH/2,width:swatchW,height:swatchH,rx:6,ry:6,fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));
+    name.setAttribute('x',x+swatchW+nameGap);
+    name.setAttribute('y',centre+8);
+  });
+  for(const x of [ringsX-gutter,noteX-gutter])keyG.append(makeSvg('line',{class:'poster-lower-divider',x1:x,y1:y+24,x2:x,y2:y+KEY_PANEL_H-12}));
+  renderRingKey(svg,ringsX,y,padTop,bodyFont);
+  const noteG=makeSvg('g',{class:'poster-note'});
+  svg.append(noteG);
+  heading(noteG,noteX,'Reading the map');
+  let noteY=y+padTop+70;
+  NOTE_PARAGRAPHS.forEach((text,index)=>{
+    const tone=index>=NOTE_PARAGRAPHS.length-2?';fill:#77746d':'';
+    noteY+=wrapSvgText(noteG,text,noteX,noteY,noteW,27,'poster-key-note',bodyFont+tone)*27+16;
+  });
+}
+`+out.slice(keyEnd);
+  swap('.poster-header-title{font:700 58px','.poster-header-title{font:700 64px');
+  swap('"id":"keres","name":"Keres","role":"collective","member_lines":["violent death-spirits","· · ·"]',
+    '"id":"keres","name":"Keres","role":"collective","member_lines":["violent","death-spirits","· · ·"]');
+  // Collectives with three member lines lift their whole label block to stay centred.
+  swap("    const text=makeSvg('text',{class:`label text-${treatment}`,x:w/2,y:isCollective?h/2-13:h/2});",
+    "    const detailLines=isCollective?(people[id].member_lines||[]).slice(0,3):[], lift=Math.max(0,detailLines.length-2)*6;\n    const text=makeSvg('text',{class:`label text-${treatment}`,x:w/2,y:isCollective?h/2-13-lift:h/2});");
+  swap("      (people[id].member_lines||[]).slice(0,2).forEach((line,index)=>{\n        const detail=makeSvg('text',{class:'collective-detail',x:w/2,y:h/2+5+index*12});",
+    "      detailLines.forEach((line,index)=>{\n        const detail=makeSvg('text',{class:'collective-detail',x:w/2,y:h/2+5-lift+index*12});");
+  out=out.replaceAll('greek-square-rings-v1','greek-square-rings-frameless-v1');
+  new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
+  return out;
+}
 const groupFillHtml=groupFillVariant(html);
+const framelessHtml=framelessVariant(html);
+// Frameless page design with the outlines map. Frameless rebuilds the legend
+// after the outlines pass, so the group swatches are matched to the boxes again.
+function framelessOutlinesVariant(outlined){
+  let out=framelessVariant(outlined);
+  const before="fill:def.color,'fill-opacity':.72,stroke:shadeColor(def.color,.22),'stroke-opacity':.9,'stroke-width':FAMILY_EDGE_WIDTH}));";
+  const after="fill:mixWithWhite(def.color,.55),stroke:def.color,'stroke-width':1.4}));";
+  if(!out.includes(before))throw new Error('Missing frameless-outlines swatch');
+  out=out.replace(before,after);
+  if(!out.includes('greek-square-rings-group-fill-v1'))throw new Error('Missing frameless-outlines autosave key');
+  out=out.replaceAll('greek-square-rings-group-fill-v1','greek-square-rings-frameless-outlines-v1');
+  new Function(out.match(/<script>\n([\s\S]*)<\/script>/)[1]);
+  return out;
+}
+const framelessOutlinesHtml=framelessOutlinesVariant(groupFillHtml);
 await writeFile('poster/layout_editor_square_rings.html',html);
 await writeFile('poster/layout_editor_square_rings_group_fill.html',groupFillHtml);
+await writeFile('poster/layout_editor_square_rings_frameless.html',framelessHtml);
+await writeFile('poster/layout_editor_square_rings_frameless_outlines.html',framelessOutlinesHtml);
 await writeFile('data/layout.square_rings.json',JSON.stringify(layout,null,2)+'\n');
 await writeFile('data/square_rings_report.json',JSON.stringify({placement_anchors:anchors,depths,level_widths:levelWidths,radii,ring_bands:ringBands,initial_level_bounds:initialLevelBounds,starting_layout:'layout32.json',routing_repairs:repairMoves,figures:people.length,routed_fields:fields,family_distance_cost:score},null,2)+'\n');
 console.log(`Built square-ring experiment from layout32: ${people.length} figures, ${fields} routed family fields, ${repairMoves.length} routing repairs. No collisions.`);

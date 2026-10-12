@@ -24,7 +24,9 @@ return {
  palette:id=>{applyPalette(id);return structuredClone(MACRO_GROUPS);},
  familyColors:()=>structuredClone(STYLES),
  macroMasks:()=>computeMacroMasks(),
- familyIds:()=>Object.keys(groups), routedFamilyIds:()=>Object.keys(computeAllMasks(nodes)),
+ familyIds:()=>Object.keys(groups),
+ visibleParents:()=>[...new Set(PEOPLE_RAW.flatMap(p=>(p.relations||[]).filter(r=>r.boundary_include).map(r=>r.parent_id)))],
+ routedFamilyIds:()=>Object.keys(computeAllMasks(nodes)),
  sideLanes:()=>{const masks=computeAllMasks(nodes);return computeFamilySideLanes(masks,computeFamilySetbackLevels(masks).level);},
  getMessage:()=>message,
  nudge:(id,dx,dy)=>{selectedId=id;nudgeSelected(dx,dy);},
@@ -58,7 +60,7 @@ for(const [group,mask] of Object.entries(app.macroMasks())){
 }
 app.validate(initial);
 assert.deepEqual(app.guideCrossings(),[],'Ring guides must not cut through figure boxes');
-assert.equal(app.familyIds().length,33);
+assert.deepEqual(app.familyIds().sort(),app.visibleParents().sort(),'Every visible parent, and only those, gets a family region');
 assert.deepEqual(app.routedFamilyIds().sort(),app.familyIds().sort());
 // Coincident, same-facing stretches of different families' sides must take
 // different lanes; a stretch that runs alone takes the first lane.
@@ -135,4 +137,4 @@ for(const [id,n] of Object.entries(initial)){
   if(moved)break;
 }
 assert.ok(moved,'At least one legal move must succeed');
-console.log('Verified layout32, static square-ring guides, no P badges, all 33 family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.');
+console.log(`Verified layout32, static square-ring guides, no P badges, all ${app.familyIds().length} family regions, legal level-locked moves, boundary JSON round-trip, and atomic rejection of invalid imports.`);

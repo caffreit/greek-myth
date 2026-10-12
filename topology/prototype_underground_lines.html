@@ -30,7 +30,7 @@ const VARIANTS=[{key:'ltr',name:'A · Left to right'},{key:'ring',name:'B · Squ
 const byId=Object.fromEntries(DATA.people.map(p=>[p.id,p]));
 const LINES=DATA.lines,lineById=Object.fromEntries(LINES.map(l=>[l.id,l]));
 const FONT='Inter, "Helvetica Neue", Arial, sans-serif';
-const LW=8,GAP=11,LANE=14,CORNER=20;
+const LW=8,GAP=11,LANE=14,CORNER=20,TICK=5.5;
 
 const V=(x,y)=>({x,y}),add=(a,b)=>V(a.x+b.x,a.y+b.y),sub=(a,b)=>V(a.x-b.x,a.y-b.y),mul=(a,k)=>V(a.x*k,a.y*k);
 const len=a=>Math.hypot(a.x,a.y),norm=a=>{const l=len(a)||1;return V(a.x/l,a.y/l)},dot=(a,b)=>a.x*b.x+a.y*b.y,cross=(a,b)=>a.x*b.y-a.y*b.x;
@@ -101,9 +101,11 @@ const measure=(()=>{const ctx=document.createElement('canvas').getContext('2d');
 function* permutations(xs){if(xs.length<=1){yield xs.slice();return}for(let i=0;i<xs.length;i++){const rest=[...xs.slice(0,i),...xs.slice(i+1)];for(const p of permutations(rest))yield [xs[i],...p]}}
 
 // Octilinear route with the 45° bend just after the start ("peel off"), for left-to-right flow.
-function routeLTR(P,Q){
+function routeLTR(P,Q,smooth=false){
   const dx=Q.x-P.x,dy=Q.y-P.y;if(Math.abs(dy)<.5)return [P,Q];
-  const s=Math.min(34,dx/4),d=Math.min(Math.abs(dy),dx-2*s),sg=Math.sign(dy);
+  // Shorten the stubs when a diagonal almost fits, rather than leaving a tiny vertical leg.
+  const stub=Math.min(34,dx/4),residual=Math.abs(dy)-(dx-2*stub);
+  const s=smooth&&residual>0&&residual<CORNER?(dx-Math.abs(dy))/2:stub,d=Math.min(Math.abs(dy),dx-2*s),sg=Math.sign(dy);
   const pts=[P,V(P.x+s,P.y),V(P.x+s+d,P.y+sg*d)];if(Math.abs(dy)>d+.5)pts.push(V(P.x+s+d,Q.y));pts.push(Q);return clean(pts);
 }
 // Symmetric octilinear route along the dominant axis.
@@ -336,6 +338,17 @@ function build(variant,showOthers){
     ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*GAP);
   }
   const laneIn=(l,v)=>{const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  // Carry a destination lane back across straight runs, so an offset does not create a jog after a stop.
+  const stationLane={};
+  if(lay.kind==='ltr')for(const L of LINES)for(const path of L.paths){
+    for(let i=path.length-1;i>0;i--){
+      const s=segMap.get(path[i-1]+'>'+path[i]);if(s.lines.length>1)continue;
+      const key=L.id+'|'+s.b,off=stationLane[key]?.off??endOff[s.key]??0;
+      if(!off)continue;
+      if(linesAt[s.b].size===1&&inTo(s.b).length===1)stationLane[key]={off,n:leftN(endDir(s))};
+      if(Math.abs(pos[s.a].y-pos[s.b].y)<.5&&linesAt[s.a].size===1)stationLane[L.id+'|'+s.a]={off,n:leftN(endDir(s))};
+    }
+  }
   // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
   const startOff={};
   for(const v of stations){
@@ -346,10 +359,10 @@ function build(variant,showOthers){
   }
   function segPoly(s,l){
     if(s.lines.length>1)return offsetPoly(base[s.key],offOn(s,l));
-    let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
+    let A=pos[s.a];const li=stationLane[l+'|'+s.a]??laneIn(l,s.a)??startOff[s.a+'|'+l];
     if(li)A=add(A,mul(li.n,li.off));
-    const eo=endOff[s.key]||0,B=eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
-    return octilinear(lay.route(s,A,B));
+    const eo=stationLane[l+'|'+s.b]?.off??endOff[s.key]??0,B=eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
+    return octilinear(lay.kind==='ltr'?routeLTR(A,B,true):lay.route(s,A,B));
   }
   const tracks=[];
   for(const L of LINES)for(const path of L.paths){const pts=[];for(let i=1;i<path.length;i++)pts.push(...segPoly(segMap.get(path[i-1]+'>'+path[i]),L.id));tracks.push({line:L,pts:clean(pts)})}
@@ -363,16 +376,27 @@ function build(variant,showOthers){
       return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
     }
     if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]||0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
-    return {v,type:'tick',n,color:lineById[[...linesAt[v]][0]].color};
+    const l=[...linesAt[v]][0],lane=stationLane[l+'|'+v],p=lane?add(pos[v],mul(lane.n,lane.off)):pos[v];
+    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,d};
   });
-  const markerBox=m=>{const R=m.type==='pill'?11:9,a=m.a||pos[m.v],b=m.b||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
+  // Retreat a terminus that would be swallowed by another station's interchange capsule.
+  for(const m of markers.filter(m=>m.terminal)){
+    const home=m.p;
+    for(let step=0;step<40;step++){
+      const p=sub(m.p,mul(m.d,TICK/2)),a=sub(p,mul(m.n,LW/2+7)),b=add(p,mul(m.n,LW/2+7));
+      if(!markers.some(o=>o.type==='pill'&&[p,a,b].some(q=>pointSegDist(q,o.a,o.b)<19/2+TICK/2+4)))break;
+      m.p=sub(m.p,mul(m.d,1));
+    }
+    if(dist(home,m.p)>.5)for(const t of tracks)if(dist(t.pts.at(-1),home)<.5)t.pts[t.pts.length-1]=m.p;
+  }
+  const markerBox=m=>{const R=m.type==='pill'?11:9,a=m.a||m.p||pos[m.v],b=m.b||m.p||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
 
   // greedy label placement
   const trackSegs=[];for(const t of tracks)for(let i=1;i<t.pts.length;i++)trackSegs.push([t.pts[i-1],t.pts[i]]);
   const boxes=markers.map(markerBox),labels=[],labelRects=[];
   const ordering=markers.map((m,i)=>i).sort((a,b)=>(markers[a].type==='pill'?0:1)-(markers[b].type==='pill'?0:1)||byId[markers[a].v].depth-byId[markers[b].v].depth);
   for(const i of ordering){
-    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?19:15,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=pos[v],g=5;
+    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?19:15,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.p||pos[v],g=5;
     const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
       NE:{x:mb.x+mb.w,y:mb.y-h},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
     let best=null;
@@ -433,15 +457,15 @@ function render(variant,showOthers){
   // other-parent links
   if(showOthers){const og=el('g',{},svg);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
 
-  // tracks: white casing then colour, line by line, so crossings read as bridges
+  // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
   const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},svg);
-  for(const t of B.tracks){const d=roundedD(t.pts,CORNER);el('path',{d,stroke:'#fbfaf6','stroke-width':LW+4},tg);el('path',{d,stroke:t.line.color,'stroke-width':LW},tg)}
+  for(const L of LINES){const paths=B.tracks.filter(t=>t.line.id===L.id).map(t=>roundedD(t.pts,CORNER));for(const d of paths)el('path',{d,stroke:'#fbfaf6','stroke-width':LW+4},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
 
   // stations
   const sg=el('g',{},svg);
   for(const m of B.markers){
-    const p=pos[m.v];
-    if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':5.5},sg)}
+    const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
+    if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
     else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
   }
   const lg=el('g',{},svg);

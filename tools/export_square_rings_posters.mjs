@@ -14,6 +14,8 @@ const PRINT_DPI = 300;
 const posters = [
   { source: 'poster/layout_editor_square_rings.html', name: 'greek_theogony_translucent' },
   { source: 'poster/layout_editor_square_rings_group_fill.html', name: 'greek_theogony_outlines' },
+  { source: 'poster/layout_editor_square_rings_frameless.html', name: 'greek_theogony_frameless' },
+  { source: 'poster/layout_editor_square_rings_frameless_outlines.html', name: 'greek_theogony_frameless_outlines' },
 ];
 
 const profile = await mkdtemp(join(tmpdir(), 'poster-export-'));
@@ -21,7 +23,8 @@ const chrome = (...args) => execFileSync(CHROME, ['--headless', '--disable-gpu',
 
 await mkdir(OUT_DIR, { recursive: true });
 try {
-  for (const { source, name } of posters) {
+  const only = process.argv.slice(2);
+  for (const { source, name } of posters.filter(({ name }) => !only.length || only.includes(name))) {
     // The page fills its export buffer on an animation frame, which headless
     // Chrome occasionally skips before dumping the DOM.
     let svg;
