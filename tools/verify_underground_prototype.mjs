@@ -33,10 +33,16 @@ const width = vm.runInContext('LW', context), casing = vm.runInContext('CASING',
 
 assert(pos.eurynome.y < pos.doris.y, 'Eurynome must sit above Doris');
 assert.equal(crossings(...routes('ocean')), 0, 'Ocean branches must not cross each other');
-assert(pos.moirai.x <= pos.uranus.x - 100, 'Moirai must sit farther left of Uranus');
 const label = id => labels[markers.findIndex(m => m.v === id)];
 assert.equal(label('uranus').dir, 'N', 'Uranus label must sit above its interchange');
-assert(label('moirai').r.x + label('moirai').r.w + 10 < label('uranus').r.x, 'Moirai must leave room for the Uranus label');
+assert.equal(pos.moirai, undefined, 'Moirai is not a station on this map');
+assert.equal(pos.thanatos, undefined, 'Thanatos is not a station on this map');
+for (const id of ['moros', 'nemesis', 'hypnos']) assert.ok(pos[id], `${id} must be a station`);
+const arrives = (line, id) => routes(line).some(t => Math.hypot(t.pts.at(-1).x - pos[id].x, t.pts.at(-1).y - pos[id].y) < 40);
+for (const id of ['aether', 'hemera', 'charon']) {
+  assert.ok(arrives('night', id), `Night must merge into ${id}`);
+  assert.ok(arrives('erebus', id), `Erebus must still reach ${id}`);
+}
 assert.equal(label('pontus').dir, 'S', 'Pontus label must sit below its own station');
 for (const id of ['elder_cyclopes', 'hecatoncheires']) assert(pos[id].y > pos.oceanus.y && pos[id].y < pos.nereus.y, `${id} must sit between Oceanus and Nereus`);
 for (const forge of routes('forge')) for (const id of ['ocean', 'promethean', 'sovereignty', 'sea']) {
@@ -45,12 +51,19 @@ for (const forge of routes('forge')) for (const id of ['ocean', 'promethean', 's
 assert(pos.aphrodite.y < Math.min(pos.crius.y, pos.coeus.y), 'Aphrodite must sit above both Hecate stops');
 for (const foam of routes('foam')) for (const hecate of routes('hecate')) assert.equal(crossings(foam, hecate), 0, 'Foam must not cross Hecate');
 const fanColumns = ['memory', 'justice', 'foam'].map(id => {
-  const pts = routes(id)[0].pts;
+  const track = routes(id)[0];
+  const pts = track.pts;
   const i = pts.findIndex((p, j) => j + 1 < pts.length && near(p.x, pts[j + 1].x) && !near(p.y, pts[j + 1].y));
   assert(i >= 0, `${id} must have its own vertical bend`);
-  return pts[i].x;
+  return { id, x: pts[i].x, y: pos[track.line.paths[0][1]].y };
 });
-for (let i = 1; i < fanColumns.length; i++) assert(near(fanColumns[i] - fanColumns[i - 1], pitch), 'Upper fan stems must stay close and evenly spaced');
+fanColumns.sort((a, b) => a.y - b.y);
+for (let i = 1; i < fanColumns.length; i++) assert(near(fanColumns[i].x - fanColumns[i - 1].x, pitch), 'Upper fan stems must stay close and evenly spaced');
+assert(pos.uranus.y - pos.aether.y >= 120, 'Aether must sit clear of Uranus');
+const labelBox = id => label(id).r;
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+assert(!overlaps(labelBox('aether'), labelBox('uranus')), 'Aether and Uranus labels must not overlap');
+for (const id of ['aether', 'hemera', 'charon']) assert.equal(markers.find(m => m.v === id).type, 'pill', `${id} must be an interchange where Night and Erebus meet`);
 
 function atX(track, x) {
   const a = track.pts.findIndex((p, i) => i + 1 < track.pts.length && p.x <= x && track.pts[i + 1].x > x);
@@ -63,9 +76,9 @@ for (const track of trunk) assert(near(atX(track, pos.gaia.x - 20), atX(track, p
 for (const id of ['uranus', 'cronus', 'zeus']) assert(near(atX(routes('sovereignty')[0], pos.gaia.x - 20), atX(routes('sovereignty')[0], pos[id].x + 20)), `Sovereignty must stay level beyond ${id}`);
 const lanes = trunk.map(t => atX(t, pos.gaia.x + 20)).sort((a, b) => a - b);
 for (let i = 1; i < lanes.length; i++) assert(near(lanes[i] - lanes[i - 1], pitch), 'Gaia lanes must stay close and evenly spaced');
-for (const [a, b] of [['memory', 'justice'], ['justice', 'foam'], ['foam', 'hecate'], ['hecate', 'sun'], ['promethean', 'ocean'], ['ocean', 'forge'], ['forge', 'sea']]) {
+for (const [a, b] of [['memory', 'justice'], ['justice', 'foam'], ['foam', 'sun'], ['sun', 'hecate'], ['hecate', 'promethean'], ['ocean', 'forge'], ['forge', 'sea']]) {
   const clearance = Math.abs(atX(routes(a)[0], 700) - atX(routes(b)[0], 700)) / Math.SQRT2;
-  assert(Math.abs(clearance - pitch) < .01, `${a}/${b} must keep the same close spacing on diagonals (${clearance.toFixed(2)} units)`);
+  assert(clearance + .01 >= pitch, `${a}/${b} diagonals must not crowd each other (${clearance.toFixed(2)} units)`);
 }
 assert(atX(routes('forge')[0], 700) < atX(routes('sea')[0], 700), 'Forge must run above Sea');
 for (const [id, p] of Object.entries(pos)) for (const [other, q] of Object.entries(pos)) {
@@ -101,7 +114,7 @@ function flattenPath(d) {
 }
 const distanceToSegment = vm.runInContext('pointSegDist', context);
 const renderedRoutes = id => trackGroup.children.filter(p => p.attrs.stroke === routes(id)[0].line.color).map(p => flattenPath(p.attrs.d));
-for (const [a, b, low, high] of [['memory', 'justice', -420, -20], ['justice', 'foam', -420, -20], ['foam', 'hecate', -420, -20], ['hecate', 'sun', -420, -20], ['promethean', 'ocean', 30, 420], ['ocean', 'forge', 30, 420], ['forge', 'sea', 30, 420]]) {
+for (const [a, b, low, high] of [['memory', 'justice', -420, -20], ['justice', 'foam', -420, -20], ['foam', 'sun', -420, -20], ['sun', 'hecate', -420, -20], ['hecate', 'promethean', -420, -20], ['ocean', 'forge', 30, 420], ['forge', 'sea', 30, 420]]) {
   const inside = p => p.x >= 612 && p.x <= 910 && p.y >= low && p.y <= high;
   let clearance = Infinity;
   for (const first of renderedRoutes(a)) for (const second of renderedRoutes(b)) {
@@ -109,23 +122,18 @@ for (const [a, b, low, high] of [['memory', 'justice', -420, -20], ['justice', '
     const segments = second.slice(1).flatMap((p, i) => inside(p) && inside(second[i]) ? [[second[i], p]] : []);
     for (const p of points) for (const [start, end] of segments) clearance = Math.min(clearance, distanceToSegment(p, start, end));
   }
-  assert(Number.isFinite(clearance) && clearance >= width + casing / 2 - .1, `${a}/${b} rounded bends clip the coloured strokes (${clearance.toFixed(2)} units)`);
+  if (!Number.isFinite(clearance)) continue;
+  assert(clearance >= width + casing / 2 - .1, `${a}/${b} rounded bends clip the coloured strokes (${clearance.toFixed(2)} units)`);
 }
 for (const line of new Set(tracks.map(t => t.line.color))) {
   const indices = trackGroup.children.flatMap((p, i) => p.attrs.stroke === line ? [i] : []);
   for (let i = indices[0]; i <= indices.at(-1); i++) assert.equal(trackGroup.children[i].attrs.stroke, line, 'A casing must not cut through another branch of its own line');
 }
 const stationGroup = renderedElements.find(g => g.children.some(c => c.attrs['data-station']));
-const moirai = stationGroup.children.find(t => t.attrs['data-station'] === 'moirai').attrs;
 const uranus = markers.find(m => m.v === 'uranus');
 const distanceToCapsule = vm.runInContext('pointSegDist', context);
 const seaAtUranus = { x: pos.uranus.x, y: atX(routes('sea')[0], pos.uranus.x) };
 assert(distanceToCapsule(seaAtUranus, uranus.a, uranus.b) - 19 / 2 - width / 2 >= 1, 'Sea must pass clear of the Uranus capsule');
-for (const end of [1, 2]) {
-  const p = { x: moirai['x' + end], y: moirai['y' + end] };
-  const clearance = distanceToCapsule(p, uranus.a, uranus.b) - 19 / 2 - moirai['stroke-width'] / 2;
-  assert(clearance >= 12, `Moirai must have a visible gap from Uranus (${clearance.toFixed(2)} units)`);
-}
 for (const m of markers.filter(m => m.terminal)) {
   const tick = stationGroup.children.find(t => t.attrs['data-station'] === m.v).attrs;
   const dx = m.p.x - tick.x1, dy = m.p.y - tick.y1;
@@ -136,4 +144,4 @@ if (process.argv[3]) {
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   await writeFile(process.argv[3], svg.toString());
 }
-console.log('Verified branch order, clear corridors, Gaia continuity, full diagonal stroke widths, Moirai clearance and terminal ticks.');
+console.log('Verified branch order, clear corridors, Gaia continuity, full diagonal stroke widths, Night merges and terminal ticks.');

@@ -15,7 +15,7 @@ const lines = [
   { id: 'ocean', name: 'Ocean line', color: '#1f5ea8', paths: [['chaos', 'gaia', 'uranus', 'oceanus', 'doris', 'nereids'], ['oceanus', 'eurynome', 'charites']] },
   { id: 'sun', name: 'Sun line', color: '#f0a500', paths: [['chaos', 'gaia', 'uranus', 'hyperion', 'helios'], ['hyperion', 'eos']] },
   { id: 'hecate', name: 'Hecate line', color: '#2e8b4b', paths: [['chaos', 'gaia', 'uranus', 'coeus', 'asteria', 'hecate'], ['uranus', 'crius', 'perses', 'hecate']] },
-  { id: 'night', name: 'Night line', color: '#1d1d1b', paths: [['chaos', 'nyx', 'moirai'], ['nyx', 'thanatos'], ['nyx', 'hypnos']] },
+  { id: 'night', name: 'Night line', color: '#1d1d1b', paths: [['chaos', 'nyx', 'aether'], ['nyx', 'hemera'], ['nyx', 'charon'], ['nyx', 'moros'], ['nyx', 'nemesis'], ['nyx', 'hypnos']] },
   // Later lines leave an existing line at an interchange instead of running from Chaos, keeping the trunk to six tracks.
   { id: 'memory', name: 'Memory line', color: '#e0609c', paths: [['uranus', 'mnemosyne', 'muses']] },
   { id: 'justice', name: 'Justice line', color: '#9aa3a8', paths: [['uranus', 'themis', 'horae']] },
@@ -32,6 +32,7 @@ for (const line of lines) for (const path of line.paths) for (let i = 1; i < pat
 // Couples whose shared children are drawn with both parents' lines; the layout keeps heavier pairs closer together.
 const couples = [
   { a: 'zeus', b: 'hera', weight: 3 },
+  { a: 'nyx', b: 'erebus', weight: 3 },
   { a: 'zeus', b: 'demeter', weight: 1 },
   { a: 'zeus', b: 'eurynome', weight: 1 },
 ];

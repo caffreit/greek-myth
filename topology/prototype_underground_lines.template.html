@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PROTOTYPE · Theogony Underground layouts</title>
+<title>Transit Theogony</title>
 <!-- PROTOTYPE (throwaway): two automatic tube-map layouts of the important lineages, switchable with ?variant=ltr | ring.
      Rebuild with: node tools/build_underground_prototype.mjs -->
 <style>
@@ -38,10 +38,20 @@ const leftN=d=>V(d.y,-d.x),dist=(a,b)=>len(sub(a,b));
 
 // ---------- network: stations, track segments, tree of first appearance ----------
 const segMap=new Map(),stations=[],treeParent={},kids={};
+// Aether, Hemera and Charon stay on the Erebus branch. Night merges into them afterwards.
+const erebusChildren=new Set(['aether','hemera','charon']);
+function addSeg(a,id,lineId){
+  const key=a+'>'+id;if(!segMap.has(key))segMap.set(key,{key,a,b:id,lines:[]});
+  const s=segMap.get(key);if(!s.lines.includes(lineId))s.lines.push(lineId);
+}
 for(const L of LINES)for(const path of L.paths)path.forEach((id,i)=>{
-  if(!stations.includes(id)){stations.push(id);kids[id]=[];if(i>0){treeParent[id]=path[i-1];kids[path[i-1]].push(id)}}
-  if(i>0){const a=path[i-1],key=a+'>'+id;if(!segMap.has(key))segMap.set(key,{key,a,b:id,lines:[]});const s=segMap.get(key);if(!s.lines.includes(L.id))s.lines.push(L.id)}
+  if(!stations.includes(id)){
+    if(L.id==='night'&&erebusChildren.has(id))return;
+    stations.push(id);kids[id]=[];if(i>0){treeParent[id]=path[i-1];kids[path[i-1]].push(id)}
+  }
+  if(i>0&&stations.includes(id))addSeg(path[i-1],id,L.id);
 });
+for(const id of erebusChildren)addSeg('nyx',id,'night');
 const segs=[...segMap.values()];
 const outOf=id=>segs.filter(s=>s.a===id),inTo=id=>segs.filter(s=>s.b===id);
 const linesAt=Object.fromEntries(stations.map(id=>[id,new Set()]));
@@ -153,7 +163,16 @@ function arrangeLTRBranches({pos,ROW}){
   pos.elder_cyclopes.y=pos.oceanus.y+2*ROW;
   pos.nereus.y=pos.elder_cyclopes.y+ROW;
   pos.aphrodite.y=Math.min(pos.crius.y,pos.coeus.y)-ROW;
-  pos.moirai.x=pos.uranus.x-120;
+  while(stations.some(id=>id!=='aphrodite'&&Math.abs(pos[id].x-pos.aphrodite.x)<1&&Math.abs(pos[id].y-pos.aphrodite.y)<1))pos.aphrodite.y-=ROW;
+  // Nyx merges into Erebus at Aether, Hemera and Charon. Stack that family above Uranus,
+  // leaving a clear row so Aether's interchange does not sit on Uranus.
+  const nightX=pos.gaia.x,childX=pos.uranus.x,top=pos.uranus.y;
+  pos.erebus.x=nightX;pos.erebus.y=top-2*ROW;pos.aether.x=childX;pos.aether.y=top-2*ROW;
+  pos.nyx.x=nightX;pos.nyx.y=top-3*ROW;pos.hemera.x=childX;pos.hemera.y=top-3*ROW;
+  pos.charon.x=childX;pos.charon.y=top-4*ROW;
+  pos.moros.x=childX;pos.moros.y=top-5*ROW;
+  pos.nemesis.x=childX;pos.nemesis.y=top-6*ROW;
+  pos.hypnos.x=childX;pos.hypnos.y=top-7*ROW;
   // Pontus stays clear of Uranus, on the Sea lane below Forge.
   pos.pontus.x=pos.uranus.x-40;
   pos.pontus.y=pos.uranus.y+4*(LW+CASING);
@@ -182,7 +201,9 @@ function layoutLTR(order){
     placed.push(routeLTR(P(za,row[a]),P(zb,row[b])));
   });
   const pos={};for(const id of stations)pos[id]=P(byId[id].depth,row[id]);
-  return {kind:'ltr',pos,ZW,ROW,route:(s,A,B)=>routeLTR(A,B),labelPrefs:()=>['N','S','NE','SE','E','NW','SW','W'],lanes:{}};
+  const lay={kind:'ltr',pos,ZW,ROW,route:(s,A,B)=>routeLTR(A,B),labelPrefs:()=>['N','S','NE','SE','E','NW','SW','W'],lanes:{}};
+  arrangeLTRBranches(lay);
+  return lay;
 }
 
 // ---------- Variant B: zones as square rings, lines travel along zone boundaries ----------
@@ -480,13 +501,13 @@ function render(variant,showOthers){
   if(lay.kind==='ltr'){grow(-lay.ZW/2,y0);grow(maxZone*lay.ZW+lay.ZW/2,y0);y0-=96;y1+=40}
   else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
   const pad=56,header=140,legendGap=8,legendPad=14;
-  const readingCopy='Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. Zone number is the longest recorded descent from Chaos, so a line may pass through a zone without stopping. Only the lineages above are drawn; the full genealogy has 79 figures.';
+  const readingCopy='Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. The zones are the generations. An interchange is where a new line begins, or where lines come together. Only the lineages above are drawn; the full genealogy has 79 figures.';
   const largeLegend=lay.kind==='ltr',headingSize=largeLegend?24:19,nameSize=largeLegend?19:15,detailSize=largeLegend?16:13.5,bodySize=largeLegend?18:15,bodyLeading=largeLegend?24:19,rowPitch=largeLegend?36:30;
   const legendLayout=W=>{
     const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2),heights=[74,74];
     const entries=LINES.map((L,i)=>{
       const column=i<lineSplit?0:1,y=heights[column],nameWidth=measure(L.name,nameSize,700);
-      const all=L.paths.map(p=>byId[p.at(-1)].name),ends=all.length>5?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
+      const all=L.paths.map(p=>byId[p.at(-1)].name),ends=all.length>6?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
       const inline=54+nameWidth+10+measure(copy,detailSize,500)<=colW-24;
       const details=inline?[copy]:wrap(copy,colW-54-24,detailSize);
       heights[column]+=inline?rowPitch:rowPitch+details.length*bodyLeading;
@@ -524,7 +545,7 @@ function render(variant,showOthers){
   const mapOffsetY=portrait?0:(headerRule+fy-y0-mapBottom)/2;
 
   // header
-  txt(svg,left+pad,top+88,'Theogony Underground',{'font-size':largeLegend?72:54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
+  txt(svg,left+pad,top+88,'Transit Theogony',{'font-size':largeLegend?72:54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
   el('line',{x1:left+pad,x2:left+W-pad,y1:headerRule,y2:headerRule,stroke:'#dedcd3'},svg);
 
   // LTR is a little taller than the A-series slot, so widen it to the side margins. Ring zones stay square.
@@ -577,7 +598,7 @@ function render(variant,showOthers){
   const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
     else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
-  [['tick','Station: a figure on one line'],['pill','Interchange: lines meet or share track']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
+  [['tick','Station: a figure on one line'],['pill','Interchange: a line starts or joins']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
   readingLines
     .forEach((s,i)=>txt(svg,rx,readingY+readingOffset+i*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#5f5d55'}));
 
