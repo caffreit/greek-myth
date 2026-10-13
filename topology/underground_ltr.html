@@ -23,6 +23,7 @@ html,body{margin:0;background:#e6e4de;font-family:Inter,"Helvetica Neue",Arial,s
   <label><input type="checkbox" id="others"> other parents</label>
   <span class="state" id="state"></span>
 </div>
+<script src="site_logo_href.js"></script>
 <script>
 const DATA={"people":[{"id":"chaos","name":"Chaos","depth":0},{"id":"eros","name":"Eros","depth":1},{"id":"gaia","name":"Gaia","depth":1},{"id":"tartarus","name":"Tartarus","depth":1},{"id":"erebus","name":"Erebus","depth":1},{"id":"nyx","name":"Nyx","depth":1},{"id":"pontus","name":"Pontus","depth":2},{"id":"ourea","name":"Ourea","depth":2},{"id":"uranus","name":"Uranus","depth":2},{"id":"echidna","name":"Echidna","depth":2},{"id":"typhon","name":"Typhon","depth":2},{"id":"thaumas","name":"Thaumas","depth":3},{"id":"phorcys","name":"Phorcys","depth":3},{"id":"ceto","name":"Ceto","depth":3},{"id":"themis","name":"Themis","depth":3},{"id":"mnemosyne","name":"Mnemosyne","depth":3},{"id":"hyperion","name":"Hyperion","depth":3},{"id":"theia","name":"Theia","depth":3},{"id":"crius","name":"Crius","depth":3},{"id":"iapetus","name":"Iapetus","depth":3},{"id":"coeus","name":"Coeus","depth":3},{"id":"phoebe","name":"Phoebe","depth":3},{"id":"oceanus","name":"Oceanus","depth":3},{"id":"cronus","name":"Cronus","depth":3},{"id":"tethys","name":"Tethys","depth":3},{"id":"rhea","name":"Rhea","depth":3},{"id":"aphrodite","name":"Aphrodite","depth":3},{"id":"aether","name":"Aether","depth":2},{"id":"hemera","name":"Hemera","depth":2},{"id":"charon","name":"Charon","depth":2},{"id":"hypnos","name":"Hypnos","depth":2},{"id":"thanatos","name":"Thanatos","depth":2},{"id":"moros","name":"Moros","depth":2},{"id":"hestia","name":"Hestia","depth":4},{"id":"demeter","name":"Demeter","depth":4},{"id":"hera","name":"Hera","depth":4},{"id":"hades","name":"Hades","depth":4},{"id":"poseidon","name":"Poseidon","depth":4},{"id":"zeus","name":"Zeus","depth":4},{"id":"helios","name":"Helios","depth":4},{"id":"selene","name":"Selene","depth":4},{"id":"eos","name":"Eos","depth":4},{"id":"clymene","name":"Clymene","depth":3},{"id":"atlas","name":"Atlas","depth":4},{"id":"prometheus","name":"Prometheus","depth":4},{"id":"epimetheus","name":"Epimetheus","depth":4},{"id":"metis","name":"Metis","depth":4},{"id":"athena","name":"Athena","depth":5},{"id":"leto","name":"Leto","depth":4},{"id":"apollo","name":"Apollo","depth":5},{"id":"artemis","name":"Artemis","depth":5},{"id":"maia","name":"Maia","depth":4},{"id":"hermes","name":"Hermes","depth":5},{"id":"semele","name":"Semele","depth":4},{"id":"dionysus","name":"Dionysus","depth":5},{"id":"ares","name":"Ares","depth":5},{"id":"hephaestus","name":"Hephaestus","depth":5},{"id":"hebe","name":"Hebe","depth":5},{"id":"persephone","name":"Persephone","depth":5},{"id":"nereus","name":"Nereus","depth":3},{"id":"doris","name":"Doris","depth":4},{"id":"nereids","name":"Nereids","depth":5},{"id":"hecatoncheires","name":"Hecatoncheires","depth":3},{"id":"elder_cyclopes","name":"Elder Cyclopes","depth":3},{"id":"erinyes","name":"Erinyes","depth":3},{"id":"gigantes","name":"Gigantes","depth":3},{"id":"moirai","name":"Moirai","depth":2},{"id":"keres","name":"Keres","depth":2},{"id":"nemesis","name":"Nemesis","depth":2},{"id":"eris","name":"Eris","depth":2},{"id":"hesperides","name":"Hesperides","depth":2},{"id":"eurybia","name":"Eurybia","depth":3},{"id":"perses","name":"Perses","depth":4},{"id":"asteria","name":"Asteria","depth":4},{"id":"hecate","name":"Hecate","depth":5},{"id":"muses","name":"Muses","depth":5},{"id":"horae","name":"Horae","depth":5},{"id":"eurynome","name":"Eurynome","depth":4},{"id":"charites","name":"Charites","depth":5}],"links":[["chaos","eros"],["chaos","gaia"],["chaos","tartarus"],["chaos","erebus"],["chaos","nyx"],["gaia","pontus"],["gaia","ourea"],["gaia","uranus"],["gaia","echidna"],["tartarus","echidna"],["gaia","typhon"],["tartarus","typhon"],["pontus","thaumas"],["pontus","phorcys"],["pontus","ceto"],["gaia","themis"],["uranus","themis"],["gaia","mnemosyne"],["uranus","mnemosyne"],["gaia","hyperion"],["uranus","hyperion"],["gaia","theia"],["uranus","theia"],["gaia","crius"],["uranus","crius"],["gaia","iapetus"],["uranus","iapetus"],["gaia","coeus"],["uranus","coeus"],["gaia","phoebe"],["uranus","phoebe"],["gaia","oceanus"],["uranus","oceanus"],["gaia","cronus"],["uranus","cronus"],["gaia","tethys"],["uranus","tethys"],["gaia","rhea"],["uranus","rhea"],["uranus","aphrodite"],["erebus","aether"],["nyx","aether"],["erebus","hemera"],["nyx","hemera"],["erebus","charon"],["nyx","charon"],["nyx","hypnos"],["nyx","thanatos"],["nyx","moros"],["cronus","hestia"],["rhea","hestia"],["cronus","demeter"],["rhea","demeter"],["cronus","hera"],["rhea","hera"],["cronus","hades"],["rhea","hades"],["cronus","poseidon"],["rhea","poseidon"],["cronus","zeus"],["rhea","zeus"],["hyperion","helios"],["theia","helios"],["hyperion","selene"],["theia","selene"],["hyperion","eos"],["theia","eos"],["iapetus","atlas"],["clymene","atlas"],["iapetus","prometheus"],["clymene","prometheus"],["iapetus","epimetheus"],["clymene","epimetheus"],["zeus","athena"],["metis","athena"],["zeus","apollo"],["leto","apollo"],["zeus","artemis"],["leto","artemis"],["zeus","hermes"],["maia","hermes"],["zeus","dionysus"],["semele","dionysus"],["zeus","ares"],["hera","ares"],["hera","hephaestus"],["zeus","hebe"],["hera","hebe"],["zeus","persephone"],["demeter","persephone"],["gaia","nereus"],["pontus","nereus"],["oceanus","doris"],["tethys","doris"],["nereus","nereids"],["doris","nereids"],["gaia","hecatoncheires"],["uranus","hecatoncheires"],["gaia","elder_cyclopes"],["uranus","elder_cyclopes"],["gaia","erinyes"],["uranus","erinyes"],["gaia","gigantes"],["uranus","gigantes"],["nyx","moirai"],["nyx","keres"],["nyx","nemesis"],["nyx","eris"],["nyx","hesperides"],["gaia","eurybia"],["pontus","eurybia"],["crius","perses"],["eurybia","perses"],["coeus","asteria"],["phoebe","asteria"],["perses","hecate"],["asteria","hecate"],["zeus","muses"],["mnemosyne","muses"],["zeus","horae"],["themis","horae"],["oceanus","eurynome"],["tethys","eurynome"],["zeus","charites"],["eurynome","charites"]],"lines":[{"id":"sovereignty","name":"Sovereignty line","color":"#d0312d","paths":[["chaos","gaia","uranus","cronus","zeus","athena"],["zeus","apollo"],["zeus","artemis"],["zeus","hermes"],["zeus","dionysus"],["zeus","ares"],["zeus","hebe"],["zeus","persephone"],["zeus","charites"]]},{"id":"promethean","name":"Promethean line","color":"#7a4ea6","paths":[["chaos","gaia","uranus","iapetus","prometheus"],["iapetus","atlas"]]},{"id":"sea","name":"Sea line","color":"#13a19d","paths":[["chaos","gaia","pontus","nereus","nereids"]]},{"id":"ocean","name":"Ocean line","color":"#1f5ea8","paths":[["chaos","gaia","uranus","oceanus","doris","nereids"],["oceanus","eurynome","charites"]]},{"id":"sun","name":"Sun line","color":"#f0a500","paths":[["chaos","gaia","uranus","hyperion","helios"],["hyperion","eos"]]},{"id":"hecate","name":"Hecate line","color":"#2e8b4b","paths":[["chaos","gaia","uranus","coeus","asteria","hecate"],["uranus","crius","perses","hecate"]]},{"id":"night","name":"Night line","color":"#1d1d1b","paths":[["chaos","nyx","aether"],["nyx","hemera"],["nyx","charon"],["nyx","moros"],["nyx","nemesis"],["nyx","hypnos"]]},{"id":"memory","name":"Memory line","color":"#e0609c","paths":[["uranus","mnemosyne","muses"]]},{"id":"justice","name":"Justice line","color":"#9aa3a8","paths":[["uranus","themis","horae"]]},{"id":"hera","name":"Hera line","color":"#8c1c3c","paths":[["cronus","hera","ares"],["hera","hephaestus"],["hera","hebe"]]},{"id":"harvest","name":"Harvest line","color":"#8dc63f","paths":[["cronus","demeter","persephone"]]},{"id":"abyss","name":"Abyss line","color":"#7b5130","paths":[["chaos","tartarus","typhon"],["tartarus","echidna"]]},{"id":"erebus","name":"Erebus line","color":"#3b3f8f","paths":[["chaos","erebus","aether"],["erebus","hemera"],["erebus","charon"]]},{"id":"foam","name":"Foam line","color":"#62b5e5","paths":[["uranus","aphrodite"]]},{"id":"forge","name":"Forge line","color":"#ee7a12","paths":[["uranus","elder_cyclopes"],["uranus","hecatoncheires"]]}],"couples":[{"a":"zeus","b":"hera","weight":3},{"a":"nyx","b":"erebus","weight":3},{"a":"zeus","b":"demeter","weight":1},{"a":"zeus","b":"eurynome","weight":1}],"levelNames":["Origin","Primordials","Primordial children","Titans and contemporaries","Olympians and younger Titans","Olympian children and contemporaries"]};
 const VARIANT='ltr';
@@ -490,6 +491,17 @@ const NS='http://www.w3.org/2000/svg';
 const el=(name,attrs={},parent)=>{const e=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent?.append(e);return e};
 const txt=(parent,x,y,s,attrs={})=>{const t=el('text',{x,y,'font-family':FONT,...attrs},parent);t.textContent=s;return t};
 function wrap(s,width,size){const words=s.split(' '),out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(measure(t,size,500)>width&&cur){out.push(cur);cur=w}else cur=t}if(cur)out.push(cur);return out}
+function renderSiteFooter(svg,marginRight,pageBottom,margin){
+  if(typeof SITE_LOGO_HREF==='undefined')return;
+  const baseline=pageBottom-margin/2+4,logoW=27,logoH=18,logoGap=10,capMid=baseline-4.7;
+  const g=el('g',{'class':'poster-site-footer'},svg);
+  const site=el('text',{'font-family':FONT,'font-size':13,'font-weight':750,'letter-spacing':'.16em',fill:'#2a2b27',y:baseline},g);
+  site.textContent='DRDIMG.COM';
+  const textW=site.getBBox().width;
+  const blockW=textW+logoGap+logoW,blockX=marginRight-blockW;
+  site.setAttribute('x',blockX);
+  el('image',{class:'poster-site-logo',x:blockX+textW+logoGap,y:capMid-logoH/2,width:logoW,height:logoH,href:SITE_LOGO_HREF,preserveAspectRatio:'xMidYMid meet'},g);
+}
 
 function render(variant,showOthers){
   const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';
@@ -501,9 +513,13 @@ function render(variant,showOthers){
   else{const e=(maxZone+.5)*lay.R+70;grow(-e,-e);grow(e,e)}
   const pad=56,header=140,legendGap=8,legendPad=14;
   const readingCopy='Consecutive stops on a line are parent and child. Where two parents\u2019 lines arrive side by side, the station is their child: Ares and Hebe are children of Zeus and Hera. The zones are the generations. An interchange is where a new line begins, or where lines come together. Only the lineages above are drawn; the full genealogy has 79 figures.';
-  const largeLegend=lay.kind==='ltr',headingSize=largeLegend?24:19,nameSize=largeLegend?19:15,detailSize=largeLegend?16:13.5,bodySize=largeLegend?18:15,bodyLeading=largeLegend?24:19,rowPitch=largeLegend?36:30;
+  const largeLegend=lay.kind==='ltr',headingSize=largeLegend?28:19,nameSize=largeLegend?22:15,detailSize=largeLegend?18:13.5,bodySize=largeLegend?21:15,bodyLeading=largeLegend?28:19,rowPitch=largeLegend?42:30;
+  const zoneSwatchW=largeLegend?48:40,zoneSwatchH=largeLegend?30:22,zoneNumSize=largeLegend?22:13,zoneLabel=zoneSwatchW+14;
   const legendLayout=W=>{
-    const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2),heights=[74,74];
+    const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2);
+    // The left-to-right headings need the same air the reading column already has
+    // before the first swatch. Zone rows then stretch so they finish with the lines.
+    const firstY=largeLegend?108:74,heights=[firstY,firstY];
     const entries=LINES.map((L,i)=>{
       const column=i<lineSplit?0:1,y=heights[column],nameWidth=measure(L.name,nameSize,700);
       const all=L.paths.map(p=>byId[p.at(-1)].name),ends=all.length>6?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
@@ -512,12 +528,20 @@ function render(variant,showOthers){
       heights[column]+=inline?rowPitch:rowPitch+details.length*bodyLeading;
       return {column,y,nameWidth,inline,details};
     });
-    let zoneY=74;
+    const lineLast=Math.max(...entries.map(e=>e.y));
+    const zoneCount=maxZone+1,zoneStep=largeLegend?(lineLast-firstY)/Math.max(1,zoneCount-1):null;
     const zoneName=k=>DATA.levelNames[k]??`Generation ${k}`;
-    const zones=Array.from({length:maxZone+1},(_,k)=>{const n=zoneName(k),y=zoneY,lines=wrap(n,colW-54-24,bodySize);zoneY+=Math.max(rowPitch,lines.length*bodyLeading+12);return {y,lines}});
-    const readingLines=wrap(readingCopy,colW-30,detailSize),readingOffset=largeLegend?116:100;
-    const body=Math.max(...heights,zoneY,74+readingOffset+readingLines.length*bodyLeading);
-    return {colW,entries,zones,readingLines,readingOffset,footer:legendGap+42+body+legendPad};
+    let zoneY=firstY;
+    const zones=Array.from({length:zoneCount},(_,k)=>{
+      const n=zoneName(k),y=largeLegend?firstY+k*zoneStep:zoneY,lines=wrap(n,colW-zoneLabel-24,bodySize);
+      if(!largeLegend)zoneY+=Math.max(rowPitch,lines.length*bodyLeading+12);
+      return {y,lines};
+    });
+    const readingSize=largeLegend?22:detailSize,readingLeading=largeLegend?30:bodyLeading;
+    const readingLines=wrap(readingCopy,colW-30,readingSize),readingOffset=largeLegend?130:100;
+    const readingLast=74+readingOffset+Math.max(0,readingLines.length-1)*readingLeading;
+    const body=largeLegend?Math.max(lineLast,zones.at(-1).y,readingLast)+12:Math.max(...heights,zoneY,74+readingOffset+readingLines.length*bodyLeading);
+    return {colW,entries,zones,readingLines,readingOffset,readingSize,readingLeading,footer:legendGap+42+body+legendPad};
   };
   const legendFooter=W=>legendLayout(W).footer;
   // Landscape A-series for the left-to-right map. The square rings use the same ratio turned portrait.
@@ -588,13 +612,13 @@ function render(variant,showOthers){
   B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scaleY,mapY(p.y)+(ty-p.y)*scaleY,l.name,{'font-size':l.size*scaleY,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em'})});
 
   // footer key
-  const {colW,entries,zones,readingLines,readingOffset}=legendLayout(W),fx=left+pad;
+  const {colW,entries,zones,readingLines,readingOffset,readingSize,readingLeading}=legendLayout(W),fx=left+pad;
   el('line',{x1:fx,x2:left+W-pad,y1:fy,y2:fy,stroke:'#dedcd3'},svg);
   txt(svg,fx,fy+42,'Lines',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
   LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
     entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
-  const zx=fx+2*colW;txt(svg,zx,fy+42,'Fare zones = generations',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
-  zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-16,width:40,height:22,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+20,y,String(k),{'font-size':largeLegend?16:13,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+54,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
+  const zx=fx+2*colW;txt(svg,zx,fy+42,'Zones = Generations',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
+    zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-zoneSwatchH+8,width:zoneSwatchW,height:zoneSwatchH,fill:zoneFill(k),stroke:'#dedcd3'},svg);txt(svg,zx+zoneSwatchW/2,y,String(k),{'font-size':zoneNumSize,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+zoneLabel,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
   const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
   const readingY=fy+74;
   const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
@@ -602,7 +626,9 @@ function render(variant,showOthers){
     else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
   [['tick','Station: a figure on one line'],['pill','Interchange: a line starts or joins']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
   readingLines
-    .forEach((s,i)=>txt(svg,rx,readingY+readingOffset+i*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#5f5d55'}));
+    .forEach((s,i)=>txt(svg,rx,readingY+readingOffset+i*readingLeading,s,{'font-size':readingSize,'font-weight':500,fill:'#5f5d55'}));
+
+  if(lay.kind==='ltr')renderSiteFooter(svg,left+W-pad,top+H,pad);
 
   const pair=pos.zeus&&pos.hera?`Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, `:'';
   document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, ${pair}searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
