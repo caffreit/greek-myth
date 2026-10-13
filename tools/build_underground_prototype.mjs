@@ -1,46 +1,18 @@
-// PROTOTYPE: builds topology/prototype_underground_lines.html, a throwaway comparison of two
-// automatically laid-out tube maps (left-to-right zones vs square ring zones).
+// Builds two Transit Theogony posters from one drawing template. Lineages live in
+// topology/ltr_theogony.mjs and topology/ring_theogony.mjs, so the ring map can
+// gain stations or change connections without moving the left-to-right poster.
+//
+//   node tools/build_underground_prototype.mjs
+//   node tools/export_underground_posters.mjs
 import { readFile, writeFile } from 'node:fs/promises';
+import { couples as ltrCouples, lines as ltrLines } from '../topology/ltr_theogony.mjs';
+import { couples as ringCouples, extraLinks as ringLinks, figures as ringFigures, lines as ringLines } from '../topology/ring_theogony.mjs';
 
 const source = await readFile('poster/layout_editor_greek_theogony_extended_v27_0.html', 'utf8');
 const people = JSON.parse(source.match(/const PEOPLE_RAW = (.*);\nconst INITIAL_LAYOUT/)[1]);
 const byId = Object.fromEntries(people.map(p => [p.id, p]));
 const links = people.flatMap(p => p.relations.filter(r => r.boundary_include).map(r => [r.parent_id, p.id]));
 const parentLinks = new Set(links.map(([a, b]) => `${a}>${b}`));
-
-const lines = [
-  { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites']] },
-  { id: 'promethean', name: 'Promethean line', color: '#7a4ea6', paths: [['chaos', 'gaia', 'uranus', 'iapetus', 'prometheus'], ['iapetus', 'atlas']] },
-  { id: 'sea', name: 'Sea line', color: '#13a19d', paths: [['chaos', 'gaia', 'pontus', 'nereus', 'nereids']] },
-  { id: 'ocean', name: 'Ocean line', color: '#1f5ea8', paths: [['chaos', 'gaia', 'uranus', 'oceanus', 'doris', 'nereids'], ['oceanus', 'eurynome', 'charites']] },
-  { id: 'sun', name: 'Sun line', color: '#f0a500', paths: [['chaos', 'gaia', 'uranus', 'hyperion', 'helios'], ['hyperion', 'eos']] },
-  { id: 'hecate', name: 'Hecate line', color: '#2e8b4b', paths: [['chaos', 'gaia', 'uranus', 'coeus', 'asteria', 'hecate'], ['uranus', 'crius', 'perses', 'hecate']] },
-  { id: 'night', name: 'Night line', color: '#1d1d1b', paths: [['chaos', 'nyx', 'aether'], ['nyx', 'hemera'], ['nyx', 'charon'], ['nyx', 'moros'], ['nyx', 'nemesis'], ['nyx', 'hypnos']] },
-  // Later lines leave an existing line at an interchange instead of running from Chaos, keeping the trunk to six tracks.
-  { id: 'memory', name: 'Memory line', color: '#e0609c', paths: [['uranus', 'mnemosyne', 'muses']] },
-  { id: 'justice', name: 'Justice line', color: '#9aa3a8', paths: [['uranus', 'themis', 'horae']] },
-  { id: 'hera', name: 'Hera line', color: '#8c1c3c', paths: [['cronus', 'hera', 'ares'], ['hera', 'hephaestus'], ['hera', 'hebe']] },
-  { id: 'harvest', name: 'Harvest line', color: '#8dc63f', paths: [['cronus', 'demeter', 'persephone']] },
-  { id: 'abyss', name: 'Abyss line', color: '#7b5130', paths: [['chaos', 'tartarus', 'typhon'], ['tartarus', 'echidna']] },
-  { id: 'erebus', name: 'Erebus line', color: '#3b3f8f', paths: [['chaos', 'erebus', 'aether'], ['erebus', 'hemera'], ['erebus', 'charon']] },
-  { id: 'foam', name: 'Foam line', color: '#62b5e5', paths: [['uranus', 'aphrodite']] },
-  { id: 'forge', name: 'Forge line', color: '#ee7a12', paths: [['uranus', 'elder_cyclopes'], ['uranus', 'hecatoncheires']] },
-];
-for (const line of lines) for (const path of line.paths) for (let i = 1; i < path.length; i++) {
-  if (!parentLinks.has(`${path[i - 1]}>${path[i]}`)) throw new Error(`${line.name}: ${path[i - 1]} is not a recorded parent of ${path[i]}`);
-}
-// Couples whose shared children are drawn with both parents' lines; the layout keeps heavier pairs closer together.
-const couples = [
-  { a: 'zeus', b: 'hera', weight: 3 },
-  { a: 'nyx', b: 'erebus', weight: 3 },
-  { a: 'zeus', b: 'demeter', weight: 1 },
-  { a: 'zeus', b: 'eurynome', weight: 1 },
-];
-const onMap = new Set(lines.flatMap(l => l.paths.flat()));
-for (const { a, b } of couples) {
-  if (!onMap.has(a) || !onMap.has(b)) throw new Error(`Couple ${a}–${b} must both be stations`);
-  if (!people.some(p => [a, b].every(id => parentLinks.has(`${id}>${p.id}`)))) throw new Error(`Couple ${a}–${b} has no recorded shared child`);
-}
 
 const depthMemo = {};
 function depth(id) {
@@ -51,14 +23,68 @@ function depth(id) {
 for (const p of people) depth(p.id);
 for (const [id, anchor] of Object.entries({ clymene: 'iapetus', leto: 'zeus', metis: 'zeus', maia: 'zeus', semele: 'zeus' })) depthMemo[id] = depthMemo[anchor];
 
-const data = {
-  people: people.map(p => ({ id: p.id, name: p.name, depth: depthMemo[p.id] })),
-  links,
-  lines,
-  couples,
-  levelNames: ['Origin', 'Primordials', 'Primordial children', 'Titans and contemporaries', 'Olympians and younger Titans', 'Olympian children and contemporaries'],
-};
+function pack(label, lines, couples, { figures = [], extraLinks = [] } = {}) {
+  const figureById = Object.fromEntries(figures.map(f => [f.id, f]));
+  for (const f of figures) {
+    if (!f.id || !f.name || !Number.isInteger(f.depth) || f.depth < 0) throw new Error(`${label}: extra figure ${f.id || f.name} needs an id, name and whole-number depth`);
+    if (byId[f.id]) throw new Error(`${label}: ${f.id} is already in the V27 theogony`);
+  }
+  const allowed = new Set([...parentLinks, ...extraLinks.map(([a, b]) => `${a}>${b}`)]);
+  const known = id => byId[id] || figureById[id];
+  for (const line of lines) for (const path of line.paths) for (let i = 0; i < path.length; i++) {
+    if (!known(path[i])) throw new Error(`${label} ${line.name}: unknown figure ${path[i]}`);
+    if (i > 0 && !allowed.has(`${path[i - 1]}>${path[i]}`)) throw new Error(`${label} ${line.name}: ${path[i - 1]} is not a parent of ${path[i]}. Add it to extraLinks if it belongs only on this map.`);
+  }
+  const onMap = new Set(lines.flatMap(l => l.paths.flat()));
+  const roster = [...people.map(p => p.id), ...figures.map(f => f.id)];
+  for (const { a, b } of couples) {
+    if (!onMap.has(a) || !onMap.has(b)) throw new Error(`${label} couple ${a}–${b} must both be stations`);
+    if (!roster.some(id => allowed.has(`${a}>${id}`) && allowed.has(`${b}>${id}`))) throw new Error(`${label} couple ${a}–${b} has no recorded shared child`);
+  }
+  return {
+    people: [
+      ...people.map(p => ({ id: p.id, name: p.name, depth: depthMemo[p.id] })),
+      ...figures.map(f => ({ id: f.id, name: f.name, depth: f.depth })),
+    ],
+    links: [...links, ...extraLinks],
+    lines,
+    couples,
+    levelNames: ['Origin', 'Primordials', 'Primordial children', 'Titans and contemporaries', 'Olympians and younger Titans', 'Olympian children and contemporaries'],
+  };
+}
+
 const template = await readFile('topology/prototype_underground_lines.template.html', 'utf8');
-if (!template.includes('/* PROTOTYPE_DATA */')) throw new Error('Missing data marker');
-await writeFile('topology/prototype_underground_lines.html', template.replace('/* PROTOTYPE_DATA */', JSON.stringify(data)));
-console.log(`Built prototype: ${lines.length} lines, all segments verified as parent→child links.`);
+for (const marker of ['/* PROTOTYPE_DATA */', '/* VARIANT_KEY */', '/* PAGE_TITLE */', '/* PAGE_NOTE */', '/* OTHER_HREF */', '/* OTHER_LABEL */']) {
+  if (!template.includes(marker)) throw new Error(`Missing ${marker}`);
+}
+const pages = [
+  {
+    key: 'ltr',
+    file: 'topology/underground_ltr.html',
+    title: 'Transit Theogony — Left to right',
+    note: 'Left-to-right Transit Theogony. Lineage: topology/ltr_theogony.mjs. Rebuild: node tools/build_underground_prototype.mjs. Export: node tools/export_underground_posters.mjs transit_theogony_ltr',
+    otherHref: 'underground_ring.html',
+    otherLabel: 'Square rings',
+    data: pack('Left to right', ltrLines, ltrCouples),
+  },
+  {
+    key: 'ring',
+    file: 'topology/underground_ring.html',
+    title: 'Transit Theogony — Square rings',
+    note: 'Square-ring Transit Theogony. Lineage: topology/ring_theogony.mjs, separate from the left-to-right map. Rebuild: node tools/build_underground_prototype.mjs. Export: node tools/export_underground_posters.mjs transit_theogony_ring',
+    otherHref: 'underground_ltr.html',
+    otherLabel: 'Left to right',
+    data: pack('Square rings', ringLines, ringCouples, { figures: ringFigures, extraLinks: ringLinks }),
+  },
+];
+for (const page of pages) {
+  const html = template
+    .replace('/* PROTOTYPE_DATA */', JSON.stringify(page.data))
+    .replaceAll('/* VARIANT_KEY */', page.key)
+    .replaceAll('/* PAGE_TITLE */', page.title)
+    .replaceAll('/* PAGE_NOTE */', page.note)
+    .replaceAll('/* OTHER_HREF */', page.otherHref)
+    .replaceAll('/* OTHER_LABEL */', page.otherLabel);
+  await writeFile(page.file, html);
+  console.log(`Built ${page.file}: ${page.data.lines.length} lines.`);
+}

@@ -21,10 +21,19 @@ const document = {
   createElementNS: (ns, tag) => new SvgElement(tag),
   getElementById: id => elements[id] ??= new SvgElement(id === 'poster' ? 'svg' : 'div'),
 };
-const source = await readFile(process.argv[2] ?? 'topology/prototype_underground_lines.html', 'utf8');
+const source = await readFile(process.argv[2] ?? 'topology/underground_ltr.html', 'utf8');
+const variant = source.match(/const VARIANT='(ltr|ring)'/)?.[1];
+if (!variant) throw new Error('Page has no VARIANT');
 const context = vm.createContext({ document, console, URLSearchParams });
-vm.runInContext(source.split('<script>')[1].split('// ---------- prototype switcher ----------')[0], context);
-vm.runInContext('globalThis.result = build("ltr", false); render("ltr", false)', context);
+vm.runInContext(source.split('<script>')[1].split('// ---------- boot ----------')[0], context);
+vm.runInContext(`globalThis.result = build(${JSON.stringify(variant)}, false); render(${JSON.stringify(variant)}, false)`, context);
+if (variant === 'ring') {
+  for (const track of context.result.tracks) for (const p of track.pts) assert(Number.isFinite(p.x) && Number.isFinite(p.y));
+  const box = elements.poster.attrs.viewBox.split(/\s+/).map(Number);
+  assert(Math.abs(box[3] / box[2] - Math.SQRT2) < 1e-3, 'Square rings must be portrait A-series');
+  console.log('Verified the square-ring poster renders on a portrait A-series page.');
+  process.exit(0);
+}
 const { pos, tracks, markers, labels } = context.result;
 const routes = line => tracks.filter(t => t.line.id === line);
 const crossings = (a, b) => vm.runInContext('polyCross', context)(a.pts, b.pts);
