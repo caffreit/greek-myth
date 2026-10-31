@@ -470,9 +470,11 @@ function build(variant,showOthers){
   for(const i of ordering){
     const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?19:15,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.p||pos[v],g=5;
     const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
-      NE:{x:mb.x+mb.w,y:mb.y-h},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
+      NE:{x:mb.x+mb.w,y:mb.y-h},
+      // On the line's continuation past a terminal, the name's baseline resting on the top edge of the track.
+      EL:{x:mb.x+mb.w+g,y:p.y-LW/2-3-size*.86},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
     let best=null;
-    const prefs=lay.kind==='ltr'&&v==='uranus'?['N']:lay.kind==='ltr'&&v==='pontus'?['S']:lay.labelPrefs(v);
+    const prefs=lay.kind==='ltr'&&v==='uranus'?['N']:lay.kind==='ltr'&&v==='pontus'?['S']:lay.kind==='ltr'&&v==='elder_cyclopes'?['EL']:lay.labelPrefs(v);
     prefs.forEach((dir,pi)=>{
       const r={...C[dir],w,h},hit=inflate(r,LW/2+1);let sc=pi*2;
       for(const [a,b] of trackSegs)if(rectHit(hit,a,b))sc+=100;
@@ -630,10 +632,10 @@ function render(variant,showOthers){
   // Section heading with a quieter gloss in brackets, e.g. "Lines (lineages)".
   const heading=(x,name,gloss)=>{const t=txt(svg,x,fy+42,name,{'font-size':headingSize,'font-weight':800,fill:'#22231f'});if(gloss){const g=el('tspan',{'font-weight':500,fill:'#8c897e'},t);g.textContent=` (${gloss})`}};
   const {colW,entries,zones,readingParas,paraGap,readingOffset,readingSize,readingLeading}=legendLayout(W),fx=left+pad;
-  heading(fx,'Lines','lineages');
+  heading(fx,'Lines');
   LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
     entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
-  const zx=fx+2*colW;heading(zx,'Zones','generations');
+  const zx=fx+2*colW;heading(zx,'Zones');
     zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-zoneSwatchH+8,width:zoneSwatchW,height:zoneSwatchH,fill:zoneFill(k),stroke:'#dddbd4'},svg);txt(svg,zx+zoneSwatchW/2,y,String(k),{'font-size':zoneNumSize,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+zoneLabel,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
   const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
   const readingY=fy+74;
