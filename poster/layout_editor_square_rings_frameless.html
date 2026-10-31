@@ -1538,7 +1538,6 @@ function render(){
     g.addEventListener('click',e=>{e.stopPropagation();selectedId=selectedId===id?null:id;applyFocusClasses();updateSidebar();});
   }
   if(showPosterKey){
-    svg.append(makeSvg('rect',{class:'poster-key-band',x:0,y:keyY-KEY_BAND_PAD,width:W,height:H-keyY+KEY_BAND_PAD,style:'fill:#faf8f3'}));
     // The legend's outer edges line up with the map's outermost boxes.
     const keyLeft=LEFT+NODE_INSET_X, keyW=cols*CELL_W-NODE_INSET_X*2;
     const keyLayer=makeSvg('g',{class:'poster-key-layer',transform:`translate(${keyLeft-PAGE_MARGIN*keyScale} ${keyY}) scale(${keyScale})`});
@@ -1875,7 +1874,7 @@ function renderPosterKey(svg,b,W,keyY){
     name.setAttribute('x',x+swatchW+nameGap);
     name.setAttribute('y',centre+8);
   });
-  for(const x of [ringsX-gutter,noteX-gutter])keyG.append(makeSvg('line',{class:'poster-lower-divider',x1:x,y1:y+24,x2:x,y2:y+KEY_PANEL_H-12}));
+  for(const x of [ringsX-gutter,noteX-gutter])keyG.append(makeSvg('line',{class:'poster-lower-divider',x1:x,y1:y+36,x2:x,y2:y+KEY_PANEL_H}));
   renderRingKey(svg,ringsX,y,padTop,bodyFont);
   const noteG=makeSvg('g',{class:'poster-note'});
   svg.append(noteG);
