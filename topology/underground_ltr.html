@@ -472,7 +472,7 @@ function build(variant,showOthers){
     const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
       NE:{x:mb.x+mb.w,y:mb.y-h},
       // On the line's continuation past a terminal, the name's baseline resting on the top edge of the track.
-      EL:{x:mb.x+mb.w+g,y:p.y-LW/2-3-size*.86},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
+      EL:{x:mb.x+mb.w+g,y:p.y-LW/2-size*.86},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
     let best=null;
     const prefs=lay.kind==='ltr'&&v==='uranus'?['N']:lay.kind==='ltr'&&v==='pontus'?['S']:lay.kind==='ltr'&&v==='elder_cyclopes'?['EL']:lay.labelPrefs(v);
     prefs.forEach((dir,pi)=>{
