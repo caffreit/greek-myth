@@ -491,14 +491,16 @@ const NS='http://www.w3.org/2000/svg';
 const el=(name,attrs={},parent)=>{const e=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent?.append(e);return e};
 const txt=(parent,x,y,s,attrs={})=>{const t=el('text',{x,y,'font-family':FONT,...attrs},parent);t.textContent=s;return t};
 function wrap(s,width,size){const words=s.split(' '),out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(measure(t,size,500)>width&&cur){out.push(cur);cur=w}else cur=t}if(cur)out.push(cur);return out}
-function renderSiteFooter(svg,marginRight,pageBottom,margin){
+function renderSiteFooter(svg,marginRight,pageBottom,pageW){
   if(typeof SITE_LOGO_HREF==='undefined')return;
-  const baseline=pageBottom-margin/2+4,logoW=27,logoH=18,logoGap=10,capMid=baseline-4.7;
+  // Same proportions as the frameless poster (1424 wide: 13px text, 27x18 logo, 30px corner inset), scaled to this page.
+  const k=pageW/1424,inset=30*k,logoW=27*k,logoH=18*k,logoGap=10*k,fontSize=13*k;
+  const capMid=pageBottom-inset-logoH/2,baseline=capMid+4.7*k;
   const g=el('g',{'class':'poster-site-footer'},svg);
-  const site=el('text',{'font-family':FONT,'font-size':13,'font-weight':750,'letter-spacing':'.16em',fill:'#2a2b27',y:baseline},g);
+  const site=el('text',{'font-family':FONT,'font-size':fontSize,'font-weight':750,'letter-spacing':'.16em',fill:'#2a2b27',y:baseline},g);
   site.textContent='DRDIMG.COM';
-  const textW=site.getBBox().width;
-  const blockW=textW+logoGap+logoW,blockX=marginRight-blockW;
+  const textW=site.getBBox().width-fontSize*.16;
+  const blockW=textW+logoGap+logoW,blockX=marginRight-inset-blockW;
   site.setAttribute('x',blockX);
   el('image',{class:'poster-site-logo',x:blockX+textW+logoGap,y:capMid-logoH/2,width:logoW,height:logoH,href:SITE_LOGO_HREF,preserveAspectRatio:'xMidYMid meet'},g);
 }
@@ -571,8 +573,7 @@ function render(variant,showOthers){
   const mapOffsetY=portrait?0:(headerRule+fy-y0-mapBottom)/2;
 
   // header
-  txt(svg,left+pad,top+88,'Transit Theogony',{'font-size':largeLegend?72:54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
-  el('line',{x1:left+pad,x2:left+W-pad,y1:headerRule,y2:headerRule,stroke:'#dedcd3'},svg);
+  txt(svg,left+pad,top+(largeLegend?124:88),'Transit Theogony',{'font-size':largeLegend?72:54,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
 
   // LTR is a little taller than the A-series slot, so widen it to the side margins. Ring zones stay square.
   const mapCenterX=(x0+x1)/2,scaleY=mapScale,scaleX=lay.kind==='ltr'?(W-2*pad)/(x1-x0):scaleY;
@@ -613,7 +614,6 @@ function render(variant,showOthers){
 
   // footer key
   const {colW,entries,zones,readingLines,readingOffset,readingSize,readingLeading}=legendLayout(W),fx=left+pad;
-  el('line',{x1:fx,x2:left+W-pad,y1:fy,y2:fy,stroke:'#dedcd3'},svg);
   txt(svg,fx,fy+42,'Lines',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
   LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
     entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
@@ -628,7 +628,7 @@ function render(variant,showOthers){
   readingLines
     .forEach((s,i)=>txt(svg,rx,readingY+readingOffset+i*readingLeading,s,{'font-size':readingSize,'font-weight':500,fill:'#5f5d55'}));
 
-  if(lay.kind==='ltr')renderSiteFooter(svg,left+W-pad,top+H,pad);
+  if(lay.kind==='ltr')renderSiteFooter(svg,left+W,top+H,W);
 
   const pair=pos.zeus&&pos.hera?`Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, `:'';
   document.getElementById('state').textContent=`${stations.length} stations · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, ${pair}searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
