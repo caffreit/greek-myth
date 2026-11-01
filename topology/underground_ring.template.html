@@ -275,7 +275,7 @@ function layoutRing(orders={}){
 
 // Tracks for a set of station positions: each leg leaves its station outward to the zone
 // boundary, follows the boundary in its own lane, then comes in to the next station.
-function ringLayout(pos){
+function ringLayout(pos,refine=false){
   const outward=p=>{const k=sideKey(p);return k.length===2?V(k.includes('E')?1:-1,k.includes('S')?1:-1):k==='E'?V(1,0):k==='W'?V(-1,0):k==='S'?V(0,1):V(0,-1)};
   // How far p is out along diagonal u, measured as a ring size.
   const diagReach=(p,u)=>Math.max(u.x*p.x,u.y*p.y-D);
@@ -303,13 +303,38 @@ function ringLayout(pos){
     const ka=byId[s.a].depth;if(!ka||byId[s.b].depth===ka)continue;const so=(ka+.5)*R;
     const P1=legTo(pos[s.a],outward(pos[s.a]),so).at(-1),Q1=legTo(pos[s.b],outward(pos[s.b]),so).at(-1);
     const T=perimeter(so);let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1)continue;
-    const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;(byOrbit[ka]??=[]).push({key:s.key,a,b:a+Math.abs(dl)});
+    const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;
+    // Siblings that share a line and head the same way share one lane: a single trunk that each child leaves near its station.
+    const from=(byOrbit[ka]??={})[`${s.a}|${Math.sign(d)}`]??=[];
+    let trunk={keys:[s.key],lines:s.lines.slice(),a,b:a+Math.abs(dl),dir:Math.sign(d),reach:Object.fromEntries(s.lines.map(l=>[l,Math.abs(dl)])),exits:[{lines:s.lines,at:Math.abs(dl)}]};
+    for(const t of from.filter(t=>t.lines.some(l=>s.lines.includes(l)))){
+      from.splice(from.indexOf(t),1);
+      const reach={...t.reach};for(const l of trunk.lines)reach[l]=Math.max(reach[l]??0,trunk.reach[l]);
+      trunk={keys:[...t.keys,...trunk.keys],lines:[...new Set([...t.lines,...trunk.lines])],a:Math.min(t.a,trunk.a),b:Math.max(t.b,trunk.b),dir:trunk.dir,reach,exits:[...t.exits,...trunk.exits]};
+    }
+    from.push(trunk);
   }
-  for(const list of Object.values(byOrbit)){
-    const taken=[];list.sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+  const laneGroup={},trunks={};
+  for(const list0 of Object.values(byOrbit)){
+    const taken=[],list=Object.values(list0).flat().sort((x,y)=>(y.b-y.a)-(x.b-x.a));
     const ov=(I,J)=>[-1,0,1].some(sh=>I.a<J.b+sh-1e-9&&J.a+sh<I.b-1e-9);
     for(const I of list){let i=0;while((taken[i]??=[]).some(J=>ov(I,J)))i++;taken[i].push(I);I.lane=i}
-    for(const I of list)lanes[I.key]=(I.lane-(taken.length-1)/2+(EDITS.lanes[I.key]||0))*LANE;
+    const place=()=>{for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=(I.lane-(taken.length-1)/2+shift)*LANE;laneGroup[k]=I.keys;trunks[k]=I}}};
+    place();
+    // Then swap pairs of lanes wherever that removes crossings between this boundary's tracks.
+    if(refine&&list.length>1){
+      const legs=list.flatMap(I=>I.keys).map(k=>segMap.get(k));
+      const crossings=()=>{const ps=legs.map(s=>route(s,pos[s.a],pos[s.b]));let n=0;for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)n+=polyCross(ps[i],ps[j]);return n};
+      const fits=(I,lane,skip)=>!list.some(K=>K!==I&&K!==skip&&K.lane===lane&&ov(I,K));
+      let cur=crossings();
+      for(let pass=0;pass<3&&cur;pass++){let improved=false;
+        for(const I of list)for(const J of list){
+          if(I.lane>=J.lane||!ov(I,J)||!fits(I,J.lane,J)||!fits(J,I.lane,I))continue;
+          [I.lane,J.lane]=[J.lane,I.lane];place();const c=crossings();
+          if(c<cur){cur=c;improved=true}else{[I.lane,J.lane]=[J.lane,I.lane];place()}
+        }
+        if(!improved)break}
+    }
   }
   function route(s,A,B){
     const ka=byId[s.a].depth;if(!ka)return routeOcti(A,B);
@@ -321,7 +346,7 @@ function ringLayout(pos){
   }
   const prefDirs={E:['E','NE','SE','N','S','W','NW','SW'],W:['W','NW','SW','N','S','E','NE','SE'],N:['N','NE','NW','E','W','S','SE','SW'],S:['S','SE','SW','E','W','N','NE','NW'],
     NE:['NE','E','N','SE','NW','S','W','SW'],NW:['NW','W','N','SW','NE','S','E','SE'],SE:['SE','E','S','NE','SW','N','W','NW'],SW:['SW','W','S','NW','SE','N','E','NE']};
-  return {kind:'ring',pos,R,route,lanes,labelPrefs:id=>id==='chaos'?['NW','SW','N','S','W','NE','SE','E']:prefDirs[sideKey(pos[id])]};
+  return {kind:'ring',pos,R,route,lanes,laneGroup,trunks,labelPrefs:id=>id==='chaos'?['NW','SW','N','S','W','NE','SE','E']:prefDirs[sideKey(pos[id])]};
 }
 
 // ---------- hand edits ----------
@@ -336,7 +361,7 @@ let autoLayout=null;
 function currentLayout(){
   const missing=stations.some(v=>!EDITS.positions[v]),auto=missing?autoLayout??=searchRing():null,pos={};
   for(const v of stations){const p=EDITS.positions[v];pos[v]=p?onRing(p,byId[v].depth*R):auto.pos[v]}
-  const lay=ringLayout(pos);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
+  const lay=ringLayout(pos,true);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
   return lay;
 }
 
@@ -372,7 +397,19 @@ function build(variant,showOthers){
   // Once chosen, the order stays put while stations move; the editor can change it by hand.
   const best=trackOrder(pos),tried=best.tried,rank=rankOf(best.perm);EDITS.trackOrder=best.perm;
   const laneGap=GAP;
-  const offOn=(s,l)=>{const ls=s.lines.slice().sort((a,b)=>rank[a]-rank[b]);return ((ls.length-1)/2-ls.indexOf(l))*laneGap};
+  // A bundle in a trunk takes its offsets from all the trunk's lines, so each line keeps one track along the trunk.
+  // Order each trunk's lines so the fewest branches cross track that carries on: a branch leaving
+  // for a station crosses every line on its station side that continues past it.
+  // Travelling anticlockwise, the left of the track is the inner side.
+  const trunkOrder={};
+  for(const t of new Set(Object.values(lay.trunks)))if(t.lines.length>1){
+    const crossings=outer=>t.exits.reduce((n,e)=>n+e.lines.reduce((m,l)=>m+outer.slice(0,outer.indexOf(l)).filter(j=>t.reach[j]>e.at+1e-9).length,0),0);
+    const byRank=t.lines.slice().sort((a,b)=>rank[a]-rank[b]);let best=null;
+    for(const outer of byRank.length<=6?permutations(byRank):[byRank]){const c=crossings(outer);if(!best||c<best.c)best={c,outer}}
+    trunkOrder[t.keys[0]]=t.dir<0?best.outer:best.outer.slice().reverse();
+  }
+  const orderOf=s=>{const t=lay.trunks[s.key];return t&&s.lines.length>1?trunkOrder[t.keys[0]]:s.lines.slice().sort((a,b)=>rank[a]-rank[b])};
+  const offIn=(ls,l)=>((ls.length-1)/2-ls.indexOf(l))*laneGap,offOn=(s,l)=>offIn(orderOf(s),l);
   const base=Object.fromEntries(segs.map(s=>[s.key,lay.route(s,pos[s.a],pos[s.b])]));
   const endDir=s=>{const p=base[s.key];return norm(sub(p.at(-1),p.at(-2)))},startDir=s=>{const p=base[s.key];return norm(sub(p[1],p[0]))};
   // Lines merging into one station arrive side by side rather than on top of each other.
@@ -409,7 +446,8 @@ function build(variant,showOthers){
     const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v),outs=outOf(v);
     const d=ins.length?endDir(ins[0]):startDir(outs[0]),n=leftN(ms?(inTo(v).includes(ms)?endDir(ms):startDir(ms)):d);
     if(ms){
-      const offs=ms.lines.map(l=>offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
+      // Where a trunk starts, the capsule spans all its lines.
+      const ls=ms.a===v?orderOf(ms):ms.lines,offs=ls.map(l=>ms.a===v?offIn(ls,l):offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
       return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
     }
     if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
@@ -645,7 +683,8 @@ function cycleLabel(v,step=1){
   const i=EDITS.labels[v]?LABEL_SIDES.indexOf(EDITS.labels[v]):-1,n=(i+1+step+LABEL_SIDES.length+1)%(LABEL_SIDES.length+1)-1;
   if(n<0)delete EDITS.labels[v];else EDITS.labels[v]=LABEL_SIDES[n];rerender();
 }
-function shiftLane(key,d){EDITS.lanes[key]=(EDITS.lanes[key]||0)+d;if(!EDITS.lanes[key])delete EDITS.lanes[key];rerender()}
+const trunkKey=key=>EDITOR.B?.lay.laneGroup[key]?.[0]??key;
+function shiftLane(key,d){key=trunkKey(key);EDITS.lanes[key]=(EDITS.lanes[key]||0)+d;if(!EDITS.lanes[key])delete EDITS.lanes[key];rerender()}
 function moveTrack(l,d){const o=EDITS.trackOrder,i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];rerender()}
 
 function drawEditor(mapGroup,B){
@@ -659,12 +698,12 @@ function drawEditor(mapGroup,B){
 const maxDepth=Math.max(...stations.map(id=>byId[id].depth));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>`&#${c.charCodeAt(0)};`);
 function renderPanel(B){
-  const panel=document.getElementById('panel'),v=EDITOR.sel,seg=EDITOR.seg&&segMap.get(EDITOR.seg);
+  EDITOR.B=B;const panel=document.getElementById('panel'),v=EDITOR.sel,seg=EDITOR.seg&&segMap.get(EDITOR.seg);
   const sel=v?`<div class="row"><b class="grow">${esc(byId[v].name)}</b>zone ${byId[v].depth}</div>
     <div class="row">label <span class="grow">${EDITS.labels[v]??'auto'}</span><button data-act="label-">◀</button><button data-act="label+">▶</button></div>
     <div class="row"><button data-act="reset">Reset to automatic</button></div>`:'<div class="keys">Click or drag a station.</div>';
   const lane=seg?`<h3>Track</h3><div class="row"><span class="grow">${esc(byId[seg.a].name)} → ${esc(byId[seg.b].name)}</span></div>
-    <div class="row">lane shift <span class="grow">${EDITS.lanes[seg.key]||0}</span><button data-act="lane-">inward</button><button data-act="lane+">outward</button></div>`:'';
+    <div class="row">lane shift <span class="grow">${EDITS.lanes[trunkKey(seg.key)]||0}</span><button data-act="lane-">inward</button><button data-act="lane+">outward</button></div>`:'';
   const order=EDITS.trackOrder.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="up" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="down" data-line="${l}"${i<EDITS.trackOrder.length-1?'':' disabled'}>▼</button></div>`).join('');
   panel.innerHTML=`<h3>Station</h3>${sel}${lane}
     <h3>Track order in bundles</h3><div class="keys">Left of the direction of travel first. ${B.best.c} bundle crossings.</div>${order}
