@@ -25,7 +25,7 @@ const source = await readFile(process.argv[2] ?? 'topology/underground_ltr.html'
 const variant = source.match(/const VARIANT='(ltr|ring)'/)?.[1];
 if (!variant) throw new Error('Page has no VARIANT');
 const context = vm.createContext({ document, console, URLSearchParams });
-vm.runInContext(source.split('<script>')[1].split('// ---------- boot ----------')[0], context);
+vm.runInContext(source.split('<script>')[1].split('// ---------- editor ----------')[0].split('// ---------- boot ----------')[0], context);
 vm.runInContext(`globalThis.result = build(${JSON.stringify(variant)}, false); render(${JSON.stringify(variant)}, false)`, context);
 if (variant === 'ring') {
   for (const track of context.result.tracks) for (const p of track.pts) assert(Number.isFinite(p.x) && Number.isFinite(p.y));

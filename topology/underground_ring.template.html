@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>/* PAGE_TITLE */</title>
+<!-- /* PAGE_NOTE */ -->
+<style>
+html,body{margin:0;background:#e6e4de;font-family:Inter,"Helvetica Neue",Arial,sans-serif}
+#poster{display:block;margin:20px auto 90px;width:min(96vw,1650px);height:auto;background:#fcfbf8;box-shadow:0 2px 26px rgba(0,0,0,.09)}
+.bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:14px;align-items:center;background:#16171a;color:#f3f3f0;border-radius:999px;padding:7px 16px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.28);z-index:10;white-space:nowrap}
+.bar a{color:#f3f3f0;font-weight:700;text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar label{display:flex;gap:5px;align-items:center;cursor:pointer;color:#d6d7da}
+.bar .state{color:#9fa2a8;font-size:11.5px}
+.bar button{font:inherit;font-weight:700;border:0;border-radius:999px;padding:4px 14px;background:#2f6fd6;color:#fff;cursor:pointer}
+.bar button:disabled{background:#4a4c52;color:#9fa2a8;cursor:default}
+.panel{position:fixed;top:16px;right:16px;width:270px;max-height:calc(100vh - 100px);overflow:auto;background:#16171a;color:#e8e8e4;border-radius:12px;padding:12px 14px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.28);z-index:10}
+.panel h3{margin:12px 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fa2a8}
+.panel h3:first-child{margin-top:0}
+.panel button{font:inherit;border:0;border-radius:5px;padding:2px 7px;background:#33353b;color:#e8e8e4;cursor:pointer}
+.panel button:hover{background:#474a52}
+.panel .row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.panel .sw{width:18px;height:6px;border-radius:2px;flex:none}
+.panel .grow{flex:1}
+.panel .keys{color:#9fa2a8;line-height:1.55}
+.panel kbd{font:inherit;background:#33353b;border-radius:3px;padding:0 4px;color:#e8e8e4}
+body.editing #poster{cursor:default;user-select:none;width:min(calc(100vw - 340px),1650px);margin-left:20px}
+body.editing [data-station]{cursor:grab}
+body.editing [data-label],body.editing [data-seg]{cursor:pointer}
+</style>
+</head>
+<body>
+<svg id="poster" xmlns="http://www.w3.org/2000/svg"></svg>
+<script id="svgExportBuffer" type="application/xml"></script>
+<div class="bar">
+  <a href="/* OTHER_HREF */">/* OTHER_LABEL */</a>
+  <label><input type="checkbox" id="others"> other parents</label>
+  <label><input type="checkbox" id="edit"> edit</label>
+  <button id="save" hidden disabled title="Run node tools/ring_editor.mjs to save">Save</button>
+  <span class="state" id="state"></span>
+</div>
+<div class="panel" id="panel" hidden></div>
+<script>
+const DATA=/* PROTOTYPE_DATA */;
+const VARIANT='/* VARIANT_KEY */';
+const byId=Object.fromEntries(DATA.people.map(p=>[p.id,p]));
+const LINES=DATA.lines,lineById=Object.fromEntries(LINES.map(l=>[l.id,l]));
+const FONT='Inter, "Helvetica Neue", Arial, sans-serif';
+const LW=8,CASING=2,GAP=11,LANE=14,CORNER=20,TICK=5.5;
+// Extra half-height of every ring, which turns the square rings into a portrait map.
+const STRETCH=170;
+
+const V=(x,y)=>({x,y}),add=(a,b)=>V(a.x+b.x,a.y+b.y),sub=(a,b)=>V(a.x-b.x,a.y-b.y),mul=(a,k)=>V(a.x*k,a.y*k);
+const len=a=>Math.hypot(a.x,a.y),norm=a=>{const l=len(a)||1;return V(a.x/l,a.y/l)},dot=(a,b)=>a.x*b.x+a.y*b.y,cross=(a,b)=>a.x*b.y-a.y*b.x;
+const leftN=d=>V(d.y,-d.x),dist=(a,b)=>len(sub(a,b));
+
+// ---------- network: stations, track segments, tree of first appearance ----------
+const segMap=new Map(),stations=[],treeParent={},kids={};
+// Aether, Hemera and Charon stay on the Erebus branch. Night merges into them afterwards.
+const erebusChildren=new Set(['aether','hemera','charon']);
+function addSeg(a,id,lineId){
+  const key=a+'>'+id;if(!segMap.has(key))segMap.set(key,{key,a,b:id,lines:[]});
+  const s=segMap.get(key);if(!s.lines.includes(lineId))s.lines.push(lineId);
+}
+for(const L of LINES)for(const path of L.paths)path.forEach((id,i)=>{
+  if(!stations.includes(id)){
+    if(L.id==='night'&&erebusChildren.has(id))return;
+    stations.push(id);kids[id]=[];if(i>0){treeParent[id]=path[i-1];kids[path[i-1]].push(id)}
+  }
+  if(i>0&&stations.includes(id))addSeg(path[i-1],id,L.id);
+});
+for(const id of erebusChildren)addSeg('nyx',id,'night');
+const segs=[...segMap.values()];
+const outOf=id=>segs.filter(s=>s.a===id),inTo=id=>segs.filter(s=>s.b===id);
+const linesAt=Object.fromEntries(stations.map(id=>[id,new Set()]));
+for(const s of segs)for(const l of s.lines){linesAt[s.a].add(l);linesAt[s.b].add(l)}
+const otherParentLinks=DATA.links.filter(([a,b])=>stations.includes(a)&&stations.includes(b)&&!segMap.has(a+'>'+b));
+
+// ---------- geometry helpers ----------
+function clean(pts){
+  const out=[];for(const p of pts){if(out.length&&dist(out.at(-1),p)<.5)continue;out.push(p)}
+  for(let i=out.length-2;i>0;i--){const u=sub(out[i],out[i-1]),w=sub(out[i+1],out[i]);if(Math.abs(cross(u,w))<1e-6*len(u)*len(w)+1e-9&&dot(u,w)>0)out.splice(i,1)}
+  return out;
+}
+function segX(p1,p2,p3,p4){const d1=sub(p2,p1),d2=sub(p4,p3),den=cross(d1,d2);if(Math.abs(den)<1e-9)return false;const t=cross(sub(p3,p1),d2)/den,u=cross(sub(p3,p1),d1)/den;return t>1e-6&&t<1-1e-6&&u>1e-6&&u<1-1e-6}
+function bbox(pts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)}return {x0,y0,x1,y1}}
+function polyCross(a,b){
+  const A=a.bb??=bbox(a),B=b.bb??=bbox(b);if(A.x1<B.x0||B.x1<A.x0||A.y1<B.y0||B.y1<A.y0)return 0;
+  let n=0;for(let i=1;i<a.length;i++)for(let j=1;j<b.length;j++)if(segX(a[i-1],a[i],b[j-1],b[j]))n++;return n;
+}
+function pointSegDist(p,a,b){const d=sub(b,a),t=Math.max(0,Math.min(1,dot(sub(p,a),d)/(dot(d,d)||1)));return dist(p,add(a,mul(d,t)))}
+// Layout score used by both searches: crossings and track running through other stations dominate, then total track length.
+function layoutCost(lay){
+  const polys=segs.map(s=>lay.route(s,lay.pos[s.a],lay.pos[s.b]));let cr=0,L=0,through=0;
+  for(let i=0;i<polys.length;i++){
+    for(let k=1;k<polys[i].length;k++)L+=dist(polys[i][k-1],polys[i][k]);
+    for(let j=i+1;j<polys.length;j++)cr+=polyCross(polys[i],polys[j]);
+    for(const v of stations){if(v===segs[i].a||v===segs[i].b)continue;for(let k=1;k<polys[i].length;k++)if(pointSegDist(lay.pos[v],polys[i][k-1],polys[i][k])<16){through++;break}}
+  }
+  const apart=coupleDistance(lay.pos),bend=spineBend(lay.pos);
+  return {cr,through,L,apart,bend,cost:cr*1000+through*700+L+apart+bend*40};
+}
+// The Sovereignty line from Chaos to Zeus is the poster's spine: it runs level along the east side.
+const spine=LINES[0].paths[0].slice(1,LINES[0].paths[0].indexOf('zeus')+1);
+const spineBend=pos=>spine.reduce((s,id)=>s+Math.abs(pos[id].y),0);
+// Weighted distance between partners, so couples with shared children sit near each other.
+const coupleDistance=pos=>DATA.couples.reduce((s,c)=>s+c.weight*dist(pos[c.a],pos[c.b]),0);
+function offsetPoly(pts,off){
+  if(!off)return pts.slice();
+  return pts.map((p,i)=>{
+    const dp=i>0?norm(sub(p,pts[i-1])):null,dn=i<pts.length-1?norm(sub(pts[i+1],p)):null;
+    if(!dp)return add(p,mul(leftN(dn),off));if(!dn)return add(p,mul(leftN(dp),off));
+    const n1=leftN(dp),m=norm(add(n1,leftN(dn)));return add(p,mul(m,off/Math.max(.3,dot(m,n1))));
+  });
+}
+const f=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+function roundedD(pts,r){
+  let d=`M${f(pts[0])}`;
+  for(let i=1;i<pts.length-1;i++){const a=pts[i-1],b=pts[i],c=pts[i+1],rr=Math.min(r,dist(a,b)/2,dist(b,c)/2);d+=` L${f(add(b,mul(norm(sub(a,b)),rr)))} Q${f(b)} ${f(add(b,mul(norm(sub(c,b)),rr)))}`}
+  return d+` L${f(pts.at(-1))}`;
+}
+function rectHit(r,a,b){
+  let t0=0,t1=1;const dx=b.x-a.x,dy=b.y-a.y;
+  for(const [p,q] of [[-dx,a.x-r.x],[dx,r.x+r.w-a.x],[-dy,a.y-r.y],[dy,r.y+r.h-a.y]]){
+    if(Math.abs(p)<1e-12){if(q<0)return false}else{const t=q/p;if(p<0){if(t>t1)return false;if(t>t0)t0=t}else{if(t<t0)return false;if(t<t1)t1=t}}
+  }
+  return true;
+}
+const rectsOverlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+const inflate=(r,k)=>({x:r.x-k,y:r.y-k,w:r.w+2*k,h:r.h+2*k});
+const measure=(()=>{const ctx=document.createElement('canvas').getContext('2d');return(text,size,weight)=>{ctx.font=`${weight} ${size}px ${FONT}`;return ctx.measureText(text).width}})();
+function* permutations(xs){if(xs.length<=1){yield xs.slice();return}for(let i=0;i<xs.length;i++){const rest=[...xs.slice(0,i),...xs.slice(i+1)];for(const p of permutations(rest))yield [xs[i],...p]}}
+
+// Symmetric octilinear route along the dominant axis.
+function routeOcti(P,Q){
+  const dx=Q.x-P.x,dy=Q.y-P.y,ax=Math.abs(dx),ay=Math.abs(dy);
+  if(ax<.5||ay<.5||Math.abs(ax-ay)<.5)return [P,Q];
+  if(ax>ay){const h=(ax-ay)/2*Math.sign(dx);return [P,V(P.x+h,P.y),V(Q.x-h,Q.y),Q]}
+  const h=(ay-ax)/2*Math.sign(dy);return [P,V(P.x,P.y+h),V(Q.x,Q.y-h),Q];
+}
+
+// Replace any leg that isn't at 0°, 45° or 90° with an octilinear two-bend route between its ends.
+function octilinear(pts){
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const a=out.at(-1),b=pts[i],ax=Math.abs(b.x-a.x),ay=Math.abs(b.y-a.y);
+    if(ax<.5||ay<.5||Math.abs(ax-ay)<.5)out.push(b);else out.push(...routeOcti(a,b).slice(1));
+  }
+  return clean(out);
+}
+
+// Hill-climb an ordering by moving one item to another position until nothing improves; exhaustive when short.
+function improveOrder(items,evaluate,maxEvals=1e9){
+  let tried=0,best=null;const run=o=>{if(tried>=maxEvals)return false;tried++;const r=evaluate(o);if(!best||r.c.cost<best.c.cost-1e-6){best={...r,order:o};return true}return false};
+  if(items.length<=5){for(const p of permutations(items))run(p);return {best,tried}}
+  run(items);
+  for(let pass=0;pass<4;pass++){let improved=false;
+    for(let i=0;i<items.length;i++)for(let j=0;j<items.length;j++){if(i===j)continue;const o=best.order.slice(),[x]=o.splice(i,1);o.splice(j,0,x);if(run(o))improved=true}
+    if(!improved)break}
+  return {best,tried};
+}
+// ---------- layout: zones as rings, lines travel along zone boundaries ----------
+// Coordinate descent over each station's sibling order (the radial analogue of crossing-minimising layer ordering).
+const roots=stations.filter(id=>id!=='chaos'&&!treeParent[id]);
+const rootPartner=Object.fromEntries(roots.map(v=>[v,DATA.couples.map(c=>c.a===v?c.b:c.b===v?c.a:null).find(o=>o&&byId[o].depth===byId[v].depth)]));
+// Start from the saved arrangement, so adding a figure nudges the map instead of redrawing it.
+// A saved family keeps its order: the search only chooses where each new child joins it.
+const SEED=DATA.seed;
+const defaultOrder=v=>{const [m,...o]=kids[v];if(!m)return [];const h=Math.floor(o.length/2);return [...o.slice(0,h),m,...o.slice(h)]};
+function searchRing(){
+  const orders={roots:{}},fresh={};
+  for(const v of stations){
+    const saved=SEED?.orders?.[v];if(!saved||kids[v].length<2)continue;
+    const kept=saved.filter(c=>kids[v].includes(c));orders[v]=kept;fresh[v]=kids[v].filter(c=>!kept.includes(c));
+  }
+  for(const v of roots)if(SEED?.roots?.[v]!==undefined)orders.roots[v]=SEED.roots[v];
+  const cost=o=>{const lay=layoutRing(o);return {lay,c:layoutCost(lay)}};
+  let tried=0;
+  for(const v of Object.keys(fresh))for(const c of fresh[v]){
+    let pick=null;
+    for(let i=0;i<=orders[v].length;i++){const o=orders[v].slice();o.splice(i,0,c);const r=cost({...orders,[v]:o});tried++;if(!pick||r.c.cost<pick.c.cost)pick={o,...r}}
+    orders[v]=pick.o;
+  }
+  let best=cost(orders);tried++;
+  for(let round=0;round<2;round++){
+    for(const v of stations){
+      if(kids[v].length<2||SEED?.orders?.[v])continue;
+      const r=improveOrder(orders[v]??kids[v],o=>cost({...orders,[v]:o}));
+      tried+=r.tried;if(r.best.c.cost<best.c.cost-1e-6){best=r.best;orders[v]=r.best.order}
+    }
+    for(const v of roots)if(rootPartner[v]&&SEED?.roots?.[v]===undefined)for(const side of [-1,0,1]){
+      if(side===(orders.roots[v]??0))continue;
+      const o={...orders,roots:{...orders.roots,[v]:side}},r=cost(o);tried++;
+      if(r.c.cost<best.c.cost-1e-6){best=r;orders.roots=o.roots}
+    }
+  }
+  for(const v of stations)if(kids[v].length>=2)orders[v]??=defaultOrder(v);
+  for(const v of roots)orders.roots[v]??=0;
+  return Object.assign(best.lay,{search:`${tried} sibling orders`,score:best.c,orders});
+}
+// Ring s is a rectangle s wide and s+D tall either side of Chaos. Every ring shares the same D,
+// so corners of successive rings stay on 45° diagonals. Stations sit on ring depth×R.
+const R=165,D=STRETCH,perimeter=s=>8*s+4*D,hy=s=>s+D;
+const sideKey=(p)=>{const ax=Math.abs(p.x),ay=Math.abs(p.y)-D;return Math.abs(ax-ay)<1&&ay>0?(p.y<0?'N':'S')+(p.x>0?'E':'W'):ax>ay?(p.x>0?'E':'W'):(p.y>0?'S':'N')};
+const cornerPt=(k,s)=>V(k.includes('E')?s:-s,k.includes('S')?hy(s):-hy(s));
+const fromSide=(k,c,s)=>k==='E'?V(s,c):k==='W'?V(-s,c):k==='N'?V(c,-hy(s)):V(c,hy(s));
+const tang=(p,k)=>k==='E'||k==='W'?p.y:p.x;
+const halfSide=(k,s)=>k==='E'||k==='W'?hy(s):s;
+const cornerFrom=(k,c)=>k==='E'?(c<0?'NE':'SE'):k==='W'?(c<0?'NW':'SW'):k==='N'?(c<0?'NW':'NE'):(c<0?'SW':'SE');
+// Stations sit mid-side or exactly on a corner, so every leg to a zone boundary is 0°, 45° or 90°.
+function snap(p,s){
+  if(!s)return V(0,0);const k=sideKey(p);if(k.length===2)return cornerPt(k,s);
+  const c=tang(p,k),h=halfSide(k,s),maxC=h-R/2;if(Math.abs(c)<=maxC)return fromSide(k,c,s);
+  return Math.abs(c)>h-R/4?cornerPt(cornerFrom(k,c),s):fromSide(k,Math.sign(c)*maxC,s);
+}
+// Distance along ring s, anticlockwise from the middle of its east side.
+function tOf(p,s){
+  const h=hy(s);let {x,y}=p;if(Math.abs(x)>=Math.abs(y)-D)x=Math.sign(x||1)*s;else y=Math.sign(y)*h;
+  if(x>=s-1e-6&&y<=0)return -y;if(y<=-h+1e-6)return h+(s-x);if(x<=-s+1e-6)return h+2*s+(y+h);if(y>=h-1e-6)return 3*h+2*s+(x+s);return 3*h+4*s+(h-y);
+}
+function pOf(t,s){
+  const h=hy(s),T=perimeter(s);t=((t%T)+T)%T;
+  if(t<=h)return V(s,-t);if(t<=h+2*s)return V(s-(t-h),-h);if(t<=3*h+2*s)return V(-s,-h+(t-h-2*s));if(t<=3*h+4*s)return V(-s+(t-3*h-2*s),h);return V(s,h-(t-3*h-4*s));
+}
+// The nearest valid station point on ring s.
+const onRing=(p,s)=>s?snap(pOf(tOf(p,s),s),s):V(0,0);
+
+function layoutRing(orders={}){
+  const w={};
+  const weight=v=>w[v]=kids[v].length?kids[v].reduce((s,c)=>s+weight(c),0):1;weight('chaos');
+  const ordered=v=>orders[v]??defaultOrder(v);
+  const ang={};
+  function place(v,lo,hi,th){ang[v]=th;let t=lo;for(const c of ordered(v)){const span=(hi-lo)*w[c]/w[v];let tc=t+span/2;if(c===kids[v][0]&&th>=t-1e-9&&th<=t+span+1e-9)tc=th;place(c,t,t+span,tc);t+=span}}
+  const main=kids.chaos[0];let before=0;for(const c of ordered('chaos')){if(c===main)break;before+=w[c]}
+  const frac=(before+w[main]/2)/w.chaos;place('chaos',-2*Math.PI*frac,2*Math.PI*(1-frac),0);
+  // The priority couple sits side by side on its ring; the moved partner brings its own descendants along.
+  // Children the couple share (Erebus and Nyx's) stay put instead, grouped beside the other partner's own children.
+  const turn=(v,d)=>{ang[v]+=d;for(const c of kids[v])turn(c,d)};
+  const besideStep=v=>1.3*62*2*Math.PI/perimeter(byId[v].depth*R);
+  const parentOf=(p,c)=>DATA.links.some(([a,b])=>a===p&&b===c);
+  for(const c of DATA.couples.filter(c=>c.weight>=3&&byId[c.a].depth===byId[c.b].depth&&!roots.includes(c.a)&&!roots.includes(c.b))){
+    let gap=ang[c.b]-ang[c.a];gap=Math.atan2(Math.sin(gap),Math.cos(gap));
+    const d=Math.sign(gap||1)*besideStep(c.a)-gap;
+    if(kids[c.b].length&&kids[c.b].every(k=>parentOf(c.a,k)))ang[c.b]+=d;else turn(c.b,d);
+  }
+  // A figure with no recorded parents (a consort such as Leto) sits in line with its children,
+  // or beside its partner on either side, as the search chooses.
+  for(const v of roots){
+    const cs=outOf(v).map(s=>ang[s.b]),partner=rootPartner[v],side=orders.roots?.[v]??0;
+    ang[v]=side&&partner?ang[partner]+side*besideStep(v):Math.atan2(cs.reduce((t,a)=>t+Math.sin(a),0),cs.reduce((t,a)=>t+Math.cos(a),0));
+  }
+
+  // Angles are shares of the whole ring, so a long side holds proportionally more stations.
+  const sq=(th,s)=>pOf(-th/(2*Math.PI)*perimeter(s),s);
+  const pos={chaos:V(0,0)};
+  const order=stations.slice().sort((a,b)=>byId[a].depth-byId[b].depth);
+  for(const id of order){
+    if(id==='chaos')continue;const s=byId[id].depth*R;let p=snap(sq(ang[id],s),s);
+    const par=treeParent[id];
+    if(par&&par!=='chaos'){
+      const q=pos[par],kp=sideKey(q),kv=sideKey(p);
+      if(kp===kv&&kp.length===1&&Math.abs(tang(q,kp)-tang(p,kv))<=R*.35&&Math.abs(tang(q,kp))<=halfSide(kp,s)-R/2)p=fromSide(kv,tang(q,kp),s);
+      else if(kp.length===2&&kp===kv)p=cornerPt(kv,s);
+    }
+    pos[id]=p;
+  }
+  const SL=62;
+  for(let k=1;k<=6;k++){
+    const s=k*R,arr=stations.filter(id=>byId[id].depth===k).map(id=>({id,t:tOf(pos[id],s)})).sort((a,b)=>a.t-b.t);
+    for(let i=1;i<arr.length;i++)if(arr[i].t-arr[i-1].t<SL){arr[i].t=arr[i-1].t+SL;pos[arr[i].id]=snap(pOf(arr[i].t,s),s);arr[i].t=tOf(pos[arr[i].id],s)}
+  }
+  return ringLayout(pos);
+}
+
+// Tracks for a set of station positions: each leg leaves its station outward to the zone
+// boundary, follows the boundary in its own lane, then comes in to the next station.
+function ringLayout(pos){
+  const outward=p=>{const k=sideKey(p);return k.length===2?V(k.includes('E')?1:-1,k.includes('S')?1:-1):k==='E'?V(1,0):k==='W'?V(-1,0):k==='S'?V(0,1):V(0,-1)};
+  // How far p is out along diagonal u, measured as a ring size.
+  const diagReach=(p,u)=>Math.max(u.x*p.x,u.y*p.y-D);
+  function toSquare(p,u,so,out){
+    if(u.x&&u.y){const m=diagReach(p,u);return out?add(p,mul(u,so-m)):sub(p,mul(u,m-so))}
+    if(u.x)return V(Math.sign(u.x)*so,Math.max(-hy(so),Math.min(hy(so),p.y)));
+    return V(Math.max(-so,Math.min(so,p.x)),Math.sign(u.y)*hy(so));
+  }
+  // Points from p to the boundary ring, moving perpendicular to p's side. If p lies beyond the
+  // boundary's corner (a lane can shrink it), continue along the boundary line to the corner rather than slanting.
+  function legTo(p,u,so){
+    if(u.x&&u.y)return [toSquare(p,u,so,diagReach(p,u)<so)];
+    const e=u.x?V(Math.sign(u.x)*so,p.y):V(p.x,Math.sign(u.y)*hy(so)),c=u.x?p.y:p.x,h=u.x?hy(so):so;
+    if(Math.abs(c)<=h)return [e];
+    return [e,u.x?V(e.x,Math.sign(c)*h):V(Math.sign(c)*h,e.y)];
+  }
+  function orbit(P,Q,s){
+    const T=perimeter(s),h=hy(s),tp=tOf(P,s),tq=tOf(Q,s);let d=tq-tp;if(d>T/2)d-=T;if(d<-T/2)d+=T;const dir=Math.sign(d),out=[];
+    for(const cT of [h,h+2*s,3*h+2*s,3*h+4*s]){const rel=((((cT-tp)*dir)%T)+T)%T;if(rel>1e-6&&rel<Math.abs(d)-1e-6)out.push({rel,p:pOf(cT,s)})}
+    return out.sort((a,b)=>a.rel-b.rel).map(o=>o.p);
+  }
+  // Lane assignment on each zone boundary: longer journeys take inner lanes, so lines peel off outward without crossing.
+  const lanes={},byOrbit={};
+  for(const s of segs){
+    const ka=byId[s.a].depth;if(!ka||byId[s.b].depth===ka)continue;const so=(ka+.5)*R;
+    const P1=legTo(pos[s.a],outward(pos[s.a]),so).at(-1),Q1=legTo(pos[s.b],outward(pos[s.b]),so).at(-1);
+    const T=perimeter(so);let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1)continue;
+    const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;(byOrbit[ka]??=[]).push({key:s.key,a,b:a+Math.abs(dl)});
+  }
+  for(const list of Object.values(byOrbit)){
+    const taken=[];list.sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+    const ov=(I,J)=>[-1,0,1].some(sh=>I.a<J.b+sh-1e-9&&J.a+sh<I.b-1e-9);
+    for(const I of list){let i=0;while((taken[i]??=[]).some(J=>ov(I,J)))i++;taken[i].push(I);I.lane=i}
+    for(const I of list)lanes[I.key]=(I.lane-(taken.length-1)/2+(EDITS.lanes[I.key]||0))*LANE;
+  }
+  function route(s,A,B){
+    const ka=byId[s.a].depth;if(!ka)return routeOcti(A,B);
+    // Partners share a ring, so the step between them follows it.
+    if(byId[s.b].depth===ka)return octilinear(clean([A,...orbit(A,B,ka*R),B]));
+    const so=(ka+.5)*R+(lanes[s.key]||0);
+    const P1=toSquare(A,outward(pos[s.a]),so,true),Q1=toSquare(B,outward(pos[s.b]),so,false);
+    return octilinear(clean([A,P1,...orbit(P1,Q1,so),Q1,B]));
+  }
+  const prefDirs={E:['E','NE','SE','N','S','W','NW','SW'],W:['W','NW','SW','N','S','E','NE','SE'],N:['N','NE','NW','E','W','S','SE','SW'],S:['S','SE','SW','E','W','N','NE','NW'],
+    NE:['NE','E','N','SE','NW','S','W','SW'],NW:['NW','W','N','SW','NE','S','E','SE'],SE:['SE','E','S','NE','SW','N','W','NW'],SW:['SW','W','S','NW','SE','N','E','NE']};
+  return {kind:'ring',pos,R,route,lanes,labelPrefs:id=>id==='chaos'?['NW','SW','N','S','W','NE','SE','E']:prefDirs[sideKey(pos[id])]};
+}
+
+// ---------- hand edits ----------
+// Saved by the editor in topology/ring_positions.json: station positions, label sides,
+// lane shifts on zone boundaries (in lanes) and the order of tracks within bundles.
+// Stations without a saved position are placed by the layout search.
+const EDITS={positions:{},labels:{},lanes:{},trackOrder:null,...JSON.parse(JSON.stringify(DATA.edits??{}))};
+// Editor state; render reads it to draw the editing overlay.
+const EDITOR={on:false,sel:null,seg:null,guide:null,drag:null,undo:[],redo:[],saved:null,server:false,
+  dirty(){return this.saved!==null&&this.saved!==snapshot()}};
+let autoLayout=null;
+function currentLayout(){
+  const missing=stations.some(v=>!EDITS.positions[v]),auto=missing?autoLayout??=searchRing():null,pos={};
+  for(const v of stations){const p=EDITS.positions[v];pos[v]=p?onRing(p,byId[v].depth*R):auto.pos[v]}
+  const lay=ringLayout(pos);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
+  return lay;
+}
+
+// ---------- line order, bundles, stations, labels ----------
+function countCrossings(rank,pos){
+  let n=0;
+  const ang=(d,u)=>Math.atan2(-cross(d,u),dot(d,u));
+  for(const e of segs){
+    if(e.lines.length<2)continue;const d=norm(sub(pos[e.b],pos[e.a]));
+    for(const p of e.lines)for(const q of e.lines){
+      if(rank[p]>=rank[q])continue;
+      const op=outOf(e.b).filter(s=>s.lines.includes(p)),oq=outOf(e.b).filter(s=>s.lines.includes(q));
+      for(const x of op)for(const y of oq){if(x===y)continue;if(ang(d,sub(pos[x.b],pos[e.b]))<ang(d,sub(pos[y.b],pos[e.b]))-1e-6)n++}
+    }
+  }
+  return n;
+}
+
+let layoutCache;
+// Lines that share track somewhere. Their order holds across every bundle, so bundles never twist.
+const sharedLines=[...new Set(segs.filter(s=>s.lines.length>1).flatMap(s=>s.lines))];
+const rankOf=order=>{const rank={};order.forEach((l,i)=>rank[l]=i);LINES.forEach((l,i)=>rank[l.id]??=100+i);return rank};
+// The saved track order, or else the order with fewest bundle crossings (tried exhaustively, so slow).
+function trackOrder(pos){
+  const saved=EDITS.trackOrder?.filter(l=>sharedLines.includes(l));
+  if(saved){const perm=[...saved,...sharedLines.filter(l=>!saved.includes(l))];return {perm,c:countCrossings(rankOf(perm),pos),tried:0}}
+  let best=null,tried=0;
+  for(const perm of permutations(sharedLines)){tried++;const c=countCrossings(rankOf(perm),pos);if(!best||c<best.c)best={c,perm}}
+  return {...best,tried};
+}
+function build(variant,showOthers){
+  const lay=layoutCache??=currentLayout(),pos=lay.pos;
+  // Once chosen, the order stays put while stations move; the editor can change it by hand.
+  const best=trackOrder(pos),tried=best.tried,rank=rankOf(best.perm);EDITS.trackOrder=best.perm;
+  const laneGap=GAP;
+  const offOn=(s,l)=>{const ls=s.lines.slice().sort((a,b)=>rank[a]-rank[b]);return ((ls.length-1)/2-ls.indexOf(l))*laneGap};
+  const base=Object.fromEntries(segs.map(s=>[s.key,lay.route(s,pos[s.a],pos[s.b])]));
+  const endDir=s=>{const p=base[s.key];return norm(sub(p.at(-1),p.at(-2)))},startDir=s=>{const p=base[s.key];return norm(sub(p[1],p[0]))};
+  // Lines merging into one station arrive side by side rather than on top of each other.
+  const endOff={};
+  for(const v of stations){
+    const ins=inTo(v).filter(s=>s.lines.length===1);if(ins.length<2)continue;
+    ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*laneGap);
+  }
+  const laneIn=(l,v)=>{const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
+  const startOff={};
+  for(const v of stations){
+    const ref=inTo(v)[0]??outOf(v).find(s=>s.lines.length>1);if(!ref)continue;
+    const d=inTo(v).includes(ref)?endDir(ref):startDir(ref),n=leftN(d),offs=ref.lines.map(l=>ref.lines.length>1?offOn(ref,l):(endOff[ref.key]??0));
+    const starters=[...new Map(outOf(v).filter(s=>s.lines.length===1&&!laneIn(s.lines[0],v)).map(s=>[s.lines[0],{l:s.lines[0],k:dot(n,norm(sub(pos[s.b],pos[v])))}])).values()];
+    for(const sg of [1,-1])starters.filter(x=>(x.k>=0?1:-1)===sg).sort((a,b)=>Math.abs(a.k)-Math.abs(b.k)).forEach((x,i)=>startOff[v+'|'+x.l]={off:(sg>0?Math.max(...offs):Math.min(...offs))+sg*laneGap*(i+1),n});
+  }
+  function segEnds(s,l){
+    let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
+    if(li)A=add(A,mul(li.n,li.off));
+    const eo=endOff[s.key]??0,B=eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
+    return {A,B};
+  }
+  function segPoly(s,l){
+    if(s.lines.length>1)return offsetPoly(base[s.key],offOn(s,l));
+    const {A,B}=segEnds(s,l);
+    return octilinear(lay.route(s,A,B));
+  }
+  const tracks=[];
+  for(const L of LINES)for(const path of L.paths){const pts=[];for(let i=1;i<path.length;i++)pts.push(...segPoly(segMap.get(path[i-1]+'>'+path[i]),L.id));tracks.push({line:L,pts:clean(pts)})}
+
+  // station markers
+  const markers=stations.map(v=>{
+    const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v),outs=outOf(v);
+    const d=ins.length?endDir(ins[0]):startDir(outs[0]),n=leftN(ms?(inTo(v).includes(ms)?endDir(ms):startDir(ms)):d);
+    if(ms){
+      const offs=ms.lines.map(l=>offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
+      return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
+    }
+    if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
+    const l=[...linesAt[v]][0],p=pos[v];
+    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,d};
+  });
+  // Retreat a terminus that would be swallowed by another station's interchange capsule.
+  for(const m of markers.filter(m=>m.terminal)){
+    const home=m.p;
+    for(let step=0;step<40;step++){
+      const p=sub(m.p,mul(m.d,TICK/2)),a=sub(p,mul(m.n,LW/2+7)),b=add(p,mul(m.n,LW/2+7));
+      if(!markers.some(o=>o.type==='pill'&&[p,a,b].some(q=>pointSegDist(q,o.a,o.b)<19/2+TICK/2+14)))break;
+      m.p=sub(m.p,mul(m.d,1));
+    }
+    if(dist(home,m.p)>.5)for(const t of tracks)if(dist(t.pts.at(-1),home)<.5)t.pts[t.pts.length-1]=m.p;
+  }
+  const markerBox=m=>{const R=m.type==='pill'?11:9,a=m.a||m.p||pos[m.v],b=m.b||m.p||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
+
+  // greedy label placement
+  const trackSegs=[];for(const t of tracks)for(let i=1;i<t.pts.length;i++)trackSegs.push([t.pts[i-1],t.pts[i]]);
+  const boxes=markers.map(markerBox),labels=[],labelRects=[];
+  const ordering=markers.map((m,i)=>i).sort((a,b)=>(markers[a].type==='pill'?0:1)-(markers[b].type==='pill'?0:1)||byId[markers[a].v].depth-byId[markers[b].v].depth);
+  for(const i of ordering){
+    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?19:15,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.p||pos[v],g=5;
+    const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
+      NE:{x:mb.x+mb.w,y:mb.y-h},
+      // On the line's continuation past a terminal, the name's baseline resting on the top edge of the track.
+      EL:{x:mb.x+mb.w+g,y:p.y-LW/2-size*.86},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
+    let best=null;
+    const prefs=EDITS.labels[v]?[EDITS.labels[v]]:lay.labelPrefs(v);
+    prefs.forEach((dir,pi)=>{
+      const r={...C[dir],w,h},hit=inflate(r,LW/2+1);let sc=pi*2;
+      for(const [a,b] of trackSegs)if(rectHit(hit,a,b))sc+=100;
+      for(const o of labelRects)if(rectsOverlap(inflate(r,3),o))sc+=100;
+      boxes.forEach((o,j)=>{if(j!==i&&rectsOverlap(r,o))sc+=80});
+      if(!best||sc<best.sc)best={sc,r,dir};
+    });
+    labelRects.push(best.r);labels[i]={...best,name,size,weight};
+    if(m.type==='tick'){const c=V(best.r.x+w/2,best.r.y+h/2);m.side=dot(m.n,sub(c,p))>=0?1:-1}
+  }
+  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base};
+}
+
+// ---------- rendering ----------
+const NS='http://www.w3.org/2000/svg';
+const el=(name,attrs={},parent)=>{const e=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent?.append(e);return e};
+const txt=(parent,x,y,s,attrs={})=>{const t=el('text',{x,y,'font-family':FONT,...attrs},parent);t.textContent=s;return t};
+function wrap(s,width,size){const words=s.split(' '),out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(measure(t,size,500)>width&&cur){out.push(cur);cur=w}else cur=t}if(cur)out.push(cur);return out}
+// Wrap a [bold lead-in, body] paragraph into lines of words, keeping each word's weight and *italic* marks.
+function wrapRich([lead,body],width,size){
+  const words=[...lead.split(' ').filter(Boolean).map(w=>({text:w,bold:true})),...body.split(' ').map(w=>({text:w.replace(/\*/g,''),italic:/\*/.test(w)}))];
+  const wordW=w=>measure(w.text,size,w.bold?700:500),space=measure(' ',size,500),out=[];let cur=[],curW=0;
+  for(const w of words){const ww=wordW(w);if(cur.length&&curW+space+ww>width){out.push(cur);cur=[];curW=0}curW+=(cur.length?space:0)+ww;cur.push(w)}
+  if(cur.length)out.push(cur);return out;
+}
+function render(variant,showOthers){
+  const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';
+  // map bounds
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const grow=(x,y)=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)};
+  for(const t of B.tracks)for(const p of t.pts)grow(p.x,p.y);for(const l of B.labels)if(l){grow(l.r.x,l.r.y);grow(l.r.x+l.r.w,l.r.y+l.r.h)}
+  const maxZone=Math.max(...stations.map(id=>byId[id].depth));
+  const e=(maxZone+.5)*lay.R+70;grow(-e,-e-STRETCH);grow(e,e+STRETCH);
+  const pad=56,header=140,legendGap=8,legendPad=14;
+  // Each paragraph opens with a bold lead-in; *asterisks* mark italic titles.
+  const readingCopy=[
+    ['Follow a line to trace a family.','Each stop is the child of the one before it.'],
+    ['Two lines arriving together are two parents.','Ares and Hebe sit where the Zeus and Hera lines meet: they are children of both.'],
+    ['A short step along a zone joins partners.','The Rhea line steps across to Cronus, then runs beside the Sovereignty line to their children.'],
+    ['','Parentage follows Hesiod\u2019s *Theogony*.'],
+  ];
+  const headingSize=36,nameSize=22,detailSize=18,bodySize=21,bodyLeading=28,rowPitch=42;
+  const zoneSwatchW=48,zoneSwatchH=30,zoneNumSize=22,zoneLabel=zoneSwatchW+14;
+  const legendLayout=W=>{
+    const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2);
+    // Zone rows stretch so they finish with the lines.
+    const firstY=108,heights=[firstY,firstY];
+    const entries=LINES.map((L,i)=>{
+      const column=i<lineSplit?0:1,y=heights[column],nameWidth=measure(L.name,nameSize,700);
+      const all=[...new Set(L.paths.map(p=>p.at(-1)).filter(id=>!L.paths.some(q=>q.slice(0,-1).includes(id))).map(id=>byId[id].name))],ends=all.length>6?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
+      const inline=54+nameWidth+10+measure(copy,detailSize,500)<=colW-24;
+      const details=inline?[copy]:wrap(copy,colW-54-24,detailSize);
+      heights[column]+=inline?rowPitch:rowPitch+details.length*bodyLeading;
+      return {column,y,nameWidth,inline,details};
+    });
+    const lineLast=Math.max(...entries.map(e=>e.y));
+    const zoneCount=maxZone+1,zoneStep=(lineLast-firstY)/Math.max(1,zoneCount-1);
+    const zoneName=k=>DATA.levelNames[k]??`Generation ${k}`;
+    const zones=Array.from({length:zoneCount},(_,k)=>{
+      const y=firstY+k*zoneStep,lines=wrap(zoneName(k),colW-zoneLabel-24,bodySize);
+      return {y,lines};
+    });
+    const readingSize=22,readingLeading=30;
+    const readingParas=readingCopy.map(p=>wrapRich(p,colW-30,readingSize)),readingOffset=130,paraGap=Math.round(readingLeading*.45);
+    const readingH=readingParas.reduce((h,p)=>h+p.length*readingLeading,0)+(readingParas.length-1)*paraGap;
+    const readingLast=74+readingOffset+readingH-readingLeading;
+    const body=Math.max(lineLast,zones.at(-1).y,readingLast)+12;
+    return {colW,entries,zones,readingParas,paraGap,readingOffset,readingSize,readingLeading,footer:legendGap+42+body+legendPad};
+  };
+  const legendFooter=W=>legendLayout(W).footer;
+  // Portrait A-series: grow the map until it fills the width; any spare height sits above the key.
+  let mapScale=1.3,W,H,mapBottom,footer,contentH;
+  for(let i=0;i<48;i++){
+    mapBottom=y0+mapScale*(y1-y0);
+    const contentW=Math.max((x1-x0)*mapScale+2*pad,1500);
+    footer=legendFooter(contentW);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    W=Math.max(contentW,contentH/Math.SQRT2);H=W*Math.SQRT2;
+    footer=legendFooter(W);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    const slack=W-((x1-x0)*mapScale+2*pad);
+    if(slack<10)break;
+    mapScale+=0.03;
+  }
+  const left=(x0+x1)/2-W/2,top=y0-pad-header;
+  svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
+  svg.setAttribute('width',W);
+  svg.setAttribute('height',H);
+  el('rect',{x:left,y:top,width:W,height:H,fill:'#fcfbf8'},svg);
+
+  const fy=mapBottom+legendGap+Math.max(0,H-contentH);
+
+  // header
+  txt(svg,left+pad,top+pad+52,'Transit Theogony',{'font-size':74,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
+
+  const mapCenterX=(x0+x1)/2,scale=mapScale;
+  const mapGroup=el('g',{id:'map',transform:`translate(${(1-scale)*mapCenterX} ${(1-scale)*y0}) scale(${scale})`},svg);
+  const mapX=x=>mapCenterX+(x-mapCenterX)*scale,mapY=y=>y0+(y-y0)*scale;
+  // zones
+  const zg=el('g',{},mapGroup),zoneFill=k=>k%2?'#efeee8':'#f7f6f1';
+  const R=lay.R,river=(maxZone+.5)*R+34,zoneH=k=>(k+.5)*R+STRETCH;
+  el('rect',{x:-river,y:-river-STRETCH,width:2*river,height:2*(river+STRETCH),rx:48,fill:'none',stroke:'#cfe3ee',"stroke-width":30},zg);
+  txt(zg,0,-river-STRETCH+5,'O K E A N O S',{'font-size':13,'font-weight':700,'text-anchor':'middle',fill:'#6f9bb6','font-style':'italic'});
+  for(let k=maxZone;k>=0;k--){const s=(k+.5)*R;el('rect',{x:-s,y:-zoneH(k),width:2*s,height:2*zoneH(k),rx:k?22:30,fill:zoneFill(k),stroke:'#e1dfd8','stroke-width':1},zg)}
+  for(let k=0;k<=maxZone;k++){const s=(k+.5)*R;txt(zg,-s+22,-zoneH(k)+50,String(k),{'font-size':32,'font-weight':700,fill:'#8c897e',opacity:.72})}
+
+  // other-parent links
+  if(showOthers){const og=el('g',{},mapGroup);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
+
+  // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
+  const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},mapGroup);
+  for(const L of LINES){const paths=B.tracks.filter(t=>t.line.id===L.id).map(t=>roundedD(t.pts,CORNER));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
+
+  // stations
+  const sg=el('g',{},mapGroup);
+  for(const m of B.markers){
+    const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
+    if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
+    else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
+  }
+  // Keep names the uniform poster size and the same distance from their station; only the map geometry widens.
+  B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scale,mapY(p.y)+(ty-p.y)*scale,l.name,{'font-size':l.size*scale,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em',...(EDITOR.on?{'data-label':m.v}:{})})});
+  if(EDITOR.on)drawEditor(mapGroup,B);
+
+  // footer key
+  // Section heading with a quieter gloss in brackets, e.g. "Lines (lineages)".
+  const heading=(x,name,gloss)=>{const t=txt(svg,x,fy+42,name,{'font-size':headingSize,'font-weight':800,fill:'#22231f'});if(gloss){const g=el('tspan',{'font-weight':500,fill:'#8c897e'},t);g.textContent=` (${gloss})`}};
+  const {colW,entries,zones,readingParas,paraGap,readingOffset,readingSize,readingLeading}=legendLayout(W),fx=left+pad;
+  heading(fx,'Lines');
+  LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
+    entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
+  const zx=fx+2*colW;heading(zx,'Zones');
+    zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-zoneSwatchH+8,width:zoneSwatchW,height:zoneSwatchH,fill:zoneFill(k),stroke:'#dddbd4'},svg);txt(svg,zx+zoneSwatchW/2,y,String(k),{'font-size':zoneNumSize,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+zoneLabel,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
+  const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
+  const readingY=fy+74;
+  const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
+    else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
+    else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
+  [['tick','Station: a god, Titan or monster'],['pill','Interchange: where lines begin or meet']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
+  let ry=readingY+readingOffset;
+  for(const para of readingParas){
+    for(const line of para){
+      const t=txt(svg,rx,ry,'',{'font-size':readingSize,fill:'#5f5d55'});
+      line.forEach((w,k)=>{const span=el('tspan',{'font-weight':w.bold?700:500,...(w.bold?{fill:'#30312b'}:{}),...(w.italic?{'font-style':'italic'}:{})},t);span.textContent=(k?' ':'')+w.text});
+      ry+=readingLeading;
+    }
+    ry+=paraGap;
+  }
+
+
+  const pair=pos.zeus&&pos.hera?`Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, `:'';
+  const clashes=B.labels.filter(l=>l&&l.sc>=80).length;if(EDITOR.on)EDITOR.saved??=snapshot();
+  document.getElementById('state').textContent=EDITOR.on
+    ?`${lay.score.cr} crossings · ${lay.score.through} pass-throughs · ${B.best.c} bundle crossings · ${clashes} label clashes${EDITOR.dirty()?' · unsaved':''}`
+    :`${stations.length} stations · spare page height ${Math.round(H-contentH)} · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, ${pair}searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
+  if(EDITOR.on)renderPanel(B);else publishExport(svg);
+}
+function publishExport(svg){
+  const buffer=document.getElementById('svgExportBuffer');
+  if(!buffer||typeof XMLSerializer!=='function')return;
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns',NS);
+  if(!clone.querySelector('title')){
+    const title=document.createElementNS(NS,'title');
+    title.textContent='Transit Theogony';
+    clone.insertBefore(title,clone.firstChild);
+  }
+  buffer.textContent='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(clone);
+}
+
+// ---------- editor ----------
+// Drag stations along their ring, pick label sides, shift lanes and reorder tracks.
+// Save needs the local server (node tools/ring_editor.mjs), which writes topology/ring_positions.json.
+const GRID=11,ALIGN=8,LABEL_SIDES=['N','NE','E','SE','S','SW','W','NW','EL'];
+const snapshot=()=>JSON.stringify(savedEdits());
+function savedEdits(){
+  const positions={};for(const v of stations){const p=EDITS.positions[v];if(p)positions[v]={x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10}}
+  const lanes=Object.fromEntries(Object.entries(EDITS.lanes).filter(([,n])=>n));
+  return {positions,labels:EDITS.labels,lanes,trackOrder:EDITS.trackOrder};
+}
+function restore(json){const e=JSON.parse(json);Object.assign(EDITS,{positions:e.positions,labels:e.labels,lanes:e.lanes,trackOrder:e.trackOrder});rerender()}
+function remember(){EDITOR.undo.push(snapshot());if(EDITOR.undo.length>200)EDITOR.undo.shift();EDITOR.redo=[]}
+function undo(){if(!EDITOR.undo.length)return;EDITOR.redo.push(snapshot());restore(EDITOR.undo.pop())}
+function redo(){if(!EDITOR.redo.length)return;EDITOR.undo.push(snapshot());restore(EDITOR.redo.pop())}
+
+let frame=0;
+function rerender(){layoutCache=null;if(!frame)frame=requestAnimationFrame(()=>{frame=0;render(VARIANT,othersBox.checked)})}
+// Every station gets an explicit position, so moving one never sets off the layout search.
+function freezePositions(){const lay=layoutCache??currentLayout();for(const v of stations)EDITS.positions[v]??={x:lay.pos[v].x,y:lay.pos[v].y}}
+
+// The point on v's ring nearest p: on the grid, or level with another station within ALIGN.
+function placeOnRing(v,p,free){
+  const s=byId[v].depth*R,q=onRing(p,s),k=sideKey(q);EDITOR.guide=null;
+  if(free||k.length===2)return q;
+  const axis=k==='E'||k==='W'?'y':'x',c=tang(q,k);let near=null;
+  for(const o of stations){if(o===v)continue;const d=Math.abs(EDITS.positions[o][axis]-c);if(d<ALIGN&&(!near||d<near.d))near={d,c:EDITS.positions[o][axis],o}}
+  const r=snap(fromSide(k,near?near.c:Math.round(c/GRID)*GRID,s),s);
+  if(near&&tang(r,k)===near.c)EDITOR.guide={axis,c:near.c};
+  return r;
+}
+function moveStation(v,p,free){EDITS.positions[v]=placeOnRing(v,p,free);rerender()}
+function resetStation(v){autoLayout??=searchRing();EDITS.positions[v]={...autoLayout.pos[v]};delete EDITS.labels[v];rerender()}
+function cycleLabel(v,step=1){
+  const i=EDITS.labels[v]?LABEL_SIDES.indexOf(EDITS.labels[v]):-1,n=(i+1+step+LABEL_SIDES.length+1)%(LABEL_SIDES.length+1)-1;
+  if(n<0)delete EDITS.labels[v];else EDITS.labels[v]=LABEL_SIDES[n];rerender();
+}
+function shiftLane(key,d){EDITS.lanes[key]=(EDITS.lanes[key]||0)+d;if(!EDITS.lanes[key])delete EDITS.lanes[key];rerender()}
+function moveTrack(l,d){const o=EDITS.trackOrder,i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];rerender()}
+
+function drawEditor(mapGroup,B){
+  const g=el('g',{},mapGroup),ext=(maxDepth+.5)*R+40;
+  if(EDITOR.guide){const {axis,c}=EDITOR.guide;el('line',axis==='y'?{x1:-ext,x2:ext,y1:c,y2:c}:{x1:c,x2:c,y1:-ext-STRETCH,y2:ext+STRETCH},g).setAttribute('style','stroke:#2f6fd6;stroke-width:1.5;stroke-dasharray:4 5')}
+  for(const s of segs)if(B.lay.lanes[s.key]!==undefined)el('path',{d:roundedD(B.base[s.key],CORNER),'data-seg':s.key,fill:'none',stroke:'transparent','stroke-width':16,'pointer-events':'stroke'},g);
+  if(EDITOR.seg&&B.base[EDITOR.seg])el('path',{d:roundedD(B.base[EDITOR.seg],CORNER),fill:'none',stroke:'#16171a','stroke-width':3,'stroke-dasharray':'7 6','pointer-events':'none'},g);
+  for(const v of stations)if(v!=='chaos')el('circle',{cx:B.pos[v].x,cy:B.pos[v].y,r:15,fill:'transparent','pointer-events':'all','data-station':v},g);
+  if(EDITOR.sel)el('circle',{cx:B.pos[EDITOR.sel].x,cy:B.pos[EDITOR.sel].y,r:19,fill:'none',stroke:'#2f6fd6','stroke-width':3.5,'pointer-events':'none'},g);
+}
+const maxDepth=Math.max(...stations.map(id=>byId[id].depth));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>`&#${c.charCodeAt(0)};`);
+function renderPanel(B){
+  const panel=document.getElementById('panel'),v=EDITOR.sel,seg=EDITOR.seg&&segMap.get(EDITOR.seg);
+  const sel=v?`<div class="row"><b class="grow">${esc(byId[v].name)}</b>zone ${byId[v].depth}</div>
+    <div class="row">label <span class="grow">${EDITS.labels[v]??'auto'}</span><button data-act="label-">◀</button><button data-act="label+">▶</button></div>
+    <div class="row"><button data-act="reset">Reset to automatic</button></div>`:'<div class="keys">Click or drag a station.</div>';
+  const lane=seg?`<h3>Track</h3><div class="row"><span class="grow">${esc(byId[seg.a].name)} → ${esc(byId[seg.b].name)}</span></div>
+    <div class="row">lane shift <span class="grow">${EDITS.lanes[seg.key]||0}</span><button data-act="lane-">inward</button><button data-act="lane+">outward</button></div>`:'';
+  const order=EDITS.trackOrder.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="up" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="down" data-line="${l}"${i<EDITS.trackOrder.length-1?'':' disabled'}>▼</button></div>`).join('');
+  panel.innerHTML=`<h3>Station</h3>${sel}${lane}
+    <h3>Track order in bundles</h3><div class="keys">Left of the direction of travel first. ${B.best.c} bundle crossings.</div>${order}
+    <div class="row"><button data-act="best-order">Find best order (slow)</button></div>
+    <h3>Keys</h3><div class="keys">Drag a station along its ring; hold <kbd>Shift</kbd> to skip the grid. <kbd>←↑→↓</kbd> nudge, <kbd>L</kbd> label side, <kbd>R</kbd> reset station.
+    Click a track, then <kbd>[</kbd> <kbd>]</kbd> to move its lane. <kbd>Ctrl Z</kbd> undo, <kbd>Ctrl Shift Z</kbd> redo, <kbd>Ctrl S</kbd> save, <kbd>Esc</kbd> deselect.</div>`;
+}
+document.getElementById('panel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const act=b.dataset.act,v=EDITOR.sel;
+  if(act==='up'||act==='down')return moveTrack(b.dataset.line,act==='up'?-1:1);
+  if(act==='best-order'){remember();EDITS.trackOrder=null;return rerender()}
+  if(act==='lane-'||act==='lane+'){remember();return shiftLane(EDITOR.seg,act==='lane+'?1:-1)}
+  if(!v)return;remember();
+  if(act==='reset')resetStation(v);else cycleLabel(v,act==='label+'?1:-1);
+});
+
+const svgEl=document.getElementById('poster');
+const toMap=e=>new DOMPoint(e.clientX,e.clientY).matrixTransform(document.getElementById('map').getScreenCTM().inverse());
+svgEl.addEventListener('pointerdown',e=>{
+  if(!EDITOR.on||e.button!==0)return;
+  const t=e.target.closest('[data-station],[data-label],[data-seg]');
+  if(!t){EDITOR.sel=EDITOR.seg=null;return rerender()}
+  e.preventDefault();
+  if(t.dataset.seg){EDITOR.seg=t.dataset.seg;EDITOR.sel=null;return rerender()}
+  const v=t.dataset.station??t.dataset.label;EDITOR.sel=v;EDITOR.seg=null;
+  if(t.dataset.label&&!t.dataset.station){remember();return cycleLabel(v)}
+  EDITOR.drag={v,before:snapshot(),moved:false};rerender();
+});
+addEventListener('pointermove',e=>{
+  const d=EDITOR.drag;if(!d)return;
+  if(!d.moved){EDITOR.undo.push(d.before);EDITOR.redo=[];d.moved=true}
+  moveStation(d.v,toMap(e),e.shiftKey);
+});
+addEventListener('pointerup',()=>{if(!EDITOR.drag)return;EDITOR.drag=null;EDITOR.guide=null;rerender()});
+addEventListener('keydown',e=>{
+  if(!EDITOR.on||e.target.closest?.('input,textarea'))return;
+  const k=e.key,ctrl=e.ctrlKey||e.metaKey,v=EDITOR.sel;
+  if(ctrl&&k.toLowerCase()==='s'){e.preventDefault();return save()}
+  if(ctrl&&k.toLowerCase()==='z'){e.preventDefault();return e.shiftKey?redo():undo()}
+  if(ctrl&&k.toLowerCase()==='y'){e.preventDefault();return redo()}
+  if(k==='Escape'){EDITOR.sel=EDITOR.seg=null;return rerender()}
+  if((k==='['||k===']')&&EDITOR.seg){remember();return shiftLane(EDITOR.seg,k===']'?1:-1)}
+  if(!v)return;
+  const step={ArrowLeft:V(-1,0),ArrowRight:V(1,0),ArrowUp:V(0,-1),ArrowDown:V(0,1)}[k];
+  if(step){e.preventDefault();remember();const n=e.shiftKey?1:GRID,p=EDITS.positions[v],s=byId[v].depth*R;
+    // Slide along the ring in the arrow's direction; around a corner the arrow keeps pushing the same way.
+    let q=p;for(let tries=1;tries<=6&&dist(q,p)<.5;tries++)q=placeOnRing(v,add(p,mul(step,n*tries)),e.shiftKey);
+    EDITS.positions[v]=q;EDITOR.guide=null;return rerender()}
+  if(k==='l'||k==='L'){remember();return cycleLabel(v,e.shiftKey?-1:1)}
+  if(k==='r'||k==='R'){remember();return resetStation(v)}
+});
+
+const saveBtn=document.getElementById('save');
+async function save(){
+  if(!EDITOR.server)return;
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+  try{
+    const json=snapshot(),r=await fetch('/api/save',{method:'POST',headers:{'content-type':'application/json'},body:json});
+    if(!r.ok)throw new Error(await r.text());
+    EDITOR.saved=json;saveBtn.textContent='Saved';
+  }catch(err){saveBtn.textContent='Save failed';console.error(err)}
+  saveBtn.disabled=false;setTimeout(()=>saveBtn.textContent='Save',1500);rerender();
+}
+saveBtn.onclick=save;
+addEventListener('beforeunload',e=>{if(EDITOR.on&&EDITOR.dirty())e.preventDefault()});
+function setEditing(on){
+  EDITOR.on=on;document.body.classList.toggle('editing',on);document.getElementById('panel').hidden=!on;saveBtn.hidden=!on;
+  if(on)freezePositions();else EDITOR.sel=EDITOR.seg=null;
+}
+if(location.protocol.startsWith('http'))fetch('/api/ping').then(r=>r.ok&&r.json()).then(j=>{if(j?.ok){EDITOR.server=true;saveBtn.disabled=false;saveBtn.title='Save to topology/ring_positions.json (Ctrl S)'}},()=>{});
+
+// ---------- boot ----------
+const params=new URLSearchParams(location.search);
+const othersBox=document.getElementById('others');othersBox.checked=params.get('others')==='1';
+const editBox=document.getElementById('edit');editBox.checked=params.get('edit')==='1';
+function show(){
+  const p=new URLSearchParams(location.search);
+  for(const [box,key] of [[othersBox,'others'],[editBox,'edit']])if(box.checked)p.set(key,'1');else p.delete(key);
+  const q=p.toString();history.replaceState(null,'',q?`?${q}`:location.pathname);
+  layoutCache=null;setEditing(editBox.checked);render(VARIANT,othersBox.checked);
+}
+othersBox.onchange=editBox.onchange=show;
+show();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "orders": {
+    "chaos": [
+      "gaia",
+      "nyx",
+      "erebus",
+      "tartarus"
+    ],
+    "gaia": [
+      "uranus",
+      "pontus"
+    ],
+    "uranus": [
+      "iapetus",
+      "hyperion",
+      "oceanus",
+      "cronus",
+      "hecatoncheires",
+      "themis",
+      "elder_cyclopes",
+      "aphrodite",
+      "mnemosyne",
+      "phoebe",
+      "tethys",
+      "coeus",
+      "rhea",
+      "theia",
+      "crius"
+    ],
+    "cronus": [
+      "hestia",
+      "zeus",
+      "demeter",
+      "poseidon",
+      "hades",
+      "hera"
+    ],
+    "zeus": [
+      "apollo",
+      "artemis",
+      "athena",
+      "charites",
+      "hermes",
+      "dionysus",
+      "ares",
+      "hebe",
+      "persephone"
+    ],
+    "iapetus": [
+      "prometheus",
+      "epimetheus",
+      "atlas"
+    ],
+    "pontus": [
+      "nereus",
+      "eurybia"
+    ],
+    "oceanus": [
+      "doris",
+      "eurynome"
+    ],
+    "hyperion": [
+      "eos",
+      "helios",
+      "selene"
+    ],
+    "nyx": [
+      "nemesis",
+      "moros",
+      "hypnos"
+    ],
+    "tartarus": [
+      "echidna",
+      "typhon"
+    ],
+    "erebus": [
+      "hemera",
+      "aether",
+      "charon"
+    ]
+  },
+  "roots": {
+    "clymene": 0,
+    "metis": 0,
+    "leto": 0,
+    "maia": 0,
+    "semele": -1
+  }
+}

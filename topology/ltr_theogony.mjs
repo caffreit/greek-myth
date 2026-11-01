@@ -1,4 +1,4 @@
-// Left-to-right Transit Theogony. Edit the square-ring lineages in ring_theogony.mjs.
+// Left-to-right Transit Theogony. Its roster is the V27 theogony; the ring map keeps its own in ring_theogony.mjs.
 export const lines = [
   { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites']] },
   { id: 'promethean', name: 'Promethean line', color: '#7a4ea6', paths: [['chaos', 'gaia', 'uranus', 'iapetus', 'prometheus'], ['iapetus', 'atlas']] },
