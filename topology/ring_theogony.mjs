@@ -86,7 +86,7 @@ export const people = [
 ];
 
 export const lines = [
-  { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites'], ['cronus', 'hestia'], ['cronus', 'hades'], ['cronus', 'poseidon']] },
+  { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites'], ['cronus', 'hera'], ['cronus', 'hestia'], ['cronus', 'hades'], ['cronus', 'poseidon']] },
   { id: 'promethean', name: 'Promethean line', color: '#7a4ea6', paths: [['chaos', 'gaia', 'uranus', 'iapetus', 'prometheus'], ['iapetus', 'atlas'], ['iapetus', 'epimetheus'], ['clymene', 'iapetus']] },
   { id: 'sea', name: 'Sea line', color: '#13a19d', paths: [['chaos', 'gaia', 'pontus', 'nereus', 'nereids'], ['pontus', 'eurybia', 'perses'], ['gaia', 'ourea']] },
   { id: 'ocean', name: 'Ocean line', color: '#1f5ea8', paths: [['chaos', 'gaia', 'uranus', 'oceanus', 'doris', 'nereids'], ['oceanus', 'eurynome', 'charites'], ['uranus', 'tethys', 'oceanus']] },
@@ -95,7 +95,7 @@ export const lines = [
   { id: 'night', name: 'Night line', color: '#1d1d1b', paths: [['chaos', 'nyx', 'aether'], ['nyx', 'hemera'], ['nyx', 'charon'], ['nyx', 'moros'], ['nyx', 'nemesis'], ['nyx', 'hypnos'], ['nyx', 'thanatos'], ['nyx', 'moirai'], ['nyx', 'keres'], ['nyx', 'eris'], ['nyx', 'hesperides']] },
   { id: 'memory', name: 'Memory line', color: '#e0609c', paths: [['uranus', 'mnemosyne', 'muses']] },
   { id: 'justice', name: 'Justice line', color: '#9aa3a8', paths: [['uranus', 'themis', 'horae']] },
-  { id: 'hera', name: 'Hera line', color: '#8c1c3c', paths: [['cronus', 'hera', 'zeus', 'ares'], ['zeus', 'hebe'], ['hera', 'hephaestus']] },
+  { id: 'hera', name: 'Hera line', color: '#8c1c3c', paths: [['hera', 'ares'], ['hera', 'hebe'], ['hera', 'hephaestus']] },
   { id: 'harvest', name: 'Harvest line', color: '#8dc63f', paths: [['cronus', 'demeter', 'persephone']] },
   { id: 'rhea', name: 'Rhea line', color: '#b03a8c', paths: [['uranus', 'rhea', 'cronus', 'zeus'], ['cronus', 'hera'], ['cronus', 'demeter'], ['cronus', 'hestia'], ['cronus', 'hades'], ['cronus', 'poseidon']] },
   { id: 'consort', name: 'Consort line', color: '#c2a14a', paths: [['metis', 'athena'], ['leto', 'apollo'], ['leto', 'artemis'], ['maia', 'hermes'], ['semele', 'dionysus']] },

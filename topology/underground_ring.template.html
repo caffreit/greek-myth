@@ -345,7 +345,13 @@ function ringLayout(pos,refine=false){
     }
   }
   function route(s,A,B){
-    const ka=byId[s.a].depth;if(!ka)return routeOcti(A,B);
+    const ka=byId[s.a].depth;
+    // Lines from Chaos to its west side leave the capsule's left edge: level first, then a diagonal and a final climb or drop.
+    if(!ka){
+      const ax=A.x-B.x,ay=Math.abs(B.y-A.y);if(ax<.5||ay<ax)return routeOcti(A,B);
+      const L=Math.min(ax,36),sy=Math.sign(B.y-A.y);
+      return clean([A,V(A.x-L,A.y),V(B.x,A.y+sy*(ax-L)),B]);
+    }
     // Partners share a ring, so the step between them follows it.
     if(byId[s.b].depth===ka)return octilinear(clean([A,...orbit(A,B,ka*R),B]));
     const so=(ka+.5)*R+(lanes[s.key]||0);
