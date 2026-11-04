@@ -275,7 +275,7 @@ function layoutRing(orders={}){
 
 // Tracks for a set of station positions: each leg leaves its station outward to the zone
 // boundary, follows the boundary in its own lane, then comes in to the next station.
-function ringLayout(pos){
+function ringLayout(pos,refine=false){
   const outward=p=>{const k=sideKey(p);return k.length===2?V(k.includes('E')?1:-1,k.includes('S')?1:-1):k==='E'?V(1,0):k==='W'?V(-1,0):k==='S'?V(0,1):V(0,-1)};
   // How far p is out along diagonal u, measured as a ring size.
   const diagReach=(p,u)=>Math.max(u.x*p.x,u.y*p.y-D);
@@ -319,7 +319,30 @@ function ringLayout(pos){
     const taken=[],list=Object.values(list0).flat().sort((x,y)=>(y.b-y.a)-(x.b-x.a));
     const ov=(I,J)=>[-1,0,1].some(sh=>I.a<J.b+sh-1e-9&&J.a+sh<I.b-1e-9);
     for(const I of list){let i=0;while((taken[i]??=[]).some(J=>ov(I,J)))i++;taken[i].push(I);I.lane=i}
-    for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=(I.lane-(taken.length-1)/2+shift)*LANE;laneGroup[k]=I.keys;trunks[k]=I}}
+    const place=()=>{for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=(I.lane-(taken.length-1)/2+shift)*LANE;laneGroup[k]=I.keys;trunks[k]=I}}};
+    place();
+    // Then swap pairs of lanes wherever that removes crossings between this boundary's tracks.
+    if(refine&&list.length>1){
+      const legs=list.flatMap(I=>I.keys).map(k=>segMap.get(k));
+      const crossings=()=>{const ps=legs.map(s=>route(s,pos[s.a],pos[s.b]));let n=0;for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)n+=polyCross(ps[i],ps[j]);return n};
+      const fits=(I,lane,skip)=>!list.some(K=>K!==I&&K!==skip&&K.lane===lane&&ov(I,K));
+      let cur=crossings();
+      for(let pass=0;pass<3&&cur;pass++){let improved=false;
+        for(const I of list)for(const J of list){
+          if(I.lane>=J.lane||!ov(I,J)||!fits(I,J.lane,J)||!fits(J,I.lane,I))continue;
+          [I.lane,J.lane]=[J.lane,I.lane];place();const c=crossings();
+          if(c<cur){cur=c;improved=true}else{[I.lane,J.lane]=[J.lane,I.lane];place()}
+        }
+        if(!improved)break}
+    }
+    // A shorter run that ends with a longer one (Erebus beside Night, both bound for Charon) but starts
+    // partway along it takes the inner lane: its station leg then stops short of the longer run, and only its exits cross it.
+    const startOf=I=>I.dir>0?I.a:I.b,endOf=I=>I.dir>0?I.b:I.a,inside=(x,J)=>x>J.a+1e-6&&x<J.b-1e-6;
+    const fitsSwap=(I,J)=>!list.some(K=>K!==I&&K!==J&&((K.lane===J.lane&&ov(I,K))||(K.lane===I.lane&&ov(J,K))));
+    for(const I of list)for(const J of list){
+      if(I===J||I.dir!==J.dir||I.lane<J.lane||Math.abs(endOf(I)-endOf(J))>1e-6||!inside(startOf(I),J)||!fitsSwap(I,J))continue;
+      [I.lane,J.lane]=[J.lane,I.lane];place();
+    }
   }
   function route(s,A,B){
     const ka=byId[s.a].depth;if(!ka)return routeOcti(A,B);
@@ -336,9 +359,10 @@ function ringLayout(pos){
 
 // ---------- hand edits ----------
 // Saved by the editor in topology/ring_positions.json: station positions, label sides,
-// lane shifts on zone boundaries (in lanes) and the order of tracks within bundles.
+// lane shifts on zone boundaries (in lanes), the order of tracks within bundles, and
+// per-interchange track orders that override it at one station.
 // Stations without a saved position are placed by the layout search.
-const EDITS={positions:{},labels:{},lanes:{},trackOrder:null,...JSON.parse(JSON.stringify(DATA.edits??{}))};
+const EDITS={positions:{},labels:{},lanes:{},trackOrder:null,stationOrder:{},...JSON.parse(JSON.stringify(DATA.edits??{}))};
 // Editor state; render reads it to draw the editing overlay.
 const EDITOR={on:false,sel:null,seg:null,guide:null,drag:null,undo:[],redo:[],saved:null,server:false,
   dirty(){return this.saved!==null&&this.saved!==snapshot()}};
@@ -346,7 +370,7 @@ let autoLayout=null;
 function currentLayout(){
   const missing=stations.some(v=>!EDITS.positions[v]),auto=missing?autoLayout??=searchRing():null,pos={};
   for(const v of stations){const p=EDITS.positions[v];pos[v]=p?onRing(p,byId[v].depth*R):auto.pos[v]}
-  const lay=ringLayout(pos);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
+  const lay=ringLayout(pos,true);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
   return lay;
 }
 
@@ -386,14 +410,17 @@ function build(variant,showOthers){
   // Order each trunk's lines so the fewest branches cross track that carries on: a branch leaving
   // for a station crosses every line on its station side that continues past it.
   // Travelling anticlockwise, the left of the track is the inner side.
+  // An interchange with its own saved track order uses it for every line it serves, in place of the poster-wide order.
+  const stationOrder=v=>{const o=EDITS.stationOrder[v]?.filter(l=>linesAt[v].has(l));return o?.length?[...o,...[...linesAt[v]].filter(l=>!o.includes(l)).sort((a,b)=>rank[a]-rank[b])]:null};
+  const rankAt=v=>{const o=stationOrder(v);if(!o)return rank;const r={...rank};o.forEach((l,i)=>r[l]=-100+i);return r};
   const trunkOrder={};
   for(const t of new Set(Object.values(lay.trunks)))if(t.lines.length>1){
     const crossings=outer=>t.exits.reduce((n,e)=>n+e.lines.reduce((m,l)=>m+outer.slice(0,outer.indexOf(l)).filter(j=>t.reach[j]>e.at+1e-9).length,0),0);
-    const byRank=t.lines.slice().sort((a,b)=>rank[a]-rank[b]);let best=null;
+    const rk=rankAt(segMap.get(t.keys[0]).a),byRank=t.lines.slice().sort((a,b)=>rk[a]-rk[b]);let best=null;
     for(const outer of byRank.length<=6?permutations(byRank):[byRank]){const c=crossings(outer);if(!best||c<best.c)best={c,outer}}
     trunkOrder[t.keys[0]]=t.dir<0?best.outer:best.outer.slice().reverse();
   }
-  const orderOf=s=>{const t=lay.trunks[s.key];return t&&s.lines.length>1?trunkOrder[t.keys[0]]:s.lines.slice().sort((a,b)=>rank[a]-rank[b])};
+  const orderOf=s=>{const t=lay.trunks[s.key],rk=rankAt(s.a);return t&&s.lines.length>1?trunkOrder[t.keys[0]]:s.lines.slice().sort((a,b)=>rk[a]-rk[b])};
   const offIn=(ls,l)=>((ls.length-1)/2-ls.indexOf(l))*laneGap,offOn=(s,l)=>offIn(orderOf(s),l);
   const base=Object.fromEntries(segs.map(s=>[s.key,lay.route(s,pos[s.a],pos[s.b])]));
   const endDir=s=>{const p=base[s.key];return norm(sub(p.at(-1),p.at(-2)))},startDir=s=>{const p=base[s.key];return norm(sub(p[1],p[0]))};
@@ -403,7 +430,20 @@ function build(variant,showOthers){
     const ins=inTo(v).filter(s=>s.lines.length===1);if(ins.length<2)continue;
     ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*laneGap);
   }
-  const laneIn=(l,v)=>{const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  // The axis an interchange's capsule lies along: across its bundle, or across its first track.
+  const pillN=v=>{const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v);return leftN(ms?(ins.includes(ms)?endDir(ms):startDir(ms)):ins.length?endDir(ins[0]):startDir(outOf(v)[0]))};
+  // At an interchange with its own order, each line has a fixed slot across the capsule; single tracks start and end there.
+  // The slots shift as a block so most lines arriving in a bundle carry straight on.
+  const slotShift={};
+  const slotAt=(v,l)=>{
+    const o=stationOrder(v);if(!o)return null;const n=pillN(v),raw=x=>((o.length-1)/2-o.indexOf(x))*laneGap;
+    if(slotShift[v]===undefined){
+      const d=inTo(v).filter(s=>s.lines.length>1).flatMap(s=>s.lines.map(x=>offOn(s,x)*dot(leftN(endDir(s)),n)-raw(x))).sort((a,b)=>a-b);
+      slotShift[v]=d.length?d[Math.floor((d.length-1)/2)]:0;
+    }
+    return {off:raw(l)+slotShift[v],n};
+  };
+  const laneIn=(l,v)=>{const sl=slotAt(v,l);if(sl)return sl;const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
   // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
   const startOff={};
   for(const v of stations){
@@ -415,7 +455,7 @@ function build(variant,showOthers){
   function segEnds(s,l){
     let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
     if(li)A=add(A,mul(li.n,li.off));
-    const eo=endOff[s.key]??0,B=eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
+    const eo=endOff[s.key]??0,sl=slotAt(s.b,l),B=sl?add(pos[s.b],mul(sl.n,sl.off)):eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
     return {A,B};
   }
   function segPoly(s,l){
@@ -424,12 +464,31 @@ function build(variant,showOthers){
     return octilinear(lay.route(s,A,B));
   }
   const tracks=[];
-  for(const L of LINES)for(const path of L.paths){const pts=[];for(let i=1;i<path.length;i++)pts.push(...segPoly(segMap.get(path[i-1]+'>'+path[i]),L.id));tracks.push({line:L,pts:clean(pts)})}
+  // Where a line changes slot inside an interchange, its track breaks under the capsule instead of jogging across it.
+  const ends={};const endAt=(v,l,p)=>((ends[v]??={})[l]??=[]).push(p);
+  for(const L of LINES)for(const path of L.paths){
+    let pts=[];
+    for(let i=1;i<path.length;i++){
+      const s=segMap.get(path[i-1]+'>'+path[i]),q=segPoly(s,L.id);endAt(s.a,L.id,q[0]);endAt(s.b,L.id,q.at(-1));
+      if(pts.length&&dist(pts.at(-1),q[0])>.5){tracks.push({line:L,pts:clean(pts)});pts=[]}
+      pts.push(...q);
+    }
+    tracks.push({line:L,pts:clean(pts)});
+  }
+  // Each interchange's lines as drawn, left of the direction of travel first: the editor's starting point for its order.
+  const slotSpan={},drawnOrder={};
+  for(const v of stations){
+    if(!ends[v])continue;const n=pillN(v),at=l=>{const ps=ends[v][l];return ps.reduce((t,p)=>t+dot(sub(p,pos[v]),n),0)/ps.length};
+    drawnOrder[v]=Object.keys(ends[v]).sort((a,b)=>at(b)-at(a));
+    const all=Object.values(ends[v]).flat().map(p=>dot(sub(p,pos[v]),n));slotSpan[v]={lo:Math.min(...all),hi:Math.max(...all),n};
+  }
 
   // station markers
   const markers=stations.map(v=>{
     const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v),outs=outOf(v);
     const d=ins.length?endDir(ins[0]):startDir(outs[0]),n=leftN(ms?(inTo(v).includes(ms)?endDir(ms):startDir(ms)):d);
+    // A reordered interchange's capsule covers every slot and every track end beneath it.
+    if(stationOrder(v)){const sp=slotSpan[v];return {v,type:'pill',a:add(pos[v],mul(n,sp.lo)),b:add(pos[v],mul(n,sp.hi)),n}}
     if(ms){
       // Where a trunk starts, the capsule spans all its lines.
       const ls=ms.a===v?orderOf(ms):ms.lines,offs=ls.map(l=>ms.a===v?offIn(ls,l):offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
@@ -473,7 +532,7 @@ function build(variant,showOthers){
     labelRects.push(best.r);labels[i]={...best,name,size,weight};
     if(m.type==='tick'){const c=V(best.r.x+w/2,best.r.y+h/2);m.side=dot(m.n,sub(c,p))>=0?1:-1}
   }
-  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base};
+  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base,drawnOrder};
 }
 
 // ---------- rendering ----------
@@ -640,9 +699,9 @@ const snapshot=()=>JSON.stringify(savedEdits());
 function savedEdits(){
   const positions={};for(const v of stations){const p=EDITS.positions[v];if(p)positions[v]={x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10}}
   const lanes=Object.fromEntries(Object.entries(EDITS.lanes).filter(([,n])=>n));
-  return {positions,labels:EDITS.labels,lanes,trackOrder:EDITS.trackOrder};
+  return {positions,labels:EDITS.labels,lanes,trackOrder:EDITS.trackOrder,stationOrder:EDITS.stationOrder};
 }
-function restore(json){const e=JSON.parse(json);Object.assign(EDITS,{positions:e.positions,labels:e.labels,lanes:e.lanes,trackOrder:e.trackOrder});rerender()}
+function restore(json){const e=JSON.parse(json);Object.assign(EDITS,{positions:e.positions,labels:e.labels,lanes:e.lanes,trackOrder:e.trackOrder,stationOrder:e.stationOrder??{}});rerender()}
 function remember(){EDITOR.undo.push(snapshot());if(EDITOR.undo.length>200)EDITOR.undo.shift();EDITOR.redo=[]}
 function undo(){if(!EDITOR.undo.length)return;EDITOR.redo.push(snapshot());restore(EDITOR.undo.pop())}
 function redo(){if(!EDITOR.redo.length)return;EDITOR.undo.push(snapshot());restore(EDITOR.redo.pop())}
@@ -671,6 +730,9 @@ function cycleLabel(v,step=1){
 const trunkKey=key=>EDITOR.B?.lay.laneGroup[key]?.[0]??key;
 function shiftLane(key,d){key=trunkKey(key);EDITS.lanes[key]=(EDITS.lanes[key]||0)+d;if(!EDITS.lanes[key])delete EDITS.lanes[key];rerender()}
 function moveTrack(l,d){const o=EDITS.trackOrder,i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];rerender()}
+// An interchange's own order, or the order its lines are drawn in now.
+const orderAt=v=>{const drawn=EDITOR.B?.drawnOrder[v]??[...linesAt[v]],o=EDITS.stationOrder[v]?.filter(l=>linesAt[v].has(l))??[];return [...o,...drawn.filter(l=>!o.includes(l))]};
+function moveStationTrack(v,l,d){const o=orderAt(v),i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];EDITS.stationOrder[v]=o;rerender()}
 
 function drawEditor(mapGroup,B){
   const g=el('g',{},mapGroup),ext=(maxDepth+.5)*R+40;
@@ -687,11 +749,15 @@ function renderPanel(B){
   const sel=v?`<div class="row"><b class="grow">${esc(byId[v].name)}</b>zone ${byId[v].depth}</div>
     <div class="row">label <span class="grow">${EDITS.labels[v]??'auto'}</span><button data-act="label-">◀</button><button data-act="label+">▶</button></div>
     <div class="row"><button data-act="reset">Reset to automatic</button></div>`:'<div class="keys">Click or drag a station.</div>';
+  const own=v&&EDITS.stationOrder[v],at=v&&linesAt[v].size>1?orderAt(v):null;
+  const local=at?`<h3>Track order at ${esc(byId[v].name)}</h3><div class="keys">${own?'Its own order':'Following the bundle order'}. Left of the direction of travel first.</div>
+    ${at.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="sup" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="sdown" data-line="${l}"${i<at.length-1?'':' disabled'}>▼</button></div>`).join('')}
+    ${own?'<div class="row"><button data-act="sclear">Use the bundle order</button></div>':''}`:'';
   const lane=seg?`<h3>Track</h3><div class="row"><span class="grow">${esc(byId[seg.a].name)} → ${esc(byId[seg.b].name)}</span></div>
     <div class="row">lane shift <span class="grow">${EDITS.lanes[trunkKey(seg.key)]||0}</span><button data-act="lane-">inward</button><button data-act="lane+">outward</button></div>`:'';
   const order=EDITS.trackOrder.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="up" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="down" data-line="${l}"${i<EDITS.trackOrder.length-1?'':' disabled'}>▼</button></div>`).join('');
-  panel.innerHTML=`<h3>Station</h3>${sel}${lane}
-    <h3>Track order in bundles</h3><div class="keys">Left of the direction of travel first. ${B.best.c} bundle crossings.</div>${order}
+  panel.innerHTML=`<h3>Station</h3>${sel}${local}${lane}
+    <h3>Track order in bundles (whole poster)</h3><div class="keys">Left of the direction of travel first. ${B.best.c} bundle crossings.</div>${order}
     <div class="row"><button data-act="best-order">Find best order (slow)</button></div>
     <h3>Keys</h3><div class="keys">Drag a station along its ring; hold <kbd>Shift</kbd> to skip the grid. <kbd>←↑→↓</kbd> nudge, <kbd>L</kbd> label side, <kbd>R</kbd> reset station.
     Click a track, then <kbd>[</kbd> <kbd>]</kbd> to move its lane. <kbd>Ctrl Z</kbd> undo, <kbd>Ctrl Shift Z</kbd> redo, <kbd>Ctrl S</kbd> save, <kbd>Esc</kbd> deselect.</div>`;
@@ -699,6 +765,8 @@ function renderPanel(B){
 document.getElementById('panel').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const act=b.dataset.act,v=EDITOR.sel;
   if(act==='up'||act==='down')return moveTrack(b.dataset.line,act==='up'?-1:1);
+  if((act==='sup'||act==='sdown')&&v)return moveStationTrack(v,b.dataset.line,act==='sup'?-1:1);
+  if(act==='sclear'&&v){remember();delete EDITS.stationOrder[v];return rerender()}
   if(act==='best-order'){remember();EDITS.trackOrder=null;return rerender()}
   if(act==='lane-'||act==='lane+'){remember();return shiftLane(EDITOR.seg,act==='lane+'?1:-1)}
   if(!v)return;remember();
