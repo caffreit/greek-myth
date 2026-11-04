@@ -546,9 +546,15 @@ function buildOnce(variant,showOthers,shift){
     }
     if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
     const l=[...linesAt[v]][0],p=stShift[v]?add(pos[v],stShift[v]):pos[v];
-    // Where the line turns at the station, the tick stands on the outside of the corner, clear of both tracks.
-    const turn=ins.length&&outs.length?startDir(outs[0]):null,corner=turn&&Math.abs(cross(d,turn))>.5?(dot(n,turn)>0?-1:1):0;
-    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,start:ins.length===0,d,corner};
+    // Tracks round their corners, so a station on one would float off the curve. Its tick steps back onto the
+    // straight just past the curve, on the longer leg, and stands on the outside of the bend.
+    for(const t of tracks)if(t.line.id===l)for(let i=1;i<t.pts.length-1;i++){
+      if(dist(t.pts[i],p)>1)continue;const a=t.pts[i-1],c=t.pts[i+1],ua=norm(sub(a,p)),uc=norm(sub(c,p));if(Math.abs(cross(ua,uc))<.5)continue;
+      const la=dist(a,p),lc=dist(c,p),rr=Math.min(CORNER,la/2,lc/2),[u,L,o]=la>=lc?[ua,la,uc]:[uc,lc,ua];
+      const at=Math.min(rr+TICK/2+4,L-Math.min(CORNER,L/2)-TICK/2),q=add(p,mul(u,Math.max(at,Math.min(rr,L/2)))),tn=leftN(u);
+      return {v,type:'tick',p:q,n:tn,color:lineById[l].color,terminal:false,start:false,d:mul(u,-1),corner:dot(tn,o)>0?-1:1};
+    }
+    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,start:ins.length===0,d,corner:0};
   });
   // Retreat a terminus that would be swallowed by another station's interchange capsule.
   for(const m of markers.filter(m=>m.terminal)){
