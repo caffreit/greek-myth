@@ -298,11 +298,11 @@ function ringLayout(pos,refine=false){
     return out.sort((a,b)=>a.rel-b.rel).map(o=>o.p);
   }
   // Lane assignment on each zone boundary: longer journeys take inner lanes, so lines peel off outward without crossing.
-  const lanes={},byOrbit={};
+  const lanes={},byOrbit={},level=[];
   for(const s of segs){
     const ka=byId[s.a].depth;if(!ka||byId[s.b].depth===ka)continue;const so=(ka+.5)*R;
     const P1=legTo(pos[s.a],outward(pos[s.a]),so).at(-1),Q1=legTo(pos[s.b],outward(pos[s.b]),so).at(-1);
-    const T=perimeter(so);let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1)continue;
+    const T=perimeter(so);let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1){level.push({s,ka});continue}
     const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;
     // Siblings that share a line and head the same way share one lane: a single trunk that each child leaves near its station.
     const from=(byOrbit[ka]??={})[`${s.a}|${Math.sign(d)}`]??=[];
@@ -313,6 +313,12 @@ function ringLayout(pos,refine=false){
       trunk={keys:[...t.keys,...trunk.keys],lines:[...new Set([...t.lines,...trunk.lines])],a:Math.min(t.a,trunk.a),b:Math.max(t.b,trunk.b),dir:trunk.dir,reach,exits:[...t.exits,...trunk.exits]};
     }
     from.push(trunk);
+  }
+  // A child level with its parent (Zeus beside Cronus) has no run along the boundary. It still joins its siblings' trunk,
+  // leaving it at the start, so the shared lines leave the parent once instead of twice side by side.
+  for(const {s,ka} of level){
+    const t=[1,-1].flatMap(dir=>byOrbit[ka]?.[`${s.a}|${dir}`]??[]).find(t=>t.lines.some(l=>s.lines.includes(l)));if(!t)continue;
+    t.keys.push(s.key);for(const l of s.lines){if(!t.lines.includes(l))t.lines.push(l);t.reach[l]??=0}t.exits.push({lines:s.lines,at:0});
   }
   const laneGroup={},trunks={};
   for(const list0 of Object.values(byOrbit)){
@@ -407,8 +413,17 @@ function trackOrder(pos){
   for(const perm of permutations(sharedLines)){tried++;const c=countCrossings(rankOf(perm),pos);if(!best||c<best.c)best={c,perm}}
   return {...best,tried};
 }
+// Builds, then slides stations to take out short dog-legs left in single tracks, and builds again.
 function build(variant,showOthers){
-  const lay=layoutCache??=currentLayout(),pos=lay.pos;
+  const shift={};let B;
+  for(let round=0;round<4;round++){
+    B=buildOnce(variant,showOthers,shift);if(!B.jogFix.length)break;
+    for(const [v,o] of B.jogFix)shift[v]=add(shift[v]??V(0,0),o);
+  }
+  return B;
+}
+function buildOnce(variant,showOthers,shift){
+  const lay=layoutCache??=currentLayout(),pos=Object.fromEntries(Object.entries(lay.pos).map(([v,p])=>[v,shift[v]?add(p,shift[v]):p]));
   // Once chosen, the order stays put while stations move; the editor can change it by hand.
   const best=trackOrder(pos),tried=best.tried,rank=rankOf(best.perm);EDITS.trackOrder=best.perm;
   const laneGap=GAP;
@@ -462,7 +477,36 @@ function build(variant,showOthers){
     let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
     if(li)A=add(A,mul(li.n,li.off));
     const eo=endOff[s.key]??0,sl=slotAt(s.b,l),B=sl?add(pos[s.b],mul(sl.n,sl.off)):eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
-    return {A,B};
+    return {A:stShift[s.a]&&!li?.off?add(A,stShift[s.a]):A,B:stShift[s.b]&&!sl&&!eo?add(B,stShift[s.b]):B};
+  }
+  // A one-line station stepping along its ring to a partner's interchange slides onto the slot it meets there,
+  // so the step runs straight instead of jogging half a lane.
+  const plain=v=>linesAt[v].size===1&&inTo(v).length<=1&&![...inTo(v),...outOf(v)].some(s=>s.lines.length>1);
+  const stShift={};
+  for(const s of segs){
+    if(s.lines.length>1||byId[s.a].depth!==byId[s.b].depth)continue;
+    const [v,w]=plain(s.a)&&!plain(s.b)?[s.a,s.b]:plain(s.b)&&!plain(s.a)?[s.b,s.a]:[];if(!v||stShift[v])continue;
+    const e=segEnds(s,s.lines[0]),q=v===s.a?e.B:e.A,d=sub(pos[w],pos[v]),off=Math.abs(d.x)>=Math.abs(d.y)?V(0,q.y-pos[v].y):V(q.x-pos[v].x,0);
+    if(Math.hypot(off.x,off.y)>.5&&Math.hypot(off.x,off.y)<2*LANE)stShift[v]=off;
+  }
+  // Likewise a one-line station whose track would dog-leg just before it slides onto the track as it arrives.
+  // Nearer stations go first, so one further along the same line sees where its predecessor ended up.
+  for(const s of segs.filter(s=>s.lines.length===1&&plain(s.b)).sort((x,y)=>byId[x.b].depth-byId[y.b].depth)){
+    if(stShift[s.b])continue;const {A,B}=segEnds(s,s.lines[0]),q=octilinear(lay.route(s,A,B)),n=q.length;if(n<3)continue;
+    const [a,b,c]=q.slice(-3),vert=Math.abs(c.x-b.x)<=.5;if(!vert&&Math.abs(c.y-b.y)>.5)continue;
+    const off=vert?V(a.x-b.x,0):V(0,a.y-b.y),o=Math.hypot(off.x,off.y);if(o<.5||o>=20||dist(a,b)>=30)continue;
+    stShift[s.b]=off;
+  }
+  // And one whose track dog-legs just after it, into an interchange slot, when the line reaches it round a corner:
+  // the corner moves instead, and both legs run straight.
+  for(const s of segs.filter(s=>s.lines.length===1&&plain(s.a)&&inTo(s.a).length===1&&!stShift[s.a])){
+    const l=s.lines[0],e=segEnds(s,l),q=octilinear(lay.route(s,e.A,e.B));if(q.length<4)continue;
+    const [p0,p1,p2,p3]=q,vert=Math.abs(p1.x-p0.x)<=.5;if(!vert&&Math.abs(p1.y-p0.y)>.5)continue;
+    const off=vert?V(p2.x-p1.x,0):V(0,p2.y-p1.y),o=Math.hypot(off.x,off.y);if(o<.5||o>=20||dist(p1,p2)>=30)continue;
+    if(vert?Math.abs(p3.x-p2.x)>.5:Math.abs(p3.y-p2.y)>.5)continue;
+    const r=inTo(s.a)[0],ie=segEnds(r,l),iq=octilinear(lay.route(r,ie.A,ie.B)),[a,b,c]=iq.slice(-3);if(!c)continue;
+    if(vert?Math.abs(b.y-a.y)>.5:Math.abs(b.x-a.x)>.5)continue;
+    stShift[s.a]=off;
   }
   function segPoly(s,l){
     if(s.lines.length>1)return offsetPoly(base[s.key],offOn(s,l));
@@ -501,8 +545,10 @@ function build(variant,showOthers){
       return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
     }
     if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
-    const l=[...linesAt[v]][0],p=pos[v];
-    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,d};
+    const l=[...linesAt[v]][0],p=stShift[v]?add(pos[v],stShift[v]):pos[v];
+    // Where the line turns at the station, the tick stands on the outside of the corner, clear of both tracks.
+    const turn=ins.length&&outs.length?startDir(outs[0]):null,corner=turn&&Math.abs(cross(d,turn))>.5?(dot(n,turn)>0?-1:1):0;
+    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,start:ins.length===0,d,corner};
   });
   // Retreat a terminus that would be swallowed by another station's interchange capsule.
   for(const m of markers.filter(m=>m.terminal)){
@@ -536,9 +582,29 @@ function build(variant,showOthers){
       if(!best||sc<best.sc)best={sc,r,dir};
     });
     labelRects.push(best.r);labels[i]={...best,name,size,weight};
-    if(m.type==='tick'){const c=V(best.r.x+w/2,best.r.y+h/2);m.side=dot(m.n,sub(c,p))>=0?1:-1}
+    if(m.type==='tick'){const c=V(best.r.x+w/2,best.r.y+h/2);m.side=m.corner||(dot(m.n,sub(c,p))>=0?1:-1)}
   }
-  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base,drawnOrder};
+  // A single track that runs straight, steps aside under 20px, then runs on parallel, is a dog-leg. Slide one end station
+  // across by the step if every other track there leaves along the slide or turns onto it, so moving it bends nothing else.
+  const para=(a,b)=>Math.abs(cross(norm(a),norm(b)))<.02,jogFix=[],moved=new Set(Object.keys(shift).filter(v=>shift[v]));
+  const free=(v,off,skip)=>v!=='chaos'&&[...inTo(v),...outOf(v)].every(t=>t.key===skip||(t.lines.length>1?[base[t.key]]:t.lines.map(l=>segPoly(t,l))).every(q=>{
+    const r=t.a===v?q:q.slice().reverse(),u=sub(r[1],r[0]);
+    return para(u,off)||(Math.abs(dot(norm(u),norm(off)))<.02&&r.length>2&&para(sub(r[2],r[1]),off)&&len(sub(r[2],r[1]))>len(off)+4);
+  }));
+  for(const s of segs){
+    if(s.lines.length>1)continue;const q=segPoly(s,s.lines[0]),n=q.length;if(n<4)continue;
+    for(let i=1;i+2<n;i++){
+      const u=sub(q[i],q[i-1]),j=sub(q[i+1],q[i]),w=sub(q[i+2],q[i+1]);
+      if(!(Math.abs(u.x)<.5||Math.abs(u.y)<.5)||!para(u,w)||dot(u,w)<=0||len(j)>=30)continue;
+      const un=norm(u),off=sub(j,mul(un,dot(j,un))),o=len(off);if(o<.5||o>=20)continue;
+      const cand=[];
+      if(i===1&&!moved.has(s.a)&&free(s.a,off,s.key))cand.push([s.a,off]);
+      if(i+2===n-1&&!moved.has(s.b)&&free(s.b,off,s.key))cand.push([s.b,mul(off,-1)]);
+      cand.sort((x,y)=>linesAt[x[0]].size-linesAt[y[0]].size);
+      if(cand[0]){jogFix.push(cand[0]);moved.add(cand[0][0])}
+    }
+  }
+  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base,drawnOrder,jogFix};
 }
 
 // ---------- rendering ----------
@@ -643,7 +709,7 @@ function render(variant,showOthers){
   // stations
   const sg=el('g',{},mapGroup);
   for(const m of B.markers){
-    const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
+    const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.type==='tick'&&m.start?add(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
     if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
     else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
   }
