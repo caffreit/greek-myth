@@ -88,7 +88,8 @@ export const people = [
 export const lines = [
   { id: 'sovereignty', name: 'Sovereignty line', color: '#d0312d', paths: [['chaos', 'gaia', 'uranus', 'cronus', 'zeus', 'athena'], ['zeus', 'apollo'], ['zeus', 'artemis'], ['zeus', 'hermes'], ['zeus', 'dionysus'], ['zeus', 'ares'], ['zeus', 'hebe'], ['zeus', 'persephone'], ['zeus', 'charites'], ['cronus', 'hera'], ['cronus', 'hestia'], ['cronus', 'hades'], ['cronus', 'poseidon']] },
   { id: 'promethean', name: 'Promethean line', color: '#7a4ea6', paths: [['chaos', 'gaia', 'uranus', 'iapetus', 'prometheus'], ['iapetus', 'atlas'], ['iapetus', 'epimetheus'], ['clymene', 'iapetus']] },
-  { id: 'sea', name: 'Sea line', color: '#13a19d', paths: [['chaos', 'gaia', 'pontus', 'nereus', 'nereids'], ['pontus', 'eurybia', 'perses'], ['gaia', 'ourea']] },
+  { id: 'sea', name: 'Sea line', color: '#13a19d', paths: [['chaos', 'gaia', 'pontus', 'nereus', 'nereids'], ['pontus', 'eurybia', 'perses']] },
+  { id: 'mountain', name: 'Mountain line', color: '#6b7b8c', paths: [['chaos', 'gaia', 'ourea']] },
   { id: 'ocean', name: 'Ocean line', color: '#1f5ea8', paths: [['chaos', 'gaia', 'uranus', 'oceanus', 'doris', 'nereids'], ['oceanus', 'eurynome', 'charites'], ['uranus', 'tethys', 'oceanus']] },
   { id: 'sun', name: 'Sun line', color: '#f0a500', paths: [['chaos', 'gaia', 'uranus', 'hyperion', 'helios'], ['hyperion', 'eos'], ['hyperion', 'selene'], ['uranus', 'theia', 'hyperion']] },
   { id: 'hecate', name: 'Hecate line', color: '#2e8b4b', paths: [['chaos', 'gaia', 'uranus', 'coeus', 'asteria', 'hecate'], ['uranus', 'crius', 'perses', 'hecate'], ['uranus', 'phoebe', 'coeus']] },

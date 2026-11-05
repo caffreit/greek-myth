@@ -47,7 +47,7 @@ const VARIANT='/* VARIANT_KEY */';
 const byId=Object.fromEntries(DATA.people.map(p=>[p.id,p]));
 const LINES=DATA.lines,lineById=Object.fromEntries(LINES.map(l=>[l.id,l]));
 const FONT='Inter, "Helvetica Neue", Arial, sans-serif';
-const LW=8,CASING=2,GAP=11,LANE=14,CORNER=20,TICK=5.5;
+const LW=8,CASING=2,GAP=11,LANE=14,CORNER=20,TICK=5.5,ZONE_R=CORNER-GAP/2;
 // Extra half-height of every ring, which turns the square rings into a portrait map.
 const STRETCH=170;
 
@@ -115,34 +115,41 @@ function offsetPoly(pts,off){
   });
 }
 const f=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-// Corners are circular arcs. ts optionally gives each corner's tangent length (how far back along each leg it starts).
+// Corners are smooth arcs. ts optionally gives each corner's tangent lengths {a,b}: how far back along the incoming
+// and outgoing legs it starts and ends. Equal lengths make a circular arc; unequal ones stretch it.
 function roundedD(pts,r,ts){
   let d=`M${f(pts[0])}`;
   for(let i=1;i<pts.length-1;i++){
-    const a=pts[i-1],b=pts[i],c=pts[i+1],ua=norm(sub(a,b)),uc=norm(sub(c,b)),rr=ts?.[i]??Math.min(r,dist(a,b)/2,dist(b,c)/2);
-    const half=Math.acos(Math.max(-1,Math.min(1,dot(ua,uc))))/2,R=rr*Math.tan(half),sw=cross(mul(ua,-1),uc)>0?1:0;
-    d+=` L${f(add(b,mul(ua,rr)))} A${R.toFixed(1)} ${R.toFixed(1)} 0 0 ${sw} ${f(add(b,mul(uc,rr)))}`;
+    const a=pts[i-1],b=pts[i],c=pts[i+1],ua=norm(sub(a,b)),uc=norm(sub(c,b)),rr=Math.min(r,dist(a,b)/2,dist(b,c)/2),ta=ts?.[i]?.a??rr,tb=ts?.[i]?.b??rr;
+    const phi=Math.PI-Math.acos(Math.max(-1,Math.min(1,dot(ua,uc)))),k=phi<1e-3?0:4/3*Math.tan(phi/4)/Math.tan(phi/2);
+    const p1=add(b,mul(ua,ta)),p2=add(b,mul(uc,tb));
+    d+=` L${f(p1)} C${f(add(p1,mul(ua,-ta*k)))} ${f(add(p2,mul(uc,-tb*k)))} ${f(p2)}`;
   }
   return d+` L${f(pts.at(-1))}`;
 }
-// Parallel tracks turning together share a centre: each corner's radius grows by its distance from the innermost track,
-// so the gap between them stays the same all the way round the bend.
+// Parallel tracks turning together nest: each curve is a circle whose radius grows by the track's distance from the
+// innermost one, so every line keeps one radius and the gap holds round the bend. Where the two legs are spaced
+// differently the wider spacing sets the radius, so neighbours never close up.
 function cornerTangents(tracks,r){
   const cs=[];
   tracks.forEach((t,ti)=>{for(let i=1;i<t.pts.length-1;i++){
-    const a=t.pts[i-1],b=t.pts[i],c=t.pts[i+1],din=norm(sub(b,a)),dout=norm(sub(c,b)),cphi=dot(din,dout);if(cphi>.999)continue;
-    const w=norm(sub(dout,din)),half=Math.acos(Math.max(-1,Math.min(1,cphi)))/2;
-    cs.push({ti,i,b,din,dout,w,half,o:dot(b,w)*Math.cos(half),max:Math.min(dist(a,b),dist(b,c))});
+    const a=t.pts[i-1],b=t.pts[i],c=t.pts[i+1],din=norm(sub(b,a)),dout=norm(sub(c,b));if(dot(din,dout)>.999)continue;
+    cs.push({ti,i,b,din,dout,o:dot(b,sub(dout,din)),max:Math.min(dist(a,b),dist(b,c))});
   }});
   const ts=tracks.map(()=>({}));
   for(const c of cs){
-    const g=cs.filter(x=>dot(x.din,c.din)>.999&&dot(x.dout,c.dout)>.999&&Math.abs(cross(sub(x.b,c.b),c.w))<1&&dist(x.b,c.b)<14*GAP);
+    // Its group: same-heading corners reached by steps of at most one lane, each nested inside or outside the last.
+    const same=cs.filter(x=>dot(x.din,c.din)>.999&&dot(x.dout,c.dout)>.999),g=[c];
+    const step=(x,y)=>{const D=sub(x.b,y.b),ea=dot(D,c.din),eb=-dot(D,c.dout);return Math.abs(ea)<=LANE+.5&&Math.abs(eb)<=LANE+.5&&ea*eb>=-.25&&Math.abs(ea)+Math.abs(eb)>.5};
+    for(let k=0;k<g.length;k++)for(const x of same)if(!g.includes(x)&&step(x,g[k]))g.push(x);
     const inner=g.reduce((m,x)=>x.o>m.o?x:m,c);
-    ts[c.ti][c.i]=Math.min(r,inner.max/2)+(inner.o-c.o)*Math.tan(c.half);
+    const t0=Math.min(r,inner.max/2);
+    const D=sub(c.b,inner.b),ea=dot(D,c.din),eb=-dot(D,c.dout);
+    ts[c.ti][c.i]=ea>-.5&&eb>-.5?{a:t0+Math.max(0,ea,eb),b:t0+Math.max(0,ea,eb)}:{a:Math.min(r,c.max/2),b:Math.min(r,c.max/2)};
   }
   // Two corners never claim more of the leg between them than it has.
   tracks.forEach((t,ti)=>{const T=ts[ti],n=t.pts.length;
-    for(let i=0;i<n-1;i++){const a=T[i]??0,b=T[i+1]??0,L=dist(t.pts[i],t.pts[i+1]);if(a+b>L){const s=L/(a+b);if(T[i]!==undefined)T[i]=a*s;if(T[i+1]!==undefined)T[i+1]=b*s}}
+    for(let i=0;i<n-1;i++){const a=T[i]?.b??0,b=T[i+1]?.a??0,L=dist(t.pts[i],t.pts[i+1]);if(a+b>L){const s=L/(a+b);if(T[i])T[i].b=a*s;if(T[i+1])T[i+1].a=b*s}}
   });
   return ts;
 }
@@ -350,8 +357,23 @@ function ringLayout(pos,refine=false){
   for(const list0 of Object.values(byOrbit)){
     const taken=[],list=Object.values(list0).flat().sort((x,y)=>(y.b-y.a)-(x.b-x.a));
     const ov=(I,J)=>[-1,0,1].some(sh=>I.a<J.b+sh-1e-9&&J.a+sh<I.b-1e-9);
-    for(const I of list){let i=0;while((taken[i]??=[]).some(J=>ov(I,J)))i++;taken[i].push(I);I.lane=i}
-    const place=()=>{for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=(I.lane-(taken.length-1)/2+shift)*LANE;laneGroup[k]=I.keys;trunks[k]=I}}};
+    // A station's trunks heading opposite ways along the boundary take the same lane where they can,
+    // so a line turning one way and a line turning the other leave the station's track at the same point.
+    const fitsAt=(I,i)=>!(taken[i]??[]).some(J=>ov(I,J));
+    for(const I of list){
+      const st=segMap.get(I.keys[0]).a,twin=list.find(J=>J!==I&&J.lane!==undefined&&J.dir!==I.dir&&segMap.get(J.keys[0]).a===st&&J.lines.some(l=>I.lines.includes(l)));
+      let i=twin&&fitsAt(I,twin.lane)?twin.lane:0;if(i!==twin?.lane)while(!fitsAt(I,i))i++;
+      (taken[i]??=[]).push(I);I.lane=i;
+    }
+    for(let i=0;i<taken.length;i++)taken[i]??=[];
+    // Lanes sit one track gap apart edge to edge, a bundle's lane as wide as its tracks, so lines running along
+    // the boundary keep the same spacing as they have leaving their interchange.
+    const place=()=>{
+      const w=taken.map((_,i)=>Math.max(1,...list.filter(I=>I.lane===i).map(I=>I.lines.length))),c=[0];
+      for(let i=1;i<w.length;i++)c[i]=c[i-1]+GAP*(w[i-1]+w[i])/2;
+      const mid=(c[0]-GAP*(w[0]-1)/2+c.at(-1)+GAP*(w.at(-1)-1)/2)/2;
+      for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=c[I.lane]-mid+shift*GAP;laneGroup[k]=I.keys;trunks[k]=I}}
+    };
     place();
     // Then swap pairs of lanes wherever that removes crossings between this boundary's tracks.
     if(refine&&list.length>1){
@@ -375,6 +397,19 @@ function ringLayout(pos,refine=false){
       if(I===J||I.dir!==J.dir||I.lane<J.lane||Math.abs(endOf(I)-endOf(J))>1e-6||!inside(startOf(I),J)||!fitsSwap(I,J))continue;
       [I.lane,J.lane]=[J.lane,I.lane];place();
     }
+    // After the swaps, bring opposite-way twins back onto one lane wherever one of them can move across.
+    const free=(I,lane)=>!list.some(K=>K!==I&&K.lane===lane&&ov(I,K));
+    for(const I of list)for(const J of list){
+      if(I===J||I.dir===J.dir||I.lane===J.lane||segMap.get(I.keys[0]).a!==segMap.get(J.keys[0]).a||!I.lines.some(l=>J.lines.includes(l)))continue;
+      if(free(I,J.lane)){I.lane=J.lane;continue}if(free(J,I.lane)){J.lane=I.lane;continue}
+      // Otherwise trade places with whatever blocks one of them, if those runs fit in the lane it leaves.
+      for(const [X,Y] of [[I,J],[J,I]]){
+        const block=list.filter(K=>K!==X&&K.lane===Y.lane&&ov(X,K)),from=X.lane;
+        if(block.includes(Y)||!block.every(K=>!list.some(M=>M!==X&&!block.includes(M)&&M.lane===from&&ov(K,M))))continue;
+        for(const K of block)K.lane=from;X.lane=Y.lane;break;
+      }
+    }
+    place();
   }
   function route(s,A,B){
     const ka=byId[s.a].depth;
@@ -578,6 +613,21 @@ function buildOnce(variant,showOthers,shift){
     }
     tracks.push({line:L,pts:clean(pts)});
   }
+  // Branches turning off one run to opposite sides a few px apart should leave from one point, a T, not a stagger.
+  // A terminus whose branch turns just before it slides along the run to meet the other side's turn.
+  for(const t of tracks){
+    if(t.pts.length<3)continue;const e=t.pts.at(-1),c=t.pts.at(-2),b=t.pts.at(-3),v=stations.find(v=>dist(pos[v],e)<.5&&!outOf(v).length);
+    if(!v)continue;const u=norm(sub(c,b)),side=Math.sign(cross(u,sub(e,c)));if(!side||Math.abs(dot(u,norm(sub(e,c))))>1e-6)continue;
+    let best=null;
+    for(const o of tracks)if(o!==t&&o.line===t.line)for(let i=1;i<o.pts.length-1;i++){
+      const q=o.pts[i],w=norm(sub(q,o.pts[i-1])),along=dot(sub(q,c),u);
+      if(dot(w,u)<.999||Math.abs(cross(u,sub(q,c)))>.5||Math.abs(along)<.5||Math.abs(along)>GAP)continue;
+      if(Math.sign(cross(u,sub(o.pts[i+1],q)))!==-side||dist(b,c)+along<LANE)continue;
+      if(!best||Math.abs(along)<Math.abs(best))best=along;
+    }
+    if(best===null)continue;const sh=mul(u,best);
+    t.pts[t.pts.length-2]=add(c,sh);t.pts[t.pts.length-1]=add(e,sh);pos[v]=add(pos[v],sh);
+  }
   // Each interchange's lines as drawn, left of the direction of travel first: the editor's starting point for its order.
   const slotSpan={},drawnOrder={};
   for(const v of stations){
@@ -619,14 +669,21 @@ function buildOnce(variant,showOthers,shift){
     }
     if(dist(home,m.p)>.5)for(const t of tracks)if(dist(t.pts.at(-1),home)<.5)t.pts[t.pts.length-1]=m.p;
   }
-  const markerBox=m=>{const R=m.type==='pill'?11:9,a=m.a||m.p||pos[m.v],b=m.b||m.p||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
+  // An end tick is centred on its station, in line with the ticks of stations the line runs through,
+  // so the track runs on half a tick past the station to stay flush with the tick's far edge.
+  for(const m of markers)if(m.type==='tick'&&(m.terminal||m.start)){
+    const c=m.p,e=m.terminal?add(c,mul(m.d,TICK/2)):sub(c,mul(m.d,TICK/2));
+    for(const t of tracks){if(m.terminal&&dist(t.pts.at(-1),c)<.5)t.pts[t.pts.length-1]=e;if(m.start&&dist(t.pts[0],c)<.5)t.pts[0]=e}
+    m.c=c;m.p=e;
+  }
+  const markerBox=m=>{const R=m.type==='pill'?12:LW/2+9,a=m.a||m.c||m.p||pos[m.v],b=m.b||m.c||m.p||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
 
   // greedy label placement
   const trackSegs=[];for(const t of tracks)for(let i=1;i<t.pts.length;i++)trackSegs.push([t.pts[i-1],t.pts[i]]);
   const boxes=markers.map(markerBox),labels=[],labelRects=[];
   const ordering=markers.map((m,i)=>i).sort((a,b)=>(markers[a].type==='pill'?0:1)-(markers[b].type==='pill'?0:1)||byId[markers[a].v].depth-byId[markers[b].v].depth);
   for(const i of ordering){
-    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?19:15,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.p||pos[v],g=5;
+    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?20:18,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.c||m.p||pos[v],g=5;
     const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
       NE:{x:mb.x+mb.w,y:mb.y-h},
       // On the line's continuation past a terminal, the name's baseline resting on the top edge of the track.
@@ -636,7 +693,7 @@ function buildOnce(variant,showOthers,shift){
     prefs.forEach((dir,pi)=>{
       const r={...C[dir],w,h},hit=inflate(r,LW/2+1);let sc=pi*2;
       for(const [a,b] of trackSegs)if(rectHit(hit,a,b))sc+=100;
-      for(const o of labelRects)if(rectsOverlap(inflate(r,3),o))sc+=100;
+      for(const o of labelRects)if(rectsOverlap(inflate(r,8),o))sc+=100;
       boxes.forEach((o,j)=>{if(j!==i&&rectsOverlap(r,o))sc+=80});
       if(!best||sc<best.sc)best={sc,r,dir};
     });
@@ -685,7 +742,7 @@ function render(variant,showOthers){
   for(const t of B.tracks)for(const p of t.pts)grow(p.x,p.y);for(const l of B.labels)if(l){grow(l.r.x,l.r.y);grow(l.r.x+l.r.w,l.r.y+l.r.h)}
   const maxZone=Math.max(...stations.map(id=>byId[id].depth));
   const e=(maxZone+.5)*lay.R+70;grow(-e,-e-STRETCH);grow(e,e+STRETCH);
-  const pad=56,header=140,legendGap=8,legendPad=14;
+  const pad=56,header=170,legendGap=8,legendPad=14;
   // Each paragraph opens with a bold lead-in; *asterisks* mark italic titles.
   const readingCopy=[
     ['Follow a line to trace a family.','Each stop is the child of the one before it.'],
@@ -694,7 +751,7 @@ function render(variant,showOthers){
     ['','Parentage follows Hesiod\u2019s *Theogony*.'],
   ];
   const headingSize=36,nameSize=22,detailSize=18,bodySize=21,bodyLeading=28,rowPitch=42;
-  const zoneSwatchW=48,zoneSwatchH=30,zoneNumSize=22,zoneLabel=zoneSwatchW+14;
+  const zoneSwatchW=54,zoneSwatchH=36,zoneNumSize=24,zoneLabel=zoneSwatchW+14;
   const legendLayout=W=>{
     const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2);
     // Zone rows stretch so they finish with the lines.
@@ -708,10 +765,10 @@ function render(variant,showOthers){
       return {column,y,nameWidth,inline,details};
     });
     const lineLast=Math.max(...entries.map(e=>e.y));
-    const zoneCount=maxZone+1,zoneStep=(lineLast-firstY)/Math.max(1,zoneCount-1);
-    const zoneName=k=>DATA.levelNames[k]??`Generation ${k}`;
-    const zones=Array.from({length:zoneCount},(_,k)=>{
-      const y=firstY+k*zoneStep,lines=wrap(zoneName(k),colW-zoneLabel-24,bodySize);
+    // Zone rows sit at a fixed pitch under their heading, a compact list rather than one stretched to the lines' height.
+    const zoneName=k=>DATA.levelNames[k]??`Generation ${k}`;let zy=firstY;
+    const zones=Array.from({length:maxZone+1},(_,k)=>{
+      const y=zy,lines=wrap(zoneName(k),colW-zoneLabel-24,bodySize);zy+=Math.max(zoneSwatchH+14,lines.length*bodyLeading+14);
       return {y,lines};
     });
     const readingSize=22,readingLeading=30;
@@ -745,26 +802,46 @@ function render(variant,showOthers){
   const fy=mapBottom+legendGap+Math.max(0,H-contentH);
 
   // header
-  txt(svg,left+pad,top+pad+52,'Transit Theogony',{'font-size':74,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'});
-
   const mapCenterX=(x0+x1)/2,scale=mapScale;
   const mapGroup=el('g',{id:'map',transform:`translate(${(1-scale)*mapCenterX} ${(1-scale)*y0}) scale(${scale})`},svg);
   const mapX=x=>mapCenterX+(x-mapCenterX)*scale,mapY=y=>y0+(y-y0)*scale;
+  // The title fills the band above Okeanos, flush with the river's outer edge and centred in the band's height.
+  {const ring=(maxZone+.5)*lay.R+34+15,band=mapY(-ring-STRETCH)-top,size=Math.min(132,band*.62),cap=size*.72;
+   txt(svg,mapX(-ring),top+(band+cap)/2,'Transit Theogony',{'font-size':size,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'})}
   // zones
   const zg=el('g',{},mapGroup),zoneFill=k=>k%2?'#efeee8':'#f7f6f1';
   const R=lay.R,river=(maxZone+.5)*R+34,zoneH=k=>(k+.5)*R+STRETCH;
   el('rect',{x:-river,y:-river-STRETCH,width:2*river,height:2*(river+STRETCH),rx:48,fill:'none',stroke:'#cfe3ee',"stroke-width":30},zg);
   txt(zg,0,-river-STRETCH+5,'O K E A N O S',{'font-size':13,'font-weight':700,'text-anchor':'middle',fill:'#6f9bb6','font-style':'italic'});
-  for(let k=maxZone;k>=0;k--){const s=(k+.5)*R;el('rect',{x:-s,y:-zoneH(k),width:2*s,height:2*zoneH(k),rx:k?22:30,fill:zoneFill(k),stroke:'#e1dfd8','stroke-width':1},zg)}
-  for(let k=0;k<=maxZone;k++){const s=(k+.5)*R;txt(zg,-s+22,-zoneH(k)+50,String(k),{'font-size':32,'font-weight':700,fill:'#8c897e',opacity:.72})}
 
   // other-parent links
   if(showOthers){const og=el('g',{},mapGroup);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
 
   // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
   const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},mapGroup);
-  const tans=cornerTangents(B.tracks,CORNER);
-  for(const L of LINES){const paths=B.tracks.map((t,i)=>[t,i]).filter(([t])=>t.line.id===L.id).map(([t,i])=>roundedD(t.pts,CORNER,tans[i]));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
+  // A line that turns at an interchange ends square under the capsule and leaves it square,
+  // rather than rounding a corner whose curve pokes out beyond the capsule.
+  const pills=B.markers.filter(m=>m.type==='pill'),drawn=[];
+  for(const t of B.tracks){let cur=[t.pts[0]];
+    for(let i=1;i<t.pts.length;i++){const q=t.pts[i];cur.push(q);
+      if(i<t.pts.length-1&&cross(norm(sub(q,t.pts[i-1])),norm(sub(t.pts[i+1],q)))**2>1e-6&&pills.some(m=>pointSegDist(q,m.a,m.b)<1)){drawn.push({line:t.line,pts:cur});cur=[q]}}
+    drawn.push({line:t.line,pts:cur});
+  }
+  const tans=cornerTangents(drawn,CORNER);
+  // Lines keep their own radii; where a track runs flush along a zone edge round a corner, that zone corner takes the
+  // track's centre instead, so the edge stays flush with no sliver of the next zone showing.
+  const zoneR={};
+  drawn.forEach((t,ti)=>{for(let i=1;i<t.pts.length-1;i++){
+    const b=t.pts[i],din=norm(sub(b,t.pts[i-1])),dout=norm(sub(t.pts[i+1],b)),inward=sub(dout,din),sx=Math.sign(b.x),sy=Math.sign(b.y);
+    if(Math.abs(din.x*din.y)>1e-6||Math.abs(dout.x*dout.y)>1e-6||!sx||!sy||Math.sign(inward.x)!==-sx||Math.sign(inward.y)!==-sy||!tans[ti][i])continue;
+    for(let k=0;k<=maxZone;k++){const dx=Math.abs(b.x)-(k+.5)*R,dy=Math.abs(b.y)-zoneH(k);
+      if(Math.abs(dx)<=7&&Math.abs(dy)<=7&&Math.abs(dx-dy)<1)(zoneR[k]??={})[sx+','+sy]??=Math.max(2,tans[ti][i].a-(dx+dy)/2)}
+  }});
+  const zonePath=(s,h,r)=>{const c=(qx,qy)=>Math.min(r[qx+','+qy]??ZONE_R,s,h);const [tr,br,bl,tl]=[c(1,-1),c(1,1),c(-1,1),c(-1,-1)];
+    return `M${-s+tl},${-h}H${s-tr}A${tr},${tr} 0 0 1 ${s},${-h+tr}V${h-br}A${br},${br} 0 0 1 ${s-br},${h}H${-s+bl}A${bl},${bl} 0 0 1 ${-s},${h-bl}V${-h+tl}A${tl},${tl} 0 0 1 ${-s+tl},${-h}Z`};
+  for(let k=maxZone;k>=0;k--){const s=(k+.5)*R;el('path',{d:zonePath(s,zoneH(k),zoneR[k]??{}),fill:zoneFill(k),stroke:'#e1dfd8','stroke-width':1},zg)}
+  for(let k=0;k<=maxZone;k++){const s=(k+.5)*R;txt(zg,-s+22,-zoneH(k)+50,String(k),{'font-size':32,'font-weight':700,fill:'#8c897e',opacity:.72})}
+  for(const L of LINES){const paths=drawn.map((t,i)=>[t,i]).filter(([t])=>t.line.id===L.id).map(([t,i])=>roundedD(t.pts,CORNER,tans[i]));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
 
   // stations
   const sg=el('g',{},mapGroup);
@@ -774,7 +851,7 @@ function render(variant,showOthers){
     else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
   }
   // Keep names the uniform poster size and the same distance from their station; only the map geometry widens.
-  B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scale,mapY(p.y)+(ty-p.y)*scale,l.name,{'font-size':l.size*scale,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em',...(EDITOR.on?{'data-label':m.v}:{})})});
+  B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.c||m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scale,mapY(p.y)+(ty-p.y)*scale,l.name,{'font-size':l.size*scale,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em',...(EDITOR.on?{'data-label':m.v}:{})})});
   if(EDITOR.on)drawEditor(mapGroup,B);
 
   // footer key
