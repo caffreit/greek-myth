@@ -115,10 +115,36 @@ function offsetPoly(pts,off){
   });
 }
 const f=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-function roundedD(pts,r){
+// Corners are circular arcs. ts optionally gives each corner's tangent length (how far back along each leg it starts).
+function roundedD(pts,r,ts){
   let d=`M${f(pts[0])}`;
-  for(let i=1;i<pts.length-1;i++){const a=pts[i-1],b=pts[i],c=pts[i+1],rr=Math.min(r,dist(a,b)/2,dist(b,c)/2);d+=` L${f(add(b,mul(norm(sub(a,b)),rr)))} Q${f(b)} ${f(add(b,mul(norm(sub(c,b)),rr)))}`}
+  for(let i=1;i<pts.length-1;i++){
+    const a=pts[i-1],b=pts[i],c=pts[i+1],ua=norm(sub(a,b)),uc=norm(sub(c,b)),rr=ts?.[i]??Math.min(r,dist(a,b)/2,dist(b,c)/2);
+    const half=Math.acos(Math.max(-1,Math.min(1,dot(ua,uc))))/2,R=rr*Math.tan(half),sw=cross(mul(ua,-1),uc)>0?1:0;
+    d+=` L${f(add(b,mul(ua,rr)))} A${R.toFixed(1)} ${R.toFixed(1)} 0 0 ${sw} ${f(add(b,mul(uc,rr)))}`;
+  }
   return d+` L${f(pts.at(-1))}`;
+}
+// Parallel tracks turning together share a centre: each corner's radius grows by its distance from the innermost track,
+// so the gap between them stays the same all the way round the bend.
+function cornerTangents(tracks,r){
+  const cs=[];
+  tracks.forEach((t,ti)=>{for(let i=1;i<t.pts.length-1;i++){
+    const a=t.pts[i-1],b=t.pts[i],c=t.pts[i+1],din=norm(sub(b,a)),dout=norm(sub(c,b)),cphi=dot(din,dout);if(cphi>.999)continue;
+    const w=norm(sub(dout,din)),half=Math.acos(Math.max(-1,Math.min(1,cphi)))/2;
+    cs.push({ti,i,b,din,dout,w,half,o:dot(b,w)*Math.cos(half),max:Math.min(dist(a,b),dist(b,c))});
+  }});
+  const ts=tracks.map(()=>({}));
+  for(const c of cs){
+    const g=cs.filter(x=>dot(x.din,c.din)>.999&&dot(x.dout,c.dout)>.999&&Math.abs(cross(sub(x.b,c.b),c.w))<1&&dist(x.b,c.b)<14*GAP);
+    const inner=g.reduce((m,x)=>x.o>m.o?x:m,c);
+    ts[c.ti][c.i]=Math.min(r,inner.max/2)+(inner.o-c.o)*Math.tan(c.half);
+  }
+  // Two corners never claim more of the leg between them than it has.
+  tracks.forEach((t,ti)=>{const T=ts[ti],n=t.pts.length;
+    for(let i=0;i<n-1;i++){const a=T[i]??0,b=T[i+1]??0,L=dist(t.pts[i],t.pts[i+1]);if(a+b>L){const s=L/(a+b);if(T[i]!==undefined)T[i]=a*s;if(T[i+1]!==undefined)T[i+1]=b*s}}
+  });
+  return ts;
 }
 function rectHit(r,a,b){
   let t0=0,t1=1;const dx=b.x-a.x,dy=b.y-a.y;
@@ -448,8 +474,10 @@ function buildOnce(variant,showOthers,shift){
   // Lines merging into one station arrive side by side rather than on top of each other.
   const endOff={};
   for(const v of stations){
-    const ins=inTo(v).filter(s=>s.lines.length===1);if(ins.length<2)continue;
-    ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*laneGap);
+    // Only tracks arriving along the same heading sit side by side; one from another side runs into the centre.
+    const all=inTo(v).filter(s=>s.lines.length===1);
+    for(const ins of all.map(s=>all.filter(x=>dot(endDir(x),endDir(s))>.99)).filter((g,i)=>g[0]===all[i]&&g.length>1))
+      ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*laneGap);
   }
   // The axis an interchange's capsule lies along: across its bundle, or across its first track.
   const pillN=v=>{const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v);return leftN(ms?(ins.includes(ms)?endDir(ms):startDir(ms)):ins.length?endDir(ins[0]):startDir(outOf(v)[0]))};
@@ -464,6 +492,31 @@ function buildOnce(variant,showOthers,shift){
     }
     return {off:raw(l)+slotShift[v],n};
   };
+  // Bundles leaving an interchange with its own order take its slots: each trunk lists its lines in slot order,
+  // and its first leg slides across so every line starts on its slot. Trunks sharing a line then share its track
+  // until they part, rather than running half a lane apart.
+  const slotRaw=(v,l)=>{const o=stationOrder(v);return ((o.length-1)/2-o.indexOf(l))*laneGap};
+  for(const t of new Set(Object.values(lay.trunks))){
+    const s=segMap.get(t.keys[0]);if(t.lines.length<2||!stationOrder(s.a))continue;
+    const k=dot(pillN(s.a),leftN(startDir(s)));trunkOrder[t.keys[0]]=t.lines.slice().sort((a,b)=>(slotRaw(s.a,b)-slotRaw(s.a,a))*k);
+  }
+  for(const s of segs){
+    if(s.lines.length<2||!stationOrder(s.a))continue;
+    const nS=leftN(startDir(s)),d=s.lines.map(l=>slotAt(s.a,l).off*dot(slotAt(s.a,l).n,nS)-offOn(s,l)).sort((a,b)=>a-b),m=d[Math.floor((d.length-1)/2)];
+    if(Math.abs(m)>.25){const p=base[s.key];p[0]=add(p[0],mul(nS,m));p[1]=add(p[1],mul(nS,m))}
+  }
+  // Two such trunks parting in opposite directions turn a shared line on the same spot, so it runs straight through
+  // the junction instead of splitting into two tracks half a lane apart.
+  for(const v of stations){
+    if(!stationOrder(v))continue;const firsts=[...new Set(outOf(v).filter(s=>s.lines.length>1&&base[s.key].length>2).map(s=>lay.trunks[s.key]?.keys[0]??s.key))].map(k=>segMap.get(k));
+    for(let i=0;i<firsts.length;i++)for(let j=0;j<i;j++){
+      const a=firsts[j],b=firsts[i],da=startDir(a);if(dot(da,startDir(b))<.99)continue;
+      const ta=norm(sub(base[a.key][2],base[a.key][1])),tb=norm(sub(base[b.key][2],base[b.key][1]));if(dot(ta,tb)>-.99)continue;
+      const turn=(s,l)=>offsetPoly(base[s.key],offOn(s,l))[1],ms=a.lines.filter(x=>b.lines.includes(x)).map(l=>dot(sub(turn(a,l),turn(b,l)),da)).sort((x,y)=>Math.abs(x)-Math.abs(y)),m=ms[0];
+      if(m===undefined||Math.abs(m)<.25||Math.abs(m)>laneGap)continue;
+      for(const s of outOf(v))if((lay.trunks[s.key]?.keys[0]??s.key)===b.key&&base[s.key].length>2){const p=base[s.key];p[1]=add(p[1],mul(da,m));p[2]=add(p[2],mul(da,m))}
+    }
+  }
   const laneIn=(l,v)=>{const sl=slotAt(v,l);if(sl)return sl;const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
   // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
   const startOff={};
@@ -710,7 +763,8 @@ function render(variant,showOthers){
 
   // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
   const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},mapGroup);
-  for(const L of LINES){const paths=B.tracks.filter(t=>t.line.id===L.id).map(t=>roundedD(t.pts,CORNER));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
+  const tans=cornerTangents(B.tracks,CORNER);
+  for(const L of LINES){const paths=B.tracks.map((t,i)=>[t,i]).filter(([t])=>t.line.id===L.id).map(([t,i])=>roundedD(t.pts,CORNER,tans[i]));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
 
   // stations
   const sg=el('g',{},mapGroup);

@@ -42,15 +42,15 @@
   },
   "ares": {
    "x": 825,
-   "y": 55
+   "y": 187
   },
   "hebe": {
    "x": 825,
-   "y": 115.4
+   "y": 253
   },
   "persephone": {
    "x": 825,
-   "y": 396
+   "y": 352
   },
   "charites": {
    "x": 539,
@@ -58,7 +58,7 @@
   },
   "hera": {
    "x": 660,
-   "y": 187
+   "y": 77
   },
   "hestia": {
    "x": 660,
@@ -66,7 +66,7 @@
   },
   "hades": {
    "x": 660,
-   "y": 297
+   "y": 253
   },
   "poseidon": {
    "x": 660,
@@ -226,11 +226,11 @@
   },
   "hephaestus": {
    "x": 825,
-   "y": 209
+   "y": 99
   },
   "demeter": {
    "x": 660,
-   "y": 396
+   "y": 352
   },
   "rhea": {
    "x": 495,
@@ -325,7 +325,6 @@
   "hades": "N",
   "demeter": "N",
   "persephone": "N",
-  "hephaestus": "N",
   "ares": "N",
   "hebe": "N",
   "apollo": "N",
@@ -333,7 +332,8 @@
   "athena": "N",
   "hermes": "N",
   "dionysus": "N",
-  "rhea": "NE"
+  "rhea": "NE",
+  "hephaestus": "N"
  },
  "lanes": {},
  "trackOrder": [
