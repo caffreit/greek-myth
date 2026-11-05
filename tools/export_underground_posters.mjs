@@ -16,6 +16,7 @@ const PRINT_DPI = 300;
 const posters = [
   { source: 'topology/underground_ltr.html', name: 'transit_theogony_ltr' },
   { source: 'topology/underground_ring.html', name: 'transit_theogony_ring' },
+  { source: 'topology/underground_ring_v2.html', name: 'transit_theogony_ring_v2' },
 ];
 
 const profile = await mkdtemp(join(tmpdir(), 'underground-export-'));

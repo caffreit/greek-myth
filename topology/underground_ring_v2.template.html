@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>/* PAGE_TITLE */</title>
+<!-- /* PAGE_NOTE */ -->
+<style>
+html,body{margin:0;background:#e6e4de;font-family:Inter,"Helvetica Neue",Arial,sans-serif}
+#poster{display:block;margin:20px auto 90px;width:min(96vw,1650px);height:auto;background:#fcfbf8;box-shadow:0 2px 26px rgba(0,0,0,.09)}
+.bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:14px;align-items:center;background:#16171a;color:#f3f3f0;border-radius:999px;padding:7px 16px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.28);z-index:10;white-space:nowrap}
+.bar a{color:#f3f3f0;font-weight:700;text-decoration:none}
+.bar a:hover{text-decoration:underline}
+.bar label{display:flex;gap:5px;align-items:center;cursor:pointer;color:#d6d7da}
+.bar .state{color:#9fa2a8;font-size:11.5px}
+.bar button{font:inherit;font-weight:700;border:0;border-radius:999px;padding:4px 14px;background:#2f6fd6;color:#fff;cursor:pointer}
+.bar button:disabled{background:#4a4c52;color:#9fa2a8;cursor:default}
+.panel{position:fixed;top:16px;right:16px;width:270px;max-height:calc(100vh - 100px);overflow:auto;background:#16171a;color:#e8e8e4;border-radius:12px;padding:12px 14px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.28);z-index:10}
+.panel h3{margin:12px 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fa2a8}
+.panel h3:first-child{margin-top:0}
+.panel button{font:inherit;border:0;border-radius:5px;padding:2px 7px;background:#33353b;color:#e8e8e4;cursor:pointer}
+.panel button:hover{background:#474a52}
+.panel .row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.panel .sw{width:18px;height:6px;border-radius:2px;flex:none}
+.panel .grow{flex:1}
+.panel .keys{color:#9fa2a8;line-height:1.55}
+.panel kbd{font:inherit;background:#33353b;border-radius:3px;padding:0 4px;color:#e8e8e4}
+body.editing #poster{cursor:default;user-select:none;width:min(calc(100vw - 340px),1650px);margin-left:20px}
+body.editing [data-station]{cursor:grab}
+body.editing [data-label],body.editing [data-seg]{cursor:pointer}
+</style>
+</head>
+<body>
+<svg id="poster" xmlns="http://www.w3.org/2000/svg"></svg>
+<script id="svgExportBuffer" type="application/xml"></script>
+<div class="bar">
+  <a href="/* OTHER_HREF */">/* OTHER_LABEL */</a>
+  <label><input type="checkbox" id="others"> other parents</label>
+  <label><input type="checkbox" id="edit"> edit</label>
+  <button id="save" hidden disabled title="Run node tools/ring_editor.mjs 8765 v2 to save">Save</button>
+  <span class="state" id="state"></span>
+</div>
+<div class="panel" id="panel" hidden></div>
+<script>
+const DATA=/* PROTOTYPE_DATA */;
+const VARIANT='/* VARIANT_KEY */';
+const byId=Object.fromEntries(DATA.people.map(p=>[p.id,p]));
+const LINES=DATA.lines,lineById=Object.fromEntries(LINES.map(l=>[l.id,l]));
+const FONT='Inter, "Helvetica Neue", Arial, sans-serif';
+const LW=8,CASING=2,GAP=11,LANE=14,CORNER=20,TICK=5.5,ZONE_R=CORNER-GAP/2;
+// Extra half-height of every ring, which turns the square rings into a portrait map.
+const STRETCH=170;
+
+const V=(x,y)=>({x,y}),add=(a,b)=>V(a.x+b.x,a.y+b.y),sub=(a,b)=>V(a.x-b.x,a.y-b.y),mul=(a,k)=>V(a.x*k,a.y*k);
+const len=a=>Math.hypot(a.x,a.y),norm=a=>{const l=len(a)||1;return V(a.x/l,a.y/l)},dot=(a,b)=>a.x*b.x+a.y*b.y,cross=(a,b)=>a.x*b.y-a.y*b.x;
+const leftN=d=>V(d.y,-d.x),dist=(a,b)=>len(sub(a,b));
+
+// ---------- network: stations, track segments, tree of first appearance ----------
+const segMap=new Map(),stations=[],treeParent={},kids={};
+// With an Erebus line, Aether, Hemera and Charon stay on its branch and Night merges into them afterwards.
+const erebusChildren=new Set(LINES.some(L=>L.id==='erebus')?['aether','hemera','charon']:[]);
+function addSeg(a,id,lineId){
+  const key=a+'>'+id;if(!segMap.has(key))segMap.set(key,{key,a,b:id,lines:[]});
+  const s=segMap.get(key);if(!s.lines.includes(lineId))s.lines.push(lineId);
+}
+for(const L of LINES)for(const path of L.paths)path.forEach((id,i)=>{
+  if(!stations.includes(id)){
+    if(L.id==='night'&&erebusChildren.has(id))return;
+    stations.push(id);kids[id]=[];if(i>0){treeParent[id]=path[i-1];kids[path[i-1]].push(id)}
+  }
+  if(i>0&&stations.includes(id))addSeg(path[i-1],id,L.id);
+});
+for(const id of erebusChildren)addSeg('nyx',id,'night');
+const segs=[...segMap.values()];
+const outOf=id=>segs.filter(s=>s.a===id),inTo=id=>segs.filter(s=>s.b===id);
+const linesAt=Object.fromEntries(stations.map(id=>[id,new Set()]));
+for(const s of segs)for(const l of s.lines){linesAt[s.a].add(l);linesAt[s.b].add(l)}
+const otherParentLinks=DATA.links.filter(([a,b])=>stations.includes(a)&&stations.includes(b)&&!segMap.has(a+'>'+b));
+
+// ---------- geometry helpers ----------
+function clean(pts){
+  const out=[];for(const p of pts){if(out.length&&dist(out.at(-1),p)<.5)continue;out.push(p)}
+  for(let i=out.length-2;i>0;i--){const u=sub(out[i],out[i-1]),w=sub(out[i+1],out[i]);if(Math.abs(cross(u,w))<1e-6*len(u)*len(w)+1e-9&&dot(u,w)>0)out.splice(i,1)}
+  return out;
+}
+function segX(p1,p2,p3,p4){const d1=sub(p2,p1),d2=sub(p4,p3),den=cross(d1,d2);if(Math.abs(den)<1e-9)return false;const t=cross(sub(p3,p1),d2)/den,u=cross(sub(p3,p1),d1)/den;return t>1e-6&&t<1-1e-6&&u>1e-6&&u<1-1e-6}
+function bbox(pts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)}return {x0,y0,x1,y1}}
+function polyCross(a,b){
+  const A=a.bb??=bbox(a),B=b.bb??=bbox(b);if(A.x1<B.x0||B.x1<A.x0||A.y1<B.y0||B.y1<A.y0)return 0;
+  let n=0;for(let i=1;i<a.length;i++)for(let j=1;j<b.length;j++)if(segX(a[i-1],a[i],b[j-1],b[j]))n++;return n;
+}
+function pointSegDist(p,a,b){const d=sub(b,a),t=Math.max(0,Math.min(1,dot(sub(p,a),d)/(dot(d,d)||1)));return dist(p,add(a,mul(d,t)))}
+// Layout score used by both searches: crossings and track running through other stations dominate, then total track length.
+function layoutCost(lay){
+  const polys=segs.map(s=>lay.route(s,lay.pos[s.a],lay.pos[s.b]));let cr=0,L=0,through=0;
+  for(let i=0;i<polys.length;i++){
+    for(let k=1;k<polys[i].length;k++)L+=dist(polys[i][k-1],polys[i][k]);
+    for(let j=i+1;j<polys.length;j++)cr+=polyCross(polys[i],polys[j]);
+    for(const v of stations){if(v===segs[i].a||v===segs[i].b)continue;for(let k=1;k<polys[i].length;k++)if(pointSegDist(lay.pos[v],polys[i][k-1],polys[i][k])<16){through++;break}}
+  }
+  const apart=coupleDistance(lay.pos),bend=spineBend(lay.pos);
+  return {cr,through,L,apart,bend,cost:cr*1000+through*700+L+apart+bend*40};
+}
+// The Sovereignty line from Chaos to Zeus is the poster's spine: it runs level along the east side.
+const spine=LINES[0].paths[0].slice(1,LINES[0].paths[0].indexOf('zeus')+1);
+const spineBend=pos=>spine.reduce((s,id)=>s+Math.abs(pos[id].y),0);
+// Weighted distance between partners, so couples with shared children sit near each other.
+const coupleDistance=pos=>DATA.couples.reduce((s,c)=>s+c.weight*dist(pos[c.a],pos[c.b]),0);
+function offsetPoly(pts,off){
+  if(!off)return pts.slice();
+  return pts.map((p,i)=>{
+    const dp=i>0?norm(sub(p,pts[i-1])):null,dn=i<pts.length-1?norm(sub(pts[i+1],p)):null;
+    if(!dp)return add(p,mul(leftN(dn),off));if(!dn)return add(p,mul(leftN(dp),off));
+    const n1=leftN(dp),m=norm(add(n1,leftN(dn)));return add(p,mul(m,off/Math.max(.3,dot(m,n1))));
+  });
+}
+const f=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+// Corners are smooth arcs. ts optionally gives each corner's tangent lengths {a,b}: how far back along the incoming
+// and outgoing legs it starts and ends. Equal lengths make a circular arc; unequal ones stretch it.
+function roundedD(pts,r,ts){
+  let d=`M${f(pts[0])}`;
+  for(let i=1;i<pts.length-1;i++){
+    const a=pts[i-1],b=pts[i],c=pts[i+1],ua=norm(sub(a,b)),uc=norm(sub(c,b)),rr=Math.min(r,dist(a,b)/2,dist(b,c)/2),ta=ts?.[i]?.a??rr,tb=ts?.[i]?.b??rr;
+    const phi=Math.PI-Math.acos(Math.max(-1,Math.min(1,dot(ua,uc)))),k=phi<1e-3?0:4/3*Math.tan(phi/4)/Math.tan(phi/2);
+    const p1=add(b,mul(ua,ta)),p2=add(b,mul(uc,tb));
+    d+=` L${f(p1)} C${f(add(p1,mul(ua,-ta*k)))} ${f(add(p2,mul(uc,-tb*k)))} ${f(p2)}`;
+  }
+  return d+` L${f(pts.at(-1))}`;
+}
+// Parallel tracks turning together nest: each curve is a circle whose radius grows by the track's distance from the
+// innermost one, so every line keeps one radius and the gap holds round the bend. Where the two legs are spaced
+// differently the wider spacing sets the radius, so neighbours never close up.
+function cornerTangents(tracks,r){
+  const cs=[];
+  tracks.forEach((t,ti)=>{for(let i=1;i<t.pts.length-1;i++){
+    const a=t.pts[i-1],b=t.pts[i],c=t.pts[i+1],din=norm(sub(b,a)),dout=norm(sub(c,b));if(dot(din,dout)>.999)continue;
+    cs.push({ti,i,b,din,dout,o:dot(b,sub(dout,din)),max:Math.min(dist(a,b),dist(b,c))});
+  }});
+  const ts=tracks.map(()=>({}));
+  for(const c of cs){
+    // Its group: same-heading corners reached by steps of at most one lane, each nested inside or outside the last.
+    const same=cs.filter(x=>dot(x.din,c.din)>.999&&dot(x.dout,c.dout)>.999),g=[c];
+    const step=(x,y)=>{const D=sub(x.b,y.b),ea=dot(D,c.din),eb=-dot(D,c.dout);return Math.abs(ea)<=LANE+.5&&Math.abs(eb)<=LANE+.5&&ea*eb>=-.25&&Math.abs(ea)+Math.abs(eb)>.5};
+    for(let k=0;k<g.length;k++)for(const x of same)if(!g.includes(x)&&step(x,g[k]))g.push(x);
+    const inner=g.reduce((m,x)=>x.o>m.o?x:m,c);
+    const t0=Math.min(r,inner.max/2);
+    const D=sub(c.b,inner.b),ea=dot(D,c.din),eb=-dot(D,c.dout);
+    ts[c.ti][c.i]=ea>-.5&&eb>-.5?{a:t0+Math.max(0,ea,eb),b:t0+Math.max(0,ea,eb)}:{a:Math.min(r,c.max/2),b:Math.min(r,c.max/2)};
+  }
+  // Two corners never claim more of the leg between them than it has.
+  tracks.forEach((t,ti)=>{const T=ts[ti],n=t.pts.length;
+    for(let i=0;i<n-1;i++){const a=T[i]?.b??0,b=T[i+1]?.a??0,L=dist(t.pts[i],t.pts[i+1]);if(a+b>L){const s=L/(a+b);if(T[i])T[i].b=a*s;if(T[i+1])T[i+1].a=b*s}}
+  });
+  return ts;
+}
+function rectHit(r,a,b){
+  let t0=0,t1=1;const dx=b.x-a.x,dy=b.y-a.y;
+  for(const [p,q] of [[-dx,a.x-r.x],[dx,r.x+r.w-a.x],[-dy,a.y-r.y],[dy,r.y+r.h-a.y]]){
+    if(Math.abs(p)<1e-12){if(q<0)return false}else{const t=q/p;if(p<0){if(t>t1)return false;if(t>t0)t0=t}else{if(t<t0)return false;if(t<t1)t1=t}}
+  }
+  return true;
+}
+const rectsOverlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+const inflate=(r,k)=>({x:r.x-k,y:r.y-k,w:r.w+2*k,h:r.h+2*k});
+const measure=(()=>{const ctx=document.createElement('canvas').getContext('2d');return(text,size,weight)=>{ctx.font=`${weight} ${size}px ${FONT}`;return ctx.measureText(text).width}})();
+function* permutations(xs){if(xs.length<=1){yield xs.slice();return}for(let i=0;i<xs.length;i++){const rest=[...xs.slice(0,i),...xs.slice(i+1)];for(const p of permutations(rest))yield [xs[i],...p]}}
+
+// Symmetric octilinear route along the dominant axis.
+function routeOcti(P,Q){
+  const dx=Q.x-P.x,dy=Q.y-P.y,ax=Math.abs(dx),ay=Math.abs(dy);
+  if(ax<.5||ay<.5||Math.abs(ax-ay)<.5)return [P,Q];
+  if(ax>ay){const h=(ax-ay)/2*Math.sign(dx);return [P,V(P.x+h,P.y),V(Q.x-h,Q.y),Q]}
+  const h=(ay-ax)/2*Math.sign(dy);return [P,V(P.x,P.y+h),V(Q.x,Q.y-h),Q];
+}
+
+// Replace any leg that isn't at 0°, 45° or 90° with an octilinear two-bend route between its ends.
+function octilinear(pts){
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const a=out.at(-1),b=pts[i],ax=Math.abs(b.x-a.x),ay=Math.abs(b.y-a.y);
+    if(ax<.5||ay<.5||Math.abs(ax-ay)<.5)out.push(b);else out.push(...routeOcti(a,b).slice(1));
+  }
+  return clean(out);
+}
+
+// Hill-climb an ordering by moving one item to another position until nothing improves; exhaustive when short.
+function improveOrder(items,evaluate,maxEvals=1e9){
+  let tried=0,best=null;const run=o=>{if(tried>=maxEvals)return false;tried++;const r=evaluate(o);if(!best||r.c.cost<best.c.cost-1e-6){best={...r,order:o};return true}return false};
+  if(items.length<=5){for(const p of permutations(items))run(p);return {best,tried}}
+  run(items);
+  for(let pass=0;pass<4;pass++){let improved=false;
+    for(let i=0;i<items.length;i++)for(let j=0;j<items.length;j++){if(i===j)continue;const o=best.order.slice(),[x]=o.splice(i,1);o.splice(j,0,x);if(run(o))improved=true}
+    if(!improved)break}
+  return {best,tried};
+}
+// ---------- layout: zones as rings, lines travel along zone boundaries ----------
+// Coordinate descent over each station's sibling order (the radial analogue of crossing-minimising layer ordering).
+const roots=stations.filter(id=>id!=='chaos'&&!treeParent[id]);
+const rootPartner=Object.fromEntries(roots.map(v=>[v,DATA.couples.map(c=>c.a===v?c.b:c.b===v?c.a:null).find(o=>o&&byId[o].depth===byId[v].depth)]));
+// Start from the saved arrangement, so adding a figure nudges the map instead of redrawing it.
+// A saved family keeps its order: the search only chooses where each new child joins it.
+const SEED=DATA.seed;
+const defaultOrder=v=>{const [m,...o]=kids[v];if(!m)return [];const h=Math.floor(o.length/2);return [...o.slice(0,h),m,...o.slice(h)]};
+function searchRing(){
+  const orders={roots:{}},fresh={};
+  for(const v of stations){
+    const saved=SEED?.orders?.[v];if(!saved||kids[v].length<2)continue;
+    const kept=saved.filter(c=>kids[v].includes(c));orders[v]=kept;fresh[v]=kids[v].filter(c=>!kept.includes(c));
+  }
+  for(const v of roots)if(SEED?.roots?.[v]!==undefined)orders.roots[v]=SEED.roots[v];
+  const cost=o=>{const lay=layoutRing(o);return {lay,c:layoutCost(lay)}};
+  let tried=0;
+  for(const v of Object.keys(fresh))for(const c of fresh[v]){
+    let pick=null;
+    for(let i=0;i<=orders[v].length;i++){const o=orders[v].slice();o.splice(i,0,c);const r=cost({...orders,[v]:o});tried++;if(!pick||r.c.cost<pick.c.cost)pick={o,...r}}
+    orders[v]=pick.o;
+  }
+  let best=cost(orders);tried++;
+  for(let round=0;round<2;round++){
+    for(const v of stations){
+      if(kids[v].length<2||SEED?.orders?.[v])continue;
+      const r=improveOrder(orders[v]??kids[v],o=>cost({...orders,[v]:o}));
+      tried+=r.tried;if(r.best.c.cost<best.c.cost-1e-6){best=r.best;orders[v]=r.best.order}
+    }
+    for(const v of roots)if(rootPartner[v]&&SEED?.roots?.[v]===undefined)for(const side of [-1,0,1]){
+      if(side===(orders.roots[v]??0))continue;
+      const o={...orders,roots:{...orders.roots,[v]:side}},r=cost(o);tried++;
+      if(r.c.cost<best.c.cost-1e-6){best=r;orders.roots=o.roots}
+    }
+  }
+  for(const v of stations)if(kids[v].length>=2)orders[v]??=defaultOrder(v);
+  for(const v of roots)orders.roots[v]??=0;
+  return Object.assign(best.lay,{search:`${tried} sibling orders`,score:best.c,orders});
+}
+// Ring s is a rectangle s wide and s+D tall either side of Chaos. Every ring shares the same D,
+// so corners of successive rings stay on 45° diagonals. Stations sit on ring depth×R.
+const R=165,D=STRETCH,perimeter=s=>8*s+4*D,hy=s=>s+D;
+const sideKey=(p)=>{const ax=Math.abs(p.x),ay=Math.abs(p.y)-D;return Math.abs(ax-ay)<1&&ay>0?(p.y<0?'N':'S')+(p.x>0?'E':'W'):ax>ay?(p.x>0?'E':'W'):(p.y>0?'S':'N')};
+const cornerPt=(k,s)=>V(k.includes('E')?s:-s,k.includes('S')?hy(s):-hy(s));
+const fromSide=(k,c,s)=>k==='E'?V(s,c):k==='W'?V(-s,c):k==='N'?V(c,-hy(s)):V(c,hy(s));
+const tang=(p,k)=>k==='E'||k==='W'?p.y:p.x;
+const halfSide=(k,s)=>k==='E'||k==='W'?hy(s):s;
+const cornerFrom=(k,c)=>k==='E'?(c<0?'NE':'SE'):k==='W'?(c<0?'NW':'SW'):k==='N'?(c<0?'NW':'NE'):(c<0?'SW':'SE');
+// Stations sit mid-side or exactly on a corner, so every leg to a zone boundary is 0°, 45° or 90°.
+function snap(p,s){
+  if(!s)return V(0,0);const k=sideKey(p);if(k.length===2)return cornerPt(k,s);
+  const c=tang(p,k),h=halfSide(k,s),maxC=h-R/2;if(Math.abs(c)<=maxC)return fromSide(k,c,s);
+  return Math.abs(c)>h-R/4?cornerPt(cornerFrom(k,c),s):fromSide(k,Math.sign(c)*maxC,s);
+}
+// Distance along ring s, anticlockwise from the middle of its east side.
+function tOf(p,s){
+  const h=hy(s);let {x,y}=p;if(Math.abs(x)>=Math.abs(y)-D)x=Math.sign(x||1)*s;else y=Math.sign(y)*h;
+  if(x>=s-1e-6&&y<=0)return -y;if(y<=-h+1e-6)return h+(s-x);if(x<=-s+1e-6)return h+2*s+(y+h);if(y>=h-1e-6)return 3*h+2*s+(x+s);return 3*h+4*s+(h-y);
+}
+function pOf(t,s){
+  const h=hy(s),T=perimeter(s);t=((t%T)+T)%T;
+  if(t<=h)return V(s,-t);if(t<=h+2*s)return V(s-(t-h),-h);if(t<=3*h+2*s)return V(-s,-h+(t-h-2*s));if(t<=3*h+4*s)return V(-s+(t-3*h-2*s),h);return V(s,h-(t-3*h-4*s));
+}
+// The nearest valid station point on ring s.
+const onRing=(p,s)=>s?snap(pOf(tOf(p,s),s),s):V(0,0);
+
+function layoutRing(orders={}){
+  const w={};
+  const weight=v=>w[v]=kids[v].length?kids[v].reduce((s,c)=>s+weight(c),0):1;weight('chaos');
+  const ordered=v=>orders[v]??defaultOrder(v);
+  const ang={};
+  function place(v,lo,hi,th){ang[v]=th;let t=lo;for(const c of ordered(v)){const span=(hi-lo)*w[c]/w[v];let tc=t+span/2;if(c===kids[v][0]&&th>=t-1e-9&&th<=t+span+1e-9)tc=th;place(c,t,t+span,tc);t+=span}}
+  const main=kids.chaos[0];let before=0;for(const c of ordered('chaos')){if(c===main)break;before+=w[c]}
+  const frac=(before+w[main]/2)/w.chaos;place('chaos',-2*Math.PI*frac,2*Math.PI*(1-frac),0);
+  // The priority couple sits side by side on its ring; the moved partner brings its own descendants along.
+  // Children the couple share (Erebus and Nyx's) stay put instead, grouped beside the other partner's own children.
+  const turn=(v,d)=>{ang[v]+=d;for(const c of kids[v])turn(c,d)};
+  const besideStep=v=>1.3*62*2*Math.PI/perimeter(byId[v].depth*R);
+  const parentOf=(p,c)=>DATA.links.some(([a,b])=>a===p&&b===c);
+  for(const c of DATA.couples.filter(c=>c.weight>=3&&byId[c.a].depth===byId[c.b].depth&&!roots.includes(c.a)&&!roots.includes(c.b))){
+    let gap=ang[c.b]-ang[c.a];gap=Math.atan2(Math.sin(gap),Math.cos(gap));
+    const d=Math.sign(gap||1)*besideStep(c.a)-gap;
+    if(kids[c.b].length&&kids[c.b].every(k=>parentOf(c.a,k)))ang[c.b]+=d;else turn(c.b,d);
+  }
+  // A figure with no recorded parents (a consort such as Leto) sits in line with its children,
+  // or beside its partner on either side, as the search chooses.
+  for(const v of roots){
+    const cs=outOf(v).map(s=>ang[s.b]),partner=rootPartner[v],side=orders.roots?.[v]??0;
+    ang[v]=side&&partner?ang[partner]+side*besideStep(v):Math.atan2(cs.reduce((t,a)=>t+Math.sin(a),0),cs.reduce((t,a)=>t+Math.cos(a),0));
+  }
+
+  // Angles are shares of the whole ring, so a long side holds proportionally more stations.
+  const sq=(th,s)=>pOf(-th/(2*Math.PI)*perimeter(s),s);
+  const pos={chaos:V(0,0)};
+  const order=stations.slice().sort((a,b)=>byId[a].depth-byId[b].depth);
+  for(const id of order){
+    if(id==='chaos')continue;const s=byId[id].depth*R;let p=snap(sq(ang[id],s),s);
+    const par=treeParent[id];
+    if(par&&par!=='chaos'){
+      const q=pos[par],kp=sideKey(q),kv=sideKey(p);
+      if(kp===kv&&kp.length===1&&Math.abs(tang(q,kp)-tang(p,kv))<=R*.35&&Math.abs(tang(q,kp))<=halfSide(kp,s)-R/2)p=fromSide(kv,tang(q,kp),s);
+      else if(kp.length===2&&kp===kv)p=cornerPt(kv,s);
+    }
+    pos[id]=p;
+  }
+  const SL=62;
+  for(let k=1;k<=Math.max(...stations.map(id=>byId[id].depth));k++){
+    const s=k*R,arr=stations.filter(id=>byId[id].depth===k).map(id=>({id,t:tOf(pos[id],s)})).sort((a,b)=>a.t-b.t);
+    for(let i=1;i<arr.length;i++)if(arr[i].t-arr[i-1].t<SL){arr[i].t=arr[i-1].t+SL;pos[arr[i].id]=snap(pOf(arr[i].t,s),s);arr[i].t=tOf(pos[arr[i].id],s)}
+  }
+  return ringLayout(pos);
+}
+
+// Tracks for a set of station positions: each leg leaves its station outward to the zone
+// boundary, follows the boundary in its own lane, then comes in to the next station.
+function ringLayout(pos,refine=false){
+  const outward=p=>{const k=sideKey(p);return k.length===2?V(k.includes('E')?1:-1,k.includes('S')?1:-1):k==='E'?V(1,0):k==='W'?V(-1,0):k==='S'?V(0,1):V(0,-1)};
+  // How far p is out along diagonal u, measured as a ring size.
+  const diagReach=(p,u)=>Math.max(u.x*p.x,u.y*p.y-D);
+  function toSquare(p,u,so,out){
+    if(u.x&&u.y){const m=diagReach(p,u);return out?add(p,mul(u,so-m)):sub(p,mul(u,m-so))}
+    if(u.x)return V(Math.sign(u.x)*so,Math.max(-hy(so),Math.min(hy(so),p.y)));
+    return V(Math.max(-so,Math.min(so,p.x)),Math.sign(u.y)*hy(so));
+  }
+  // Points from p to the boundary ring, moving perpendicular to p's side. If p lies beyond the
+  // boundary's corner (a lane can shrink it), continue along the boundary line to the corner rather than slanting.
+  function legTo(p,u,so){
+    if(u.x&&u.y)return [toSquare(p,u,so,diagReach(p,u)<so)];
+    const e=u.x?V(Math.sign(u.x)*so,p.y):V(p.x,Math.sign(u.y)*hy(so)),c=u.x?p.y:p.x,h=u.x?hy(so):so;
+    if(Math.abs(c)<=h)return [e];
+    return [e,u.x?V(e.x,Math.sign(c)*h):V(Math.sign(c)*h,e.y)];
+  }
+  function orbit(P,Q,s){
+    const T=perimeter(s),h=hy(s),tp=tOf(P,s),tq=tOf(Q,s);let d=tq-tp;if(d>T/2)d-=T;if(d<-T/2)d+=T;const dir=Math.sign(d),out=[];
+    for(const cT of [h,h+2*s,3*h+2*s,3*h+4*s]){const rel=((((cT-tp)*dir)%T)+T)%T;if(rel>1e-6&&rel<Math.abs(d)-1e-6)out.push({rel,p:pOf(cT,s)})}
+    return out.sort((a,b)=>a.rel-b.rel).map(o=>o.p);
+  }
+  // Lane assignment on each zone boundary: longer journeys take inner lanes, so lines peel off outward without crossing.
+  const lanes={},byOrbit={},level=[];
+  for(const s of segs){
+    const ka=byId[s.a].depth;if(!ka||byId[s.b].depth===ka)continue;const so=(ka+.5)*R;
+    const P1=legTo(pos[s.a],outward(pos[s.a]),so).at(-1),Q1=legTo(pos[s.b],outward(pos[s.b]),so).at(-1);
+    const T=perimeter(so);let d=tOf(Q1,so)-tOf(P1,so);if(d>T/2)d-=T;if(d<-T/2)d+=T;if(Math.abs(d)<1){level.push({s,ka});continue}
+    const st=tOf(P1,so)/T,dl=d/T,a=dl>=0?st:st+dl;
+    // Siblings that share a line and head the same way share one lane: a single trunk that each child leaves near its station.
+    const from=(byOrbit[ka]??={})[`${s.a}|${Math.sign(d)}`]??=[];
+    let trunk={keys:[s.key],lines:s.lines.slice(),a,b:a+Math.abs(dl),dir:Math.sign(d),reach:Object.fromEntries(s.lines.map(l=>[l,Math.abs(dl)])),exits:[{lines:s.lines,at:Math.abs(dl)}]};
+    for(const t of from.filter(t=>t.lines.some(l=>s.lines.includes(l)))){
+      from.splice(from.indexOf(t),1);
+      const reach={...t.reach};for(const l of trunk.lines)reach[l]=Math.max(reach[l]??0,trunk.reach[l]);
+      trunk={keys:[...t.keys,...trunk.keys],lines:[...new Set([...t.lines,...trunk.lines])],a:Math.min(t.a,trunk.a),b:Math.max(t.b,trunk.b),dir:trunk.dir,reach,exits:[...t.exits,...trunk.exits]};
+    }
+    from.push(trunk);
+  }
+  // A child level with its parent (Zeus beside Cronus) has no run along the boundary. It still joins its siblings' trunk,
+  // leaving it at the start, so the shared lines leave the parent once instead of twice side by side.
+  for(const {s,ka} of level){
+    const t=[1,-1].flatMap(dir=>byOrbit[ka]?.[`${s.a}|${dir}`]??[]).find(t=>t.lines.some(l=>s.lines.includes(l)));if(!t)continue;
+    t.keys.push(s.key);for(const l of s.lines){if(!t.lines.includes(l))t.lines.push(l);t.reach[l]??=0}t.exits.push({lines:s.lines,at:0});
+  }
+  const laneGroup={},trunks={};
+  for(const list0 of Object.values(byOrbit)){
+    const taken=[],list=Object.values(list0).flat().sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+    const ov=(I,J)=>[-1,0,1].some(sh=>I.a<J.b+sh-1e-9&&J.a+sh<I.b-1e-9);
+    // A station's trunks heading opposite ways along the boundary take the same lane where they can,
+    // so a line turning one way and a line turning the other leave the station's track at the same point.
+    const fitsAt=(I,i)=>!(taken[i]??[]).some(J=>ov(I,J));
+    for(const I of list){
+      const st=segMap.get(I.keys[0]).a,twin=list.find(J=>J!==I&&J.lane!==undefined&&J.dir!==I.dir&&segMap.get(J.keys[0]).a===st&&J.lines.some(l=>I.lines.includes(l)));
+      let i=twin&&fitsAt(I,twin.lane)?twin.lane:0;if(i!==twin?.lane)while(!fitsAt(I,i))i++;
+      (taken[i]??=[]).push(I);I.lane=i;
+    }
+    for(let i=0;i<taken.length;i++)taken[i]??=[];
+    // Lanes sit one track gap apart edge to edge, a bundle's lane as wide as its tracks, so lines running along
+    // the boundary keep the same spacing as they have leaving their interchange.
+    const place=()=>{
+      const w=taken.map((_,i)=>Math.max(1,...list.filter(I=>I.lane===i).map(I=>I.lines.length))),c=[0];
+      for(let i=1;i<w.length;i++)c[i]=c[i-1]+GAP*(w[i-1]+w[i])/2;
+      const mid=(c[0]-GAP*(w[0]-1)/2+c.at(-1)+GAP*(w.at(-1)-1)/2)/2;
+      for(const I of list){const shift=EDITS.lanes[I.keys[0]]||0;for(const k of I.keys){lanes[k]=c[I.lane]-mid+shift*GAP;laneGroup[k]=I.keys;trunks[k]=I}}
+    };
+    place();
+    // Then swap pairs of lanes wherever that removes crossings between this boundary's tracks.
+    if(refine&&list.length>1){
+      const legs=list.flatMap(I=>I.keys).map(k=>segMap.get(k));
+      const crossings=()=>{const ps=legs.map(s=>route(s,pos[s.a],pos[s.b]));let n=0;for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)n+=polyCross(ps[i],ps[j]);return n};
+      const fits=(I,lane,skip)=>!list.some(K=>K!==I&&K!==skip&&K.lane===lane&&ov(I,K));
+      let cur=crossings();
+      for(let pass=0;pass<3&&cur;pass++){let improved=false;
+        for(const I of list)for(const J of list){
+          if(I.lane>=J.lane||!ov(I,J)||!fits(I,J.lane,J)||!fits(J,I.lane,I))continue;
+          [I.lane,J.lane]=[J.lane,I.lane];place();const c=crossings();
+          if(c<cur){cur=c;improved=true}else{[I.lane,J.lane]=[J.lane,I.lane];place()}
+        }
+        if(!improved)break}
+    }
+    // A shorter run that ends with a longer one (Erebus beside Night, both bound for Charon) but starts
+    // partway along it takes the inner lane: its station leg then stops short of the longer run, and only its exits cross it.
+    const startOf=I=>I.dir>0?I.a:I.b,endOf=I=>I.dir>0?I.b:I.a,inside=(x,J)=>x>J.a+1e-6&&x<J.b-1e-6;
+    const fitsSwap=(I,J)=>!list.some(K=>K!==I&&K!==J&&((K.lane===J.lane&&ov(I,K))||(K.lane===I.lane&&ov(J,K))));
+    for(const I of list)for(const J of list){
+      if(I===J||I.dir!==J.dir||I.lane<J.lane||Math.abs(endOf(I)-endOf(J))>1e-6||!inside(startOf(I),J)||!fitsSwap(I,J))continue;
+      [I.lane,J.lane]=[J.lane,I.lane];place();
+    }
+    // After the swaps, bring opposite-way twins back onto one lane wherever one of them can move across.
+    const free=(I,lane)=>!list.some(K=>K!==I&&K.lane===lane&&ov(I,K));
+    for(const I of list)for(const J of list){
+      if(I===J||I.dir===J.dir||I.lane===J.lane||segMap.get(I.keys[0]).a!==segMap.get(J.keys[0]).a||!I.lines.some(l=>J.lines.includes(l)))continue;
+      if(free(I,J.lane)){I.lane=J.lane;continue}if(free(J,I.lane)){J.lane=I.lane;continue}
+      // Otherwise trade places with whatever blocks one of them, if those runs fit in the lane it leaves.
+      for(const [X,Y] of [[I,J],[J,I]]){
+        const block=list.filter(K=>K!==X&&K.lane===Y.lane&&ov(X,K)),from=X.lane;
+        if(block.includes(Y)||!block.every(K=>!list.some(M=>M!==X&&!block.includes(M)&&M.lane===from&&ov(K,M))))continue;
+        for(const K of block)K.lane=from;X.lane=Y.lane;break;
+      }
+    }
+    place();
+  }
+  function route(s,A,B){
+    const ka=byId[s.a].depth;
+    // Lines from Chaos to its west side leave the capsule's left edge: level first, then a diagonal and a final climb or drop.
+    if(!ka){
+      const ax=A.x-B.x,ay=Math.abs(B.y-A.y);if(ax<.5||ay<ax)return routeOcti(A,B);
+      const L=Math.min(ax,36),sy=Math.sign(B.y-A.y);
+      return clean([A,V(A.x-L,A.y),V(B.x,A.y+sy*(ax-L)),B]);
+    }
+    // Partners share a ring, so the step between them follows it.
+    if(byId[s.b].depth===ka)return octilinear(clean([A,...orbit(A,B,ka*R),B]));
+    const so=(ka+.5)*R+(lanes[s.key]||0);
+    const P1=toSquare(A,outward(pos[s.a]),so,true),Q1=toSquare(B,outward(pos[s.b]),so,false);
+    return octilinear(clean([A,P1,...orbit(P1,Q1,so),Q1,B]));
+  }
+  const prefDirs={E:['E','NE','SE','N','S','W','NW','SW'],W:['W','NW','SW','N','S','E','NE','SE'],N:['N','NE','NW','E','W','S','SE','SW'],S:['S','SE','SW','E','W','N','NE','NW'],
+    NE:['NE','E','N','SE','NW','S','W','SW'],NW:['NW','W','N','SW','NE','S','E','SE'],SE:['SE','E','S','NE','SW','N','W','NW'],SW:['SW','W','S','NW','SE','N','E','NE']};
+  return {kind:'ring',pos,R,route,lanes,laneGroup,trunks,labelPrefs:id=>id==='chaos'?['NW','SW','N','S','W','NE','SE','E']:prefDirs[sideKey(pos[id])]};
+}
+
+// ---------- hand edits ----------
+// Saved by the editor in topology/ring_v2_positions.json: station positions, label sides,
+// lane shifts on zone boundaries (in lanes), the order of tracks within bundles, and
+// per-interchange track orders that override it at one station.
+// Stations without a saved position are placed by the layout search.
+const EDITS={positions:{},labels:{},lanes:{},trackOrder:null,stationOrder:{},...JSON.parse(JSON.stringify(DATA.edits??{}))};
+// Editor state; render reads it to draw the editing overlay.
+const EDITOR={on:false,sel:null,seg:null,guide:null,drag:null,undo:[],redo:[],saved:null,server:false,
+  dirty(){return this.saved!==null&&this.saved!==snapshot()}};
+let autoLayout=null;
+function currentLayout(){
+  const missing=stations.some(v=>!EDITS.positions[v]),auto=missing?autoLayout??=searchRing():null,pos={};
+  for(const v of stations){const p=EDITS.positions[v];pos[v]=p?onRing(p,byId[v].depth*R):auto.pos[v]}
+  const lay=ringLayout(pos,true);lay.score=layoutCost(lay);lay.search=missing?auto.search:'saved positions';
+  return lay;
+}
+
+// ---------- line order, bundles, stations, labels ----------
+function countCrossings(rank,pos){
+  let n=0;
+  const ang=(d,u)=>Math.atan2(-cross(d,u),dot(d,u));
+  for(const e of segs){
+    if(e.lines.length<2)continue;const d=norm(sub(pos[e.b],pos[e.a]));
+    for(const p of e.lines)for(const q of e.lines){
+      if(rank[p]>=rank[q])continue;
+      const op=outOf(e.b).filter(s=>s.lines.includes(p)),oq=outOf(e.b).filter(s=>s.lines.includes(q));
+      for(const x of op)for(const y of oq){if(x===y)continue;if(ang(d,sub(pos[x.b],pos[e.b]))<ang(d,sub(pos[y.b],pos[e.b]))-1e-6)n++}
+    }
+  }
+  return n;
+}
+
+let layoutCache;
+// Lines that share track somewhere. Their order holds across every bundle, so bundles never twist.
+const sharedLines=[...new Set(segs.filter(s=>s.lines.length>1).flatMap(s=>s.lines))];
+const rankOf=order=>{const rank={};order.forEach((l,i)=>rank[l]=i);LINES.forEach((l,i)=>rank[l.id]??=100+i);return rank};
+// The saved track order, or else the order with fewest bundle crossings (tried exhaustively, so slow).
+function trackOrder(pos){
+  const saved=EDITS.trackOrder?.filter(l=>sharedLines.includes(l));
+  if(saved){const perm=[...saved,...sharedLines.filter(l=>!saved.includes(l))];return {perm,c:countCrossings(rankOf(perm),pos),tried:0}}
+  let best=null,tried=0;
+  // Past eight lines an exhaustive search would never finish: hill-climb from the line order instead.
+  if(sharedLines.length>8){const r=improveOrder(sharedLines,o=>({c:{cost:countCrossings(rankOf(o),pos)}}),20000);return {perm:r.best.order,c:r.best.c.cost,tried:r.tried}}
+  for(const perm of permutations(sharedLines)){tried++;const c=countCrossings(rankOf(perm),pos);if(!best||c<best.c)best={c,perm}}
+  return {...best,tried};
+}
+// Generations a link passes over (Perseus to Heracles passes Electryon and Alcmene), drawn as small ticks on its track.
+const viaOf=s=>byId[s.b].via?.[s.a]??[];
+// Spread a link's passed-over generations evenly along its track, clear of its stations and corners.
+function viaMarks(runs){
+  const marks=[],END=34,BEND=CORNER+8;
+  for(const {s,line,pts} of runs){
+    const names=viaOf(s),spans=[];
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1],b=pts[i],L=dist(a,b),u=norm(sub(b,a)),lo=i===1?END:BEND,hi=L-(i===pts.length-1?END:BEND);
+      if(hi>lo)spans.push({a,u,lo,hi});
+    }
+    const total=spans.reduce((t,x)=>t+x.hi-x.lo,0);if(!total)continue;
+    names.forEach((name,k)=>{
+      let at=total*(k+1)/(names.length+1);
+      for(const x of spans){const l=x.hi-x.lo;if(at<=l+1e-6){const p=add(x.a,mul(x.u,x.lo+at));marks.push({p,n:leftN(x.u),color:line.color,name,from:s.a,to:s.b});break}at-=l}
+    });
+  }
+  return marks;
+}
+// Builds, then slides stations to take out short dog-legs left in single tracks, and builds again.
+function build(variant,showOthers){
+  const shift={};let B;
+  for(let round=0;round<4;round++){
+    B=buildOnce(variant,showOthers,shift);if(!B.jogFix.length)break;
+    for(const [v,o] of B.jogFix)shift[v]=add(shift[v]??V(0,0),o);
+  }
+  return B;
+}
+function buildOnce(variant,showOthers,shift){
+  const lay=layoutCache??=currentLayout(),pos=Object.fromEntries(Object.entries(lay.pos).map(([v,p])=>[v,shift[v]?add(p,shift[v]):p]));
+  // Once chosen, the order stays put while stations move; the editor can change it by hand.
+  const best=trackOrder(pos),tried=best.tried,rank=rankOf(best.perm);EDITS.trackOrder=best.perm;
+  const laneGap=GAP;
+  // A bundle in a trunk takes its offsets from all the trunk's lines, so each line keeps one track along the trunk.
+  // Order each trunk's lines so the fewest branches cross track that carries on: a branch leaving
+  // for a station crosses every line on its station side that continues past it.
+  // Travelling anticlockwise, the left of the track is the inner side.
+  // An interchange with its own saved track order uses it for every line it serves, in place of the poster-wide order.
+  const stationOrder=v=>{const o=EDITS.stationOrder[v]?.filter(l=>linesAt[v].has(l));return o?.length?[...o,...[...linesAt[v]].filter(l=>!o.includes(l)).sort((a,b)=>rank[a]-rank[b])]:null};
+  const rankAt=v=>{const o=stationOrder(v);if(!o)return rank;const r={...rank};o.forEach((l,i)=>r[l]=-100+i);return r};
+  const trunkOrder={};
+  for(const t of new Set(Object.values(lay.trunks)))if(t.lines.length>1){
+    const crossings=outer=>t.exits.reduce((n,e)=>n+e.lines.reduce((m,l)=>m+outer.slice(0,outer.indexOf(l)).filter(j=>t.reach[j]>e.at+1e-9).length,0),0);
+    const rk=rankAt(segMap.get(t.keys[0]).a),byRank=t.lines.slice().sort((a,b)=>rk[a]-rk[b]);let best=null;
+    for(const outer of byRank.length<=6?permutations(byRank):[byRank]){const c=crossings(outer);if(!best||c<best.c)best={c,outer}}
+    trunkOrder[t.keys[0]]=t.dir<0?best.outer:best.outer.slice().reverse();
+  }
+  const orderOf=s=>{const t=lay.trunks[s.key],rk=rankAt(s.a);return t&&s.lines.length>1?trunkOrder[t.keys[0]]:s.lines.slice().sort((a,b)=>rk[a]-rk[b])};
+  const offIn=(ls,l)=>((ls.length-1)/2-ls.indexOf(l))*laneGap,offOn=(s,l)=>offIn(orderOf(s),l);
+  const base=Object.fromEntries(segs.map(s=>[s.key,lay.route(s,pos[s.a],pos[s.b])]));
+  const endDir=s=>{const p=base[s.key];return norm(sub(p.at(-1),p.at(-2)))},startDir=s=>{const p=base[s.key];return norm(sub(p[1],p[0]))};
+  // Lines merging into one station arrive side by side rather than on top of each other.
+  const endOff={};
+  for(const v of stations){
+    // Only tracks arriving along the same heading sit side by side; one from another side runs into the centre.
+    const all=inTo(v).filter(s=>s.lines.length===1);
+    for(const ins of all.map(s=>all.filter(x=>dot(endDir(x),endDir(s))>.99)).filter((g,i)=>g[0]===all[i]&&g.length>1))
+      ins.map(s=>({s,k:-cross(endDir(s),norm(sub(pos[s.a],pos[v])))})).sort((a,b)=>b.k-a.k).forEach(({s},i)=>endOff[s.key]=((ins.length-1)/2-i)*laneGap);
+  }
+  // The axis an interchange's capsule lies along: across its bundle, or across its first track.
+  const pillN=v=>{const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v);return leftN(ms?(ins.includes(ms)?endDir(ms):startDir(ms)):ins.length?endDir(ins[0]):startDir(outOf(v)[0]))};
+  // At an interchange with its own order, each line has a fixed slot across the capsule; single tracks start and end there.
+  // The slots shift as a block so most lines arriving in a bundle carry straight on.
+  const slotShift={};
+  const slotAt=(v,l)=>{
+    const o=stationOrder(v);if(!o)return null;const n=pillN(v),raw=x=>((o.length-1)/2-o.indexOf(x))*laneGap;
+    if(slotShift[v]===undefined){
+      const d=inTo(v).filter(s=>s.lines.length>1).flatMap(s=>s.lines.map(x=>offOn(s,x)*dot(leftN(endDir(s)),n)-raw(x))).sort((a,b)=>a-b);
+      slotShift[v]=d.length?d[Math.floor((d.length-1)/2)]:0;
+    }
+    return {off:raw(l)+slotShift[v],n};
+  };
+  // Bundles leaving an interchange with its own order take its slots: each trunk lists its lines in slot order,
+  // and its first leg slides across so every line starts on its slot. Trunks sharing a line then share its track
+  // until they part, rather than running half a lane apart.
+  const slotRaw=(v,l)=>{const o=stationOrder(v);return ((o.length-1)/2-o.indexOf(l))*laneGap};
+  for(const t of new Set(Object.values(lay.trunks))){
+    const s=segMap.get(t.keys[0]);if(t.lines.length<2||!stationOrder(s.a))continue;
+    const k=dot(pillN(s.a),leftN(startDir(s)));trunkOrder[t.keys[0]]=t.lines.slice().sort((a,b)=>(slotRaw(s.a,b)-slotRaw(s.a,a))*k);
+  }
+  // A straight bundle slid onto its start's slots arrives slid too: endShift says by how much, across the bundle.
+  const endShift={},offEnd=(s,l)=>offOn(s,l)+(endShift[s.key]??0);
+  for(const s of segs){
+    if(s.lines.length<2||!stationOrder(s.a))continue;
+    const nS=leftN(startDir(s)),d=s.lines.map(l=>slotAt(s.a,l).off*dot(slotAt(s.a,l).n,nS)-offOn(s,l)).sort((a,b)=>a-b),m=d[Math.floor((d.length-1)/2)];
+    if(Math.abs(m)>.25){const p=base[s.key];p[0]=add(p[0],mul(nS,m));p[1]=add(p[1],mul(nS,m));if(p.length===2)endShift[s.key]=m}
+  }
+  // Two such trunks parting in opposite directions turn a shared line on the same spot, so it runs straight through
+  // the junction instead of splitting into two tracks half a lane apart.
+  for(const v of stations){
+    if(!stationOrder(v))continue;const firsts=[...new Set(outOf(v).filter(s=>s.lines.length>1&&base[s.key].length>2).map(s=>lay.trunks[s.key]?.keys[0]??s.key))].map(k=>segMap.get(k));
+    for(let i=0;i<firsts.length;i++)for(let j=0;j<i;j++){
+      const a=firsts[j],b=firsts[i],da=startDir(a);if(dot(da,startDir(b))<.99)continue;
+      const ta=norm(sub(base[a.key][2],base[a.key][1])),tb=norm(sub(base[b.key][2],base[b.key][1]));if(dot(ta,tb)>-.99)continue;
+      const turn=(s,l)=>offsetPoly(base[s.key],offOn(s,l))[1],ms=a.lines.filter(x=>b.lines.includes(x)).map(l=>dot(sub(turn(a,l),turn(b,l)),da)).sort((x,y)=>Math.abs(x)-Math.abs(y)),m=ms[0];
+      if(m===undefined||Math.abs(m)<.25||Math.abs(m)>laneGap)continue;
+      for(const s of outOf(v))if((lay.trunks[s.key]?.keys[0]??s.key)===b.key&&base[s.key].length>2){const p=base[s.key];p[1]=add(p[1],mul(da,m));p[2]=add(p[2],mul(da,m))}
+    }
+  }
+  const laneIn=(l,v)=>{const sl=slotAt(v,l);if(sl)return sl;const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offEnd(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
+  const startOff={};
+  for(const v of stations){
+    const ref=inTo(v)[0]??outOf(v).find(s=>s.lines.length>1);if(!ref)continue;
+    const d=inTo(v).includes(ref)?endDir(ref):startDir(ref),n=leftN(d),offs=ref.lines.map(l=>ref.lines.length>1?(inTo(v).includes(ref)?offEnd(ref,l):offOn(ref,l)):(endOff[ref.key]??0));
+    const starters=[...new Map(outOf(v).filter(s=>s.lines.length===1&&!laneIn(s.lines[0],v)).map(s=>[s.lines[0],{l:s.lines[0],k:dot(n,norm(sub(pos[s.b],pos[v])))}])).values()];
+    for(const sg of [1,-1])starters.filter(x=>(x.k>=0?1:-1)===sg).sort((a,b)=>Math.abs(a.k)-Math.abs(b.k)).forEach((x,i)=>startOff[v+'|'+x.l]={off:(sg>0?Math.max(...offs):Math.min(...offs))+sg*laneGap*(i+1),n});
+  }
+  function segEnds(s,l){
+    let A=pos[s.a];const li=laneIn(l,s.a)??startOff[s.a+'|'+l];
+    if(li)A=add(A,mul(li.n,li.off));
+    const eo=endOff[s.key]??0,sl=slotAt(s.b,l),B=sl?add(pos[s.b],mul(sl.n,sl.off)):eo?add(pos[s.b],mul(leftN(endDir(s)),eo)):pos[s.b];
+    return {A:stShift[s.a]&&!li?.off?add(A,stShift[s.a]):A,B:stShift[s.b]&&!sl&&!eo?add(B,stShift[s.b]):B};
+  }
+  // A one-line station stepping along its ring to a partner's interchange slides onto the slot it meets there,
+  // so the step runs straight instead of jogging half a lane.
+  const plain=v=>linesAt[v].size===1&&inTo(v).length<=1&&![...inTo(v),...outOf(v)].some(s=>s.lines.length>1);
+  const stShift={};
+  for(const s of segs){
+    if(s.lines.length>1||byId[s.a].depth!==byId[s.b].depth)continue;
+    const [v,w]=plain(s.a)&&!plain(s.b)?[s.a,s.b]:plain(s.b)&&!plain(s.a)?[s.b,s.a]:[];if(!v||stShift[v])continue;
+    const e=segEnds(s,s.lines[0]),q=v===s.a?e.B:e.A,d=sub(pos[w],pos[v]),off=Math.abs(d.x)>=Math.abs(d.y)?V(0,q.y-pos[v].y):V(q.x-pos[v].x,0);
+    if(Math.hypot(off.x,off.y)>.5&&Math.hypot(off.x,off.y)<2*LANE)stShift[v]=off;
+  }
+  // Likewise a one-line station whose track would dog-leg just before it slides onto the track as it arrives.
+  // Nearer stations go first, so one further along the same line sees where its predecessor ended up.
+  for(const s of segs.filter(s=>s.lines.length===1&&plain(s.b)).sort((x,y)=>byId[x.b].depth-byId[y.b].depth)){
+    if(stShift[s.b])continue;const {A,B}=segEnds(s,s.lines[0]),q=octilinear(lay.route(s,A,B)),n=q.length;if(n<3)continue;
+    const [a,b,c]=q.slice(-3),vert=Math.abs(c.x-b.x)<=.5;if(!vert&&Math.abs(c.y-b.y)>.5)continue;
+    const off=vert?V(a.x-b.x,0):V(0,a.y-b.y),o=Math.hypot(off.x,off.y);if(o<.5||o>=20||dist(a,b)>=30)continue;
+    stShift[s.b]=off;
+  }
+  // And one whose track dog-legs just after it, into an interchange slot, when the line reaches it round a corner:
+  // the corner moves instead, and both legs run straight.
+  for(const s of segs.filter(s=>s.lines.length===1&&plain(s.a)&&inTo(s.a).length===1&&!stShift[s.a])){
+    const l=s.lines[0],e=segEnds(s,l),q=octilinear(lay.route(s,e.A,e.B));if(q.length<4)continue;
+    const [p0,p1,p2,p3]=q,vert=Math.abs(p1.x-p0.x)<=.5;if(!vert&&Math.abs(p1.y-p0.y)>.5)continue;
+    const off=vert?V(p2.x-p1.x,0):V(0,p2.y-p1.y),o=Math.hypot(off.x,off.y);if(o<.5||o>=20||dist(p1,p2)>=30)continue;
+    if(vert?Math.abs(p3.x-p2.x)>.5:Math.abs(p3.y-p2.y)>.5)continue;
+    const r=inTo(s.a)[0],ie=segEnds(r,l),iq=octilinear(lay.route(r,ie.A,ie.B)),[a,b,c]=iq.slice(-3);if(!c)continue;
+    if(vert?Math.abs(b.y-a.y)>.5:Math.abs(b.x-a.x)>.5)continue;
+    stShift[s.a]=off;
+  }
+  function segPoly(s,l){
+    if(s.lines.length>1)return offsetPoly(base[s.key],offOn(s,l));
+    const {A,B}=segEnds(s,l);
+    return octilinear(lay.route(s,A,B));
+  }
+  const tracks=[],viaRuns=[];
+  // Where a line changes slot inside an interchange, its track breaks under the capsule instead of jogging across it.
+  const ends={};const endAt=(v,l,p)=>((ends[v]??={})[l]??=[]).push(p);
+  for(const L of LINES)for(const path of L.paths){
+    let pts=[];
+    for(let i=1;i<path.length;i++){
+      const s=segMap.get(path[i-1]+'>'+path[i]),q=segPoly(s,L.id);endAt(s.a,L.id,q[0]);endAt(s.b,L.id,q.at(-1));
+      if(viaOf(s).length)viaRuns.push({s,line:L,pts:q});
+      if(pts.length&&dist(pts.at(-1),q[0])>.5){tracks.push({line:L,pts:clean(pts)});pts=[]}
+      pts.push(...q);
+    }
+    tracks.push({line:L,pts:clean(pts)});
+  }
+  // Branches turning off one run to opposite sides a few px apart should leave from one point, a T, not a stagger.
+  // A terminus whose branch turns just before it slides along the run to meet the other side's turn.
+  for(const t of tracks){
+    if(t.pts.length<3)continue;const e=t.pts.at(-1),c=t.pts.at(-2),b=t.pts.at(-3),v=stations.find(v=>dist(pos[v],e)<.5&&!outOf(v).length);
+    if(!v)continue;const u=norm(sub(c,b)),side=Math.sign(cross(u,sub(e,c)));if(!side||Math.abs(dot(u,norm(sub(e,c))))>1e-6)continue;
+    let best=null;
+    for(const o of tracks)if(o!==t&&o.line===t.line)for(let i=1;i<o.pts.length-1;i++){
+      const q=o.pts[i],w=norm(sub(q,o.pts[i-1])),along=dot(sub(q,c),u);
+      if(dot(w,u)<.999||Math.abs(cross(u,sub(q,c)))>.5||Math.abs(along)<.5||Math.abs(along)>GAP)continue;
+      if(Math.sign(cross(u,sub(o.pts[i+1],q)))!==-side||dist(b,c)+along<LANE)continue;
+      if(!best||Math.abs(along)<Math.abs(best))best=along;
+    }
+    if(best===null)continue;const sh=mul(u,best);
+    t.pts[t.pts.length-2]=add(c,sh);t.pts[t.pts.length-1]=add(e,sh);pos[v]=add(pos[v],sh);
+  }
+  // Each interchange's lines as drawn, left of the direction of travel first: the editor's starting point for its order.
+  const slotSpan={},drawnOrder={};
+  for(const v of stations){
+    if(!ends[v])continue;const n=pillN(v),at=l=>{const ps=ends[v][l];return ps.reduce((t,p)=>t+dot(sub(p,pos[v]),n),0)/ps.length};
+    drawnOrder[v]=Object.keys(ends[v]).sort((a,b)=>at(b)-at(a));
+    const all=Object.values(ends[v]).flat().map(p=>dot(sub(p,pos[v]),n));slotSpan[v]={lo:Math.min(...all),hi:Math.max(...all),n};
+  }
+
+  // station markers
+  const markers=stations.map(v=>{
+    const ms=[...inTo(v),...outOf(v)].find(s=>s.lines.length>1),ins=inTo(v),outs=outOf(v);
+    const d=ins.length?endDir(ins[0]):startDir(outs[0]),n=leftN(ms?(inTo(v).includes(ms)?endDir(ms):startDir(ms)):d);
+    // A reordered interchange's capsule covers every slot and every track end beneath it.
+    if(stationOrder(v)){const sp=slotSpan[v];return {v,type:'pill',a:add(pos[v],mul(n,sp.lo)),b:add(pos[v],mul(n,sp.hi)),n}}
+    if(ms){
+      // Where a trunk starts, the capsule spans all its lines.
+      const ls=ms.a===v?orderOf(ms):ms.lines,offs=ls.map(l=>ms.a===v?offIn(ls,l):offEnd(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
+      return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
+    }
+    if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
+    const l=[...linesAt[v]][0],p=stShift[v]?add(pos[v],stShift[v]):pos[v];
+    // Tracks round their corners, so a station on one would float off the curve. Its tick steps back onto the
+    // straight just past the curve, on the longer leg, and stands on the outside of the bend.
+    for(const t of tracks)if(t.line.id===l)for(let i=1;i<t.pts.length-1;i++){
+      if(dist(t.pts[i],p)>1)continue;const a=t.pts[i-1],c=t.pts[i+1],ua=norm(sub(a,p)),uc=norm(sub(c,p));if(Math.abs(cross(ua,uc))<.5)continue;
+      const la=dist(a,p),lc=dist(c,p),rr=Math.min(CORNER,la/2,lc/2),[u,L,o]=la>=lc?[ua,la,uc]:[uc,lc,ua];
+      const at=Math.min(rr+TICK/2+4,L-Math.min(CORNER,L/2)-TICK/2),q=add(p,mul(u,Math.max(at,Math.min(rr,L/2)))),tn=leftN(u);
+      return {v,type:'tick',p:q,n:tn,color:lineById[l].color,terminal:false,start:false,d:mul(u,-1),corner:dot(tn,o)>0?-1:1};
+    }
+    return {v,type:'tick',p,n,color:lineById[l].color,terminal:outs.length===0,start:ins.length===0,d,corner:0};
+  });
+  // Retreat a terminus that would be swallowed by another station's interchange capsule.
+  for(const m of markers.filter(m=>m.terminal)){
+    const home=m.p;
+    for(let step=0;step<40;step++){
+      const p=sub(m.p,mul(m.d,TICK/2)),a=sub(p,mul(m.n,LW/2+7)),b=add(p,mul(m.n,LW/2+7));
+      if(!markers.some(o=>o.type==='pill'&&[p,a,b].some(q=>pointSegDist(q,o.a,o.b)<19/2+TICK/2+14)))break;
+      m.p=sub(m.p,mul(m.d,1));
+    }
+    if(dist(home,m.p)>.5)for(const t of tracks)if(dist(t.pts.at(-1),home)<.5)t.pts[t.pts.length-1]=m.p;
+  }
+  // An end tick is centred on its station, in line with the ticks of stations the line runs through,
+  // so the track runs on half a tick past the station to stay flush with the tick's far edge.
+  for(const m of markers)if(m.type==='tick'&&(m.terminal||m.start)){
+    const c=m.p,e=m.terminal?add(c,mul(m.d,TICK/2)):sub(c,mul(m.d,TICK/2));
+    for(const t of tracks){if(m.terminal&&dist(t.pts.at(-1),c)<.5)t.pts[t.pts.length-1]=e;if(m.start&&dist(t.pts[0],c)<.5)t.pts[0]=e}
+    m.c=c;m.p=e;
+  }
+  const markerBox=m=>{const R=m.type==='pill'?12:LW/2+9,a=m.a||m.c||m.p||pos[m.v],b=m.b||m.c||m.p||pos[m.v];return {x:Math.min(a.x,b.x)-R,y:Math.min(a.y,b.y)-R,w:Math.abs(a.x-b.x)+2*R,h:Math.abs(a.y-b.y)+2*R}};
+
+  // greedy label placement
+  const trackSegs=[];for(const t of tracks)for(let i=1;i<t.pts.length;i++)trackSegs.push([t.pts[i-1],t.pts[i]]);
+  const boxes=markers.map(markerBox),labels=[],labelRects=[];
+  const ordering=markers.map((m,i)=>i).sort((a,b)=>(markers[a].type==='pill'?0:1)-(markers[b].type==='pill'?0:1)||byId[markers[a].v].depth-byId[markers[b].v].depth);
+  for(const i of ordering){
+    const m=markers[i],v=m.v,big=m.type==='pill',size=v==='chaos'?20:18,weight=big?720:560,name=byId[v].name,w=measure(name,size,weight)+2,h=size+3,mb=boxes[i],p=m.c||m.p||pos[v],g=5;
+    const C={N:{x:p.x-w/2,y:mb.y-g-h},S:{x:p.x-w/2,y:mb.y+mb.h+g},E:{x:mb.x+mb.w+g,y:p.y-h/2},W:{x:mb.x-g-w,y:p.y-h/2},
+      NE:{x:mb.x+mb.w,y:mb.y-h},
+      // On the line's continuation past a terminal, the name's baseline resting on the top edge of the track.
+      EL:{x:mb.x+mb.w+g,y:p.y-LW/2-size*.86},NW:{x:mb.x-w,y:mb.y-h},SE:{x:mb.x+mb.w,y:mb.y+mb.h},SW:{x:mb.x-w,y:mb.y+mb.h}};
+    let best=null;
+    const prefs=EDITS.labels[v]?[EDITS.labels[v]]:lay.labelPrefs(v);
+    prefs.forEach((dir,pi)=>{
+      const r={...C[dir],w,h},hit=inflate(r,LW/2+1);let sc=pi*2;
+      for(const [a,b] of trackSegs)if(rectHit(hit,a,b))sc+=100;
+      for(const o of labelRects)if(rectsOverlap(inflate(r,8),o))sc+=100;
+      boxes.forEach((o,j)=>{if(j!==i&&rectsOverlap(r,o))sc+=80});
+      if(!best||sc<best.sc)best={sc,r,dir};
+    });
+    labelRects.push(best.r);labels[i]={...best,name,size,weight};
+    if(m.type==='tick'){const c=V(best.r.x+w/2,best.r.y+h/2);m.side=m.corner||(dot(m.n,sub(c,p))>=0?1:-1)}
+  }
+  // A single track that runs straight, steps aside under 20px, then runs on parallel, is a dog-leg. Slide one end station
+  // across by the step if every other track there leaves along the slide or turns onto it, so moving it bends nothing else.
+  const para=(a,b)=>Math.abs(cross(norm(a),norm(b)))<.02,jogFix=[],moved=new Set(Object.keys(shift).filter(v=>shift[v]));
+  const free=(v,off,skip)=>v!=='chaos'&&[...inTo(v),...outOf(v)].every(t=>t.key===skip||(t.lines.length>1?[base[t.key]]:t.lines.map(l=>segPoly(t,l))).every(q=>{
+    const r=t.a===v?q:q.slice().reverse(),u=sub(r[1],r[0]);
+    return para(u,off)||(Math.abs(dot(norm(u),norm(off)))<.02&&r.length>2&&para(sub(r[2],r[1]),off)&&len(sub(r[2],r[1]))>len(off)+4);
+  }));
+  for(const s of segs){
+    if(s.lines.length>1)continue;const q=segPoly(s,s.lines[0]),n=q.length;if(n<4)continue;
+    for(let i=1;i+2<n;i++){
+      const u=sub(q[i],q[i-1]),j=sub(q[i+1],q[i]),w=sub(q[i+2],q[i+1]);
+      if(!(Math.abs(u.x)<.5||Math.abs(u.y)<.5)||!para(u,w)||dot(u,w)<=0||len(j)>=30)continue;
+      const un=norm(u),off=sub(j,mul(un,dot(j,un))),o=len(off);if(o<.5||o>=20)continue;
+      const cand=[];
+      if(i===1&&!moved.has(s.a)&&free(s.a,off,s.key))cand.push([s.a,off]);
+      if(i+2===n-1&&!moved.has(s.b)&&free(s.b,off,s.key))cand.push([s.b,mul(off,-1)]);
+      cand.sort((x,y)=>linesAt[x[0]].size-linesAt[y[0]].size);
+      if(cand[0]){jogFix.push(cand[0]);moved.add(cand[0][0])}
+    }
+  }
+  return {lay,pos,tracks,markers,labels,best,tried,showOthers,base,drawnOrder,jogFix,viaMarks:viaMarks(viaRuns)};
+}
+
+// ---------- rendering ----------
+const NS='http://www.w3.org/2000/svg';
+const el=(name,attrs={},parent)=>{const e=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent?.append(e);return e};
+const txt=(parent,x,y,s,attrs={})=>{const t=el('text',{x,y,'font-family':FONT,...attrs},parent);t.textContent=s;return t};
+function wrap(s,width,size){const words=s.split(' '),out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(measure(t,size,500)>width&&cur){out.push(cur);cur=w}else cur=t}if(cur)out.push(cur);return out}
+// Wrap a [bold lead-in, body] paragraph into lines of words, keeping each word's weight and *italic* marks.
+function wrapRich([lead,body],width,size){
+  const words=[...lead.split(' ').filter(Boolean).map(w=>({text:w,bold:true})),...body.split(' ').map(w=>({text:w.replace(/\*/g,''),italic:/\*/.test(w)}))];
+  const wordW=w=>measure(w.text,size,w.bold?700:500),space=measure(' ',size,500),out=[];let cur=[],curW=0;
+  for(const w of words){const ww=wordW(w);if(cur.length&&curW+space+ww>width){out.push(cur);cur=[];curW=0}curW+=(cur.length?space:0)+ww;cur.push(w)}
+  if(cur.length)out.push(cur);return out;
+}
+function render(variant,showOthers){
+  const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';
+  // map bounds
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const grow=(x,y)=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)};
+  for(const t of B.tracks)for(const p of t.pts)grow(p.x,p.y);for(const l of B.labels)if(l){grow(l.r.x,l.r.y);grow(l.r.x+l.r.w,l.r.y+l.r.h)}
+  const maxZone=Math.max(...stations.map(id=>byId[id].depth));
+  const e=(maxZone+.5)*lay.R+70;grow(-e,-e-STRETCH);grow(e,e+STRETCH);
+  const pad=56,header=170,legendGap=8,legendPad=14;
+  // Each paragraph opens with a bold lead-in; *asterisks* mark italic titles.
+  const readingCopy=[
+    ['Follow a line to trace a family.','Each stop is the child of the one before it.'],
+    ['Two lines arriving together are two parents.','Ares and Hebe sit where the Zeus and Hera lines meet: they are children of both.'],
+    ['A short step along a zone joins partners.','The Rhea line steps across to Cronus, then runs beside the Sovereignty line to their children.'],
+    ['Small bars are generations passed over.','Between Perseus and Heracles the Argive line passes Electryon and Alcmene.'],
+    ['','Gods and monsters follow Hesiod\u2019s *Theogony*; heroes follow Apollodorus\u2019 *Library*.'],
+  ];
+  const headingSize=36,nameSize=22,detailSize=18,bodySize=21,bodyLeading=28,rowPitch=42;
+  const zoneSwatchW=54,zoneSwatchH=36,zoneNumSize=24,zoneLabel=zoneSwatchW+14;
+  const legendLayout=W=>{
+    const colW=(W-2*pad)/4,lineSplit=Math.ceil(LINES.length/2);
+    // Zone rows stretch so they finish with the lines.
+    const firstY=108,heights=[firstY,firstY];
+    const entries=LINES.map((L,i)=>{
+      const column=i<lineSplit?0:1,y=heights[column],nameWidth=measure(L.name,nameSize,700);
+      const all=[...new Set(L.paths.map(p=>p.at(-1)).filter(id=>!L.paths.some(q=>q.slice(0,-1).includes(id))).map(id=>byId[id].name))],ends=all.length>6?`${all.slice(0,4).join(' · ')} + ${all.length-4} more`:all.join(' · '),copy=`to ${ends}`;
+      const inline=54+nameWidth+10+measure(copy,detailSize,500)<=colW-24;
+      const details=inline?[copy]:wrap(copy,colW-54-24,detailSize);
+      heights[column]+=inline?rowPitch:rowPitch+details.length*bodyLeading;
+      return {column,y,nameWidth,inline,details};
+    });
+    const lineLast=Math.max(...entries.map(e=>e.y));
+    // Zone rows sit at a fixed pitch under their heading, a compact list rather than one stretched to the lines' height.
+    const zoneName=k=>DATA.levelNames[k]??`Generation ${k}`;let zy=firstY;
+    const zones=Array.from({length:maxZone+1},(_,k)=>{
+      const y=zy,lines=wrap(zoneName(k),colW-zoneLabel-24,bodySize);zy+=Math.max(zoneSwatchH+14,lines.length*bodyLeading+14);
+      return {y,lines};
+    });
+    const readingSize=22,readingLeading=30;
+    const readingParas=readingCopy.map(p=>wrapRich(p,colW-30,readingSize)),readingOffset=172,paraGap=Math.round(readingLeading*.45);
+    const readingH=readingParas.reduce((h,p)=>h+p.length*readingLeading,0)+(readingParas.length-1)*paraGap;
+    const readingLast=74+readingOffset+readingH-readingLeading;
+    const body=Math.max(lineLast,zones.at(-1).y,readingLast)+12;
+    return {colW,entries,zones,readingParas,paraGap,readingOffset,readingSize,readingLeading,footer:legendGap+42+body+legendPad};
+  };
+  const legendFooter=W=>legendLayout(W).footer;
+  // Portrait A-series: grow the map until it fills the width; any spare height sits above the key.
+  let mapScale=1.3,W,H,mapBottom,footer,contentH;
+  for(let i=0;i<48;i++){
+    mapBottom=y0+mapScale*(y1-y0);
+    const contentW=Math.max((x1-x0)*mapScale+2*pad,1500);
+    footer=legendFooter(contentW);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    W=Math.max(contentW,contentH/Math.SQRT2);H=W*Math.SQRT2;
+    footer=legendFooter(W);
+    contentH=header+(mapBottom-y0)+pad+footer;
+    const slack=W-((x1-x0)*mapScale+2*pad);
+    if(slack<10)break;
+    mapScale+=0.03;
+  }
+  const left=(x0+x1)/2-W/2,top=y0-pad-header;
+  svg.setAttribute('viewBox',`${left} ${top} ${W} ${H}`);
+  svg.setAttribute('width',W);
+  svg.setAttribute('height',H);
+  el('rect',{x:left,y:top,width:W,height:H,fill:'#fcfbf8'},svg);
+
+  const fy=mapBottom+legendGap+Math.max(0,H-contentH);
+
+  // header
+  const mapCenterX=(x0+x1)/2,scale=mapScale;
+  const mapGroup=el('g',{id:'map',transform:`translate(${(1-scale)*mapCenterX} ${(1-scale)*y0}) scale(${scale})`},svg);
+  const mapX=x=>mapCenterX+(x-mapCenterX)*scale,mapY=y=>y0+(y-y0)*scale;
+  // The title fills the band above Okeanos, flush with the river's outer edge and centred in the band's height.
+  {const ring=(maxZone+.5)*lay.R+34+15,band=mapY(-ring-STRETCH)-top,size=Math.min(132,band*.62),cap=size*.72;
+   txt(svg,mapX(-ring),top+(band+cap)/2,'Transit Theogony',{'font-size':size,'font-weight':800,'letter-spacing':'-.035em',fill:'#1b1c19'})}
+  // zones
+  const zg=el('g',{},mapGroup),zoneFill=k=>k%2?'#efeee8':'#f7f6f1';
+  const R=lay.R,river=(maxZone+.5)*R+34,zoneH=k=>(k+.5)*R+STRETCH;
+  el('rect',{x:-river,y:-river-STRETCH,width:2*river,height:2*(river+STRETCH),rx:48,fill:'none',stroke:'#cfe3ee',"stroke-width":30},zg);
+  txt(zg,0,-river-STRETCH+5,'O K E A N O S',{'font-size':13,'font-weight':700,'text-anchor':'middle',fill:'#6f9bb6','font-style':'italic'});
+
+  // other-parent links
+  if(showOthers){const og=el('g',{},mapGroup);for(const [a,b] of otherParentLinks)el('line',{x1:pos[a].x,y1:pos[a].y,x2:pos[b].x,y2:pos[b].y,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.85},og)}
+
+  // Paint all casings of one line before its colours, joining forks while keeping bridges between different lines.
+  const tg=el('g',{fill:'none','stroke-linejoin':'round','stroke-linecap':'butt'},mapGroup);
+  // A line that turns at an interchange ends square under the capsule and leaves it square,
+  // rather than rounding a corner whose curve pokes out beyond the capsule.
+  const pills=B.markers.filter(m=>m.type==='pill'),drawn=[];
+  for(const t of B.tracks){let cur=[t.pts[0]];
+    for(let i=1;i<t.pts.length;i++){const q=t.pts[i];cur.push(q);
+      if(i<t.pts.length-1&&cross(norm(sub(q,t.pts[i-1])),norm(sub(t.pts[i+1],q)))**2>1e-6&&pills.some(m=>pointSegDist(q,m.a,m.b)<1)){drawn.push({line:t.line,pts:cur});cur=[q]}}
+    drawn.push({line:t.line,pts:cur});
+  }
+  const tans=cornerTangents(drawn,CORNER);
+  // Lines keep their own radii; where a track runs flush along a zone edge round a corner, that zone corner takes the
+  // track's centre instead, so the edge stays flush with no sliver of the next zone showing.
+  const zoneR={};
+  drawn.forEach((t,ti)=>{for(let i=1;i<t.pts.length-1;i++){
+    const b=t.pts[i],din=norm(sub(b,t.pts[i-1])),dout=norm(sub(t.pts[i+1],b)),inward=sub(dout,din),sx=Math.sign(b.x),sy=Math.sign(b.y);
+    if(Math.abs(din.x*din.y)>1e-6||Math.abs(dout.x*dout.y)>1e-6||!sx||!sy||Math.sign(inward.x)!==-sx||Math.sign(inward.y)!==-sy||!tans[ti][i])continue;
+    for(let k=0;k<=maxZone;k++){const dx=Math.abs(b.x)-(k+.5)*R,dy=Math.abs(b.y)-zoneH(k);
+      if(Math.abs(dx)<=7&&Math.abs(dy)<=7&&Math.abs(dx-dy)<1)(zoneR[k]??={})[sx+','+sy]??=Math.max(2,tans[ti][i].a-(dx+dy)/2)}
+  }});
+  const zonePath=(s,h,r)=>{const c=(qx,qy)=>Math.min(r[qx+','+qy]??ZONE_R,s,h);const [tr,br,bl,tl]=[c(1,-1),c(1,1),c(-1,1),c(-1,-1)];
+    return `M${-s+tl},${-h}H${s-tr}A${tr},${tr} 0 0 1 ${s},${-h+tr}V${h-br}A${br},${br} 0 0 1 ${s-br},${h}H${-s+bl}A${bl},${bl} 0 0 1 ${-s},${h-bl}V${-h+tl}A${tl},${tl} 0 0 1 ${-s+tl},${-h}Z`};
+  for(let k=maxZone;k>=0;k--){const s=(k+.5)*R;el('path',{d:zonePath(s,zoneH(k),zoneR[k]??{}),fill:zoneFill(k),stroke:'#e1dfd8','stroke-width':1},zg)}
+  for(let k=0;k<=maxZone;k++){const s=(k+.5)*R;txt(zg,-s+22,-zoneH(k)+50,String(k),{'font-size':32,'font-weight':700,fill:'#8c897e',opacity:.72})}
+  for(const L of LINES){const paths=drawn.map((t,i)=>[t,i]).filter(([t])=>t.line.id===L.id).map(([t,i])=>roundedD(t.pts,CORNER,tans[i]));for(const d of paths)el('path',{d,stroke:'#fcfbf8','stroke-width':LW+CASING},tg);for(const d of paths)el('path',{d,stroke:L.color,'stroke-width':LW},tg)}
+
+  // Passed-over generations: a thin bar across the track, named on hover.
+  const vg=el('g',{},mapGroup);
+  for(const m of B.viaMarks){const a=add(m.p,mul(m.n,LW/2+4)),b=sub(m.p,mul(m.n,LW/2+4)),t=el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:m.color,'stroke-width':2.5},vg);
+    el('line',{x1:m.p.x+m.n.x*(LW/2-1),y1:m.p.y+m.n.y*(LW/2-1),x2:m.p.x-m.n.x*(LW/2-1),y2:m.p.y-m.n.y*(LW/2-1),stroke:'#fcfbf8','stroke-width':2.5},vg);
+    el('title',{},t).textContent=`${m.name} (between ${byId[m.from].name} and ${byId[m.to].name})`}
+  // stations
+  const sg=el('g',{},mapGroup);
+  for(const m of B.markers){
+    const p=m.type==='tick'&&m.terminal?sub(m.p,mul(m.d,TICK/2)):m.type==='tick'&&m.start?add(m.p,mul(m.d,TICK/2)):m.p||pos[m.v];
+    if(m.type==='tick'){const q=add(p,mul(m.n,(m.side||1)*(LW/2+7)));el('line',{'data-station':m.v,x1:p.x,y1:p.y,x2:q.x,y2:q.y,stroke:m.color,'stroke-width':TICK},sg)}
+    else{const w=m.v==='chaos'?26:19;el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#1d1d1b','stroke-width':w,'stroke-linecap':'round'},sg);el('line',{x1:m.a.x,y1:m.a.y,x2:m.b.x,y2:m.b.y,stroke:'#fff','stroke-width':w-7,'stroke-linecap':'round'},sg)}
+  }
+  // Keep names the uniform poster size and the same distance from their station; only the map geometry widens.
+  B.labels.forEach((l,i)=>{if(!l)return;const m=B.markers[i],p=m.c||m.p||pos[m.v],tx=l.r.x+1,ty=l.r.y+l.size*.86;txt(svg,mapX(p.x)+(tx-p.x)*scale,mapY(p.y)+(ty-p.y)*scale,l.name,{'font-size':l.size*scale,'font-weight':l.weight,fill:'#1d1d1b','letter-spacing':'-.01em',...(EDITOR.on?{'data-label':m.v}:{})})});
+  if(EDITOR.on)drawEditor(mapGroup,B);
+
+  // footer key
+  // Section heading with a quieter gloss in brackets, e.g. "Lines (lineages)".
+  const heading=(x,name,gloss)=>{const t=txt(svg,x,fy+42,name,{'font-size':headingSize,'font-weight':800,fill:'#22231f'});if(gloss){const g=el('tspan',{'font-weight':500,fill:'#8c897e'},t);g.textContent=` (${gloss})`}};
+  const {colW,entries,zones,readingParas,paraGap,readingOffset,readingSize,readingLeading}=legendLayout(W),fx=left+pad;
+  heading(fx,'Lines');
+  LINES.forEach((L,i)=>{const entry=entries[i],x=fx+entry.column*colW,y=fy+entry.y;el('line',{x1:x,x2:x+40,y1:y-5,y2:y-5,stroke:L.color,'stroke-width':LW},svg);txt(svg,x+54,y,L.name,{'font-size':nameSize,'font-weight':700,fill:'#26271f'});
+    entry.details.forEach((s,j)=>txt(svg,entry.inline?x+54+entry.nameWidth+10:x+54,entry.inline?y:y+(j+1)*bodyLeading,s,{'font-size':detailSize,'font-weight':500,fill:'#6b685f'}))});
+  const zx=fx+2*colW;heading(zx,'Zones');
+    zones.forEach(({y:offset,lines},k)=>{const y=fy+offset;el('rect',{x:zx,y:y-zoneSwatchH+8,width:zoneSwatchW,height:zoneSwatchH,fill:zoneFill(k),stroke:'#dddbd4'},svg);txt(svg,zx+zoneSwatchW/2,y,String(k),{'font-size':zoneNumSize,'font-weight':800,'text-anchor':'middle',fill:'#7a776d'});lines.forEach((n,j)=>txt(svg,zx+zoneLabel,y+j*bodyLeading,n,{'font-size':bodySize,'font-weight':560,fill:'#30312b'}))});
+  const rx=fx+3*colW;txt(svg,rx,fy+42,'Reading the map',{'font-size':headingSize,'font-weight':800,fill:'#22231f'});
+  const readingY=fy+74;
+  const ex=(y,kind)=>{if(kind==='pill'){el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#1d1d1b','stroke-width':19,'stroke-linecap':'round'},svg);el('line',{x1:rx+8,x2:rx+30,y1:y-5,y2:y-5,stroke:'#fff','stroke-width':12,'stroke-linecap':'round'},svg)}
+    else if(kind==='via'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#6b7b8c','stroke-width':LW},svg);for(const x of [rx+13,rx+27]){el('line',{x1:x,x2:x,y1:y-5-LW/2-4,y2:y-5+LW/2+4,stroke:'#6b7b8c','stroke-width':2.5},svg);el('line',{x1:x,x2:x,y1:y-5-LW/2+1,y2:y-5+LW/2-1,stroke:'#fcfbf8','stroke-width':2.5},svg)}}
+    else if(kind==='tick'){el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#d0312d','stroke-width':LW},svg);el('line',{x1:rx+20,x2:rx+20,y1:y-5,y2:y-16,stroke:'#d0312d','stroke-width':5.5},svg)}
+    else el('line',{x1:rx,x2:rx+40,y1:y-5,y2:y-5,stroke:'#8d8a80','stroke-width':1.6,'stroke-dasharray':'5 5'},svg)};
+  [['tick','Station: a god, monster or hero'],['pill','Interchange: where lines begin or meet'],['via','Generations passed over (hover to name them)']].forEach(([k,s],i)=>{const y=readingY+34+i*rowPitch;ex(y,k);txt(svg,rx+54,y,s,{'font-size':bodySize,'font-weight':560,fill:'#30312b'})});
+  let ry=readingY+readingOffset;
+  for(const para of readingParas){
+    for(const line of para){
+      const t=txt(svg,rx,ry,'',{'font-size':readingSize,fill:'#5f5d55'});
+      line.forEach((w,k)=>{const span=el('tspan',{'font-weight':w.bold?700:500,...(w.bold?{fill:'#30312b'}:{}),...(w.italic?{'font-style':'italic'}:{})},t);span.textContent=(k?' ':'')+w.text});
+      ry+=readingLeading;
+    }
+    ry+=paraGap;
+  }
+
+
+  const pair=pos.zeus&&pos.hera?`Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, `:'';
+  const clashes=B.labels.filter(l=>l&&l.sc>=80).length;if(EDITOR.on)EDITOR.saved??=snapshot();
+  document.getElementById('state').textContent=EDITOR.on
+    ?`${lay.score.cr} crossings · ${lay.score.through} pass-throughs · ${B.best.c} bundle crossings · ${clashes} label clashes${EDITOR.dirty()?' · unsaved':''}`
+    :`${stations.length} stations · spare page height ${Math.round(H-contentH)} · layout: ${lay.score.cr} crossings, ${lay.score.through} pass-throughs, ${pair}searched ${lay.search} · bundle order: ${B.best.c} crossings (of ${B.tried}) · ${otherParentLinks.length} other-parent links ${showOthers?'shown':'hidden'}`;
+  if(EDITOR.on)renderPanel(B);else publishExport(svg);
+}
+function publishExport(svg){
+  const buffer=document.getElementById('svgExportBuffer');
+  if(!buffer||typeof XMLSerializer!=='function')return;
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns',NS);
+  if(!clone.querySelector('title')){
+    const title=document.createElementNS(NS,'title');
+    title.textContent='Transit Theogony';
+    clone.insertBefore(title,clone.firstChild);
+  }
+  buffer.textContent='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(clone);
+}
+
+// ---------- editor ----------
+// Drag stations along their ring, pick label sides, shift lanes and reorder tracks.
+// Save needs the local server (node tools/ring_editor.mjs 8765 v2), which writes topology/ring_v2_positions.json.
+const GRID=11,ALIGN=8,LABEL_SIDES=['N','NE','E','SE','S','SW','W','NW','EL'];
+const snapshot=()=>JSON.stringify(savedEdits());
+function savedEdits(){
+  const positions={};for(const v of stations){const p=EDITS.positions[v];if(p)positions[v]={x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10}}
+  const lanes=Object.fromEntries(Object.entries(EDITS.lanes).filter(([,n])=>n));
+  return {positions,labels:EDITS.labels,lanes,trackOrder:EDITS.trackOrder,stationOrder:EDITS.stationOrder};
+}
+function restore(json){const e=JSON.parse(json);Object.assign(EDITS,{positions:e.positions,labels:e.labels,lanes:e.lanes,trackOrder:e.trackOrder,stationOrder:e.stationOrder??{}});rerender()}
+function remember(){EDITOR.undo.push(snapshot());if(EDITOR.undo.length>200)EDITOR.undo.shift();EDITOR.redo=[]}
+function undo(){if(!EDITOR.undo.length)return;EDITOR.redo.push(snapshot());restore(EDITOR.undo.pop())}
+function redo(){if(!EDITOR.redo.length)return;EDITOR.undo.push(snapshot());restore(EDITOR.redo.pop())}
+
+let frame=0;
+function rerender(){layoutCache=null;if(!frame)frame=requestAnimationFrame(()=>{frame=0;render(VARIANT,othersBox.checked)})}
+// Every station gets an explicit position, so moving one never sets off the layout search.
+function freezePositions(){const lay=layoutCache??currentLayout();for(const v of stations)EDITS.positions[v]??={x:lay.pos[v].x,y:lay.pos[v].y}}
+
+// The point on v's ring nearest p: on the grid, or level with another station within ALIGN.
+function placeOnRing(v,p,free){
+  const s=byId[v].depth*R,q=onRing(p,s),k=sideKey(q);EDITOR.guide=null;
+  if(free||k.length===2)return q;
+  const axis=k==='E'||k==='W'?'y':'x',c=tang(q,k);let near=null;
+  for(const o of stations){if(o===v)continue;const d=Math.abs(EDITS.positions[o][axis]-c);if(d<ALIGN&&(!near||d<near.d))near={d,c:EDITS.positions[o][axis],o}}
+  const r=snap(fromSide(k,near?near.c:Math.round(c/GRID)*GRID,s),s);
+  if(near&&tang(r,k)===near.c)EDITOR.guide={axis,c:near.c};
+  return r;
+}
+function moveStation(v,p,free){EDITS.positions[v]=placeOnRing(v,p,free);rerender()}
+function resetStation(v){autoLayout??=searchRing();EDITS.positions[v]={...autoLayout.pos[v]};delete EDITS.labels[v];rerender()}
+function cycleLabel(v,step=1){
+  const i=EDITS.labels[v]?LABEL_SIDES.indexOf(EDITS.labels[v]):-1,n=(i+1+step+LABEL_SIDES.length+1)%(LABEL_SIDES.length+1)-1;
+  if(n<0)delete EDITS.labels[v];else EDITS.labels[v]=LABEL_SIDES[n];rerender();
+}
+const trunkKey=key=>EDITOR.B?.lay.laneGroup[key]?.[0]??key;
+function shiftLane(key,d){key=trunkKey(key);EDITS.lanes[key]=(EDITS.lanes[key]||0)+d;if(!EDITS.lanes[key])delete EDITS.lanes[key];rerender()}
+function moveTrack(l,d){const o=EDITS.trackOrder,i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];rerender()}
+// An interchange's own order, or the order its lines are drawn in now.
+const orderAt=v=>{const drawn=EDITOR.B?.drawnOrder[v]??[...linesAt[v]],o=EDITS.stationOrder[v]?.filter(l=>linesAt[v].has(l))??[];return [...o,...drawn.filter(l=>!o.includes(l))]};
+function moveStationTrack(v,l,d){const o=orderAt(v),i=o.indexOf(l),j=i+d;if(j<0||j>=o.length)return;remember();[o[i],o[j]]=[o[j],o[i]];EDITS.stationOrder[v]=o;rerender()}
+
+function drawEditor(mapGroup,B){
+  const g=el('g',{},mapGroup),ext=(maxDepth+.5)*R+40;
+  if(EDITOR.guide){const {axis,c}=EDITOR.guide;el('line',axis==='y'?{x1:-ext,x2:ext,y1:c,y2:c}:{x1:c,x2:c,y1:-ext-STRETCH,y2:ext+STRETCH},g).setAttribute('style','stroke:#2f6fd6;stroke-width:1.5;stroke-dasharray:4 5')}
+  for(const s of segs)if(B.lay.lanes[s.key]!==undefined)el('path',{d:roundedD(B.base[s.key],CORNER),'data-seg':s.key,fill:'none',stroke:'transparent','stroke-width':16,'pointer-events':'stroke'},g);
+  if(EDITOR.seg&&B.base[EDITOR.seg])el('path',{d:roundedD(B.base[EDITOR.seg],CORNER),fill:'none',stroke:'#16171a','stroke-width':3,'stroke-dasharray':'7 6','pointer-events':'none'},g);
+  for(const v of stations)if(v!=='chaos')el('circle',{cx:B.pos[v].x,cy:B.pos[v].y,r:15,fill:'transparent','pointer-events':'all','data-station':v},g);
+  if(EDITOR.sel)el('circle',{cx:B.pos[EDITOR.sel].x,cy:B.pos[EDITOR.sel].y,r:19,fill:'none',stroke:'#2f6fd6','stroke-width':3.5,'pointer-events':'none'},g);
+}
+const maxDepth=Math.max(...stations.map(id=>byId[id].depth));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>`&#${c.charCodeAt(0)};`);
+function renderPanel(B){
+  EDITOR.B=B;const panel=document.getElementById('panel'),v=EDITOR.sel,seg=EDITOR.seg&&segMap.get(EDITOR.seg);
+  const sel=v?`<div class="row"><b class="grow">${esc(byId[v].name)}</b>zone ${byId[v].depth}</div>
+    <div class="row">label <span class="grow">${EDITS.labels[v]??'auto'}</span><button data-act="label-">◀</button><button data-act="label+">▶</button></div>
+    <div class="row"><button data-act="reset">Reset to automatic</button></div>`:'<div class="keys">Click or drag a station.</div>';
+  const own=v&&EDITS.stationOrder[v],at=v&&linesAt[v].size>1?orderAt(v):null;
+  const local=at?`<h3>Track order at ${esc(byId[v].name)}</h3><div class="keys">${own?'Its own order':'Following the bundle order'}. Left of the direction of travel first.</div>
+    ${at.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="sup" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="sdown" data-line="${l}"${i<at.length-1?'':' disabled'}>▼</button></div>`).join('')}
+    ${own?'<div class="row"><button data-act="sclear">Use the bundle order</button></div>':''}`:'';
+  const lane=seg?`<h3>Track</h3><div class="row"><span class="grow">${esc(byId[seg.a].name)} → ${esc(byId[seg.b].name)}</span></div>
+    <div class="row">lane shift <span class="grow">${EDITS.lanes[trunkKey(seg.key)]||0}</span><button data-act="lane-">inward</button><button data-act="lane+">outward</button></div>`:'';
+  const order=EDITS.trackOrder.map((l,i)=>`<div class="row"><span class="sw" style="background:${lineById[l].color}"></span><span class="grow">${esc(lineById[l].name)}</span><button data-act="up" data-line="${l}"${i?'':' disabled'}>▲</button><button data-act="down" data-line="${l}"${i<EDITS.trackOrder.length-1?'':' disabled'}>▼</button></div>`).join('');
+  panel.innerHTML=`<h3>Station</h3>${sel}${local}${lane}
+    <h3>Track order in bundles (whole poster)</h3><div class="keys">Left of the direction of travel first. ${B.best.c} bundle crossings.</div>${order}
+    <div class="row"><button data-act="best-order">Find best order (slow)</button></div>
+    <h3>Keys</h3><div class="keys">Drag a station along its ring; hold <kbd>Shift</kbd> to skip the grid. <kbd>←↑→↓</kbd> nudge, <kbd>L</kbd> label side, <kbd>R</kbd> reset station.
+    Click a track, then <kbd>[</kbd> <kbd>]</kbd> to move its lane. <kbd>Ctrl Z</kbd> undo, <kbd>Ctrl Shift Z</kbd> redo, <kbd>Ctrl S</kbd> save, <kbd>Esc</kbd> deselect.</div>`;
+}
+document.getElementById('panel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const act=b.dataset.act,v=EDITOR.sel;
+  if(act==='up'||act==='down')return moveTrack(b.dataset.line,act==='up'?-1:1);
+  if((act==='sup'||act==='sdown')&&v)return moveStationTrack(v,b.dataset.line,act==='sup'?-1:1);
+  if(act==='sclear'&&v){remember();delete EDITS.stationOrder[v];return rerender()}
+  if(act==='best-order'){remember();EDITS.trackOrder=null;return rerender()}
+  if(act==='lane-'||act==='lane+'){remember();return shiftLane(EDITOR.seg,act==='lane+'?1:-1)}
+  if(!v)return;remember();
+  if(act==='reset')resetStation(v);else cycleLabel(v,act==='label+'?1:-1);
+});
+
+const svgEl=document.getElementById('poster');
+const toMap=e=>new DOMPoint(e.clientX,e.clientY).matrixTransform(document.getElementById('map').getScreenCTM().inverse());
+svgEl.addEventListener('pointerdown',e=>{
+  if(!EDITOR.on||e.button!==0)return;
+  const t=e.target.closest('[data-station],[data-label],[data-seg]');
+  if(!t){EDITOR.sel=EDITOR.seg=null;return rerender()}
+  e.preventDefault();
+  if(t.dataset.seg){EDITOR.seg=t.dataset.seg;EDITOR.sel=null;return rerender()}
+  const v=t.dataset.station??t.dataset.label;EDITOR.sel=v;EDITOR.seg=null;
+  if(t.dataset.label&&!t.dataset.station){remember();return cycleLabel(v)}
+  EDITOR.drag={v,before:snapshot(),moved:false};rerender();
+});
+addEventListener('pointermove',e=>{
+  const d=EDITOR.drag;if(!d)return;
+  if(!d.moved){EDITOR.undo.push(d.before);EDITOR.redo=[];d.moved=true}
+  moveStation(d.v,toMap(e),e.shiftKey);
+});
+addEventListener('pointerup',()=>{if(!EDITOR.drag)return;EDITOR.drag=null;EDITOR.guide=null;rerender()});
+addEventListener('keydown',e=>{
+  if(!EDITOR.on||e.target.closest?.('input,textarea'))return;
+  const k=e.key,ctrl=e.ctrlKey||e.metaKey,v=EDITOR.sel;
+  if(ctrl&&k.toLowerCase()==='s'){e.preventDefault();return save()}
+  if(ctrl&&k.toLowerCase()==='z'){e.preventDefault();return e.shiftKey?redo():undo()}
+  if(ctrl&&k.toLowerCase()==='y'){e.preventDefault();return redo()}
+  if(k==='Escape'){EDITOR.sel=EDITOR.seg=null;return rerender()}
+  if((k==='['||k===']')&&EDITOR.seg){remember();return shiftLane(EDITOR.seg,k===']'?1:-1)}
+  if(!v)return;
+  const step={ArrowLeft:V(-1,0),ArrowRight:V(1,0),ArrowUp:V(0,-1),ArrowDown:V(0,1)}[k];
+  if(step){e.preventDefault();remember();const n=e.shiftKey?1:GRID,p=EDITS.positions[v],s=byId[v].depth*R;
+    // Slide along the ring in the arrow's direction; around a corner the arrow keeps pushing the same way.
+    let q=p;for(let tries=1;tries<=6&&dist(q,p)<.5;tries++)q=placeOnRing(v,add(p,mul(step,n*tries)),e.shiftKey);
+    EDITS.positions[v]=q;EDITOR.guide=null;return rerender()}
+  if(k==='l'||k==='L'){remember();return cycleLabel(v,e.shiftKey?-1:1)}
+  if(k==='r'||k==='R'){remember();return resetStation(v)}
+});
+
+const saveBtn=document.getElementById('save');
+async function save(){
+  if(!EDITOR.server)return;
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+  try{
+    const json=snapshot(),r=await fetch(`/api/save?variant=${VARIANT}`,{method:'POST',headers:{'content-type':'application/json'},body:json});
+    if(!r.ok)throw new Error(await r.text());
+    EDITOR.saved=json;saveBtn.textContent='Saved';
+  }catch(err){saveBtn.textContent='Save failed';console.error(err)}
+  saveBtn.disabled=false;setTimeout(()=>saveBtn.textContent='Save',1500);rerender();
+}
+saveBtn.onclick=save;
+addEventListener('beforeunload',e=>{if(EDITOR.on&&EDITOR.dirty())e.preventDefault()});
+function setEditing(on){
+  EDITOR.on=on;document.body.classList.toggle('editing',on);document.getElementById('panel').hidden=!on;saveBtn.hidden=!on;
+  if(on)freezePositions();else EDITOR.sel=EDITOR.seg=null;
+}
+if(location.protocol.startsWith('http'))fetch(`/api/ping?variant=${VARIANT}`).then(r=>r.ok&&r.json()).then(j=>{if(j?.ok){EDITOR.server=true;saveBtn.disabled=false;saveBtn.title='Save to topology/ring_v2_positions.json (Ctrl S)'}},()=>{});
+
+// ---------- boot ----------
+const params=new URLSearchParams(location.search);
+const othersBox=document.getElementById('others');othersBox.checked=params.get('others')==='1';
+const editBox=document.getElementById('edit');editBox.checked=params.get('edit')==='1';
+function show(){
+  const p=new URLSearchParams(location.search);
+  for(const [box,key] of [[othersBox,'others'],[editBox,'edit']])if(box.checked)p.set(key,'1');else p.delete(key);
+  const q=p.toString();history.replaceState(null,'',q?`?${q}`:location.pathname);
+  layoutCache=null;setEditing(editBox.checked);render(VARIANT,othersBox.checked);
+}
+othersBox.onchange=editBox.onchange=show;
+show();
+</script>
+</body>
+</html>

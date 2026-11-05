@@ -1,0 +1,543 @@
+{
+ "positions": {
+  "chaos": {
+   "x": 0,
+   "y": 0
+  },
+  "gaia": {
+   "x": 165,
+   "y": 0
+  },
+  "uranus": {
+   "x": 330,
+   "y": 0
+  },
+  "cronus": {
+   "x": 495,
+   "y": 11
+  },
+  "zeus": {
+   "x": 660,
+   "y": 11
+  },
+  "athena": {
+   "x": 682,
+   "y": -995
+  },
+  "apollo": {
+   "x": 440,
+   "y": -995
+  },
+  "artemis": {
+   "x": 550,
+   "y": -995
+  },
+  "hermes": {
+   "x": 825,
+   "y": -759
+  },
+  "dionysus": {
+   "x": 825,
+   "y": -638
+  },
+  "ares": {
+   "x": 825,
+   "y": 121
+  },
+  "hebe": {
+   "x": 825,
+   "y": 11
+  },
+  "persephone": {
+   "x": 825,
+   "y": 242
+  },
+  "charites": {
+   "x": 308,
+   "y": -995
+  },
+  "hera": {
+   "x": 660,
+   "y": -132
+  },
+  "hestia": {
+   "x": 660,
+   "y": -517
+  },
+  "hades": {
+   "x": 660,
+   "y": -264
+  },
+  "poseidon": {
+   "x": 660,
+   "y": -396
+  },
+  "iapetus": {
+   "x": 308,
+   "y": 665
+  },
+  "prometheus": {
+   "x": 429,
+   "y": 830
+  },
+  "atlas": {
+   "x": 550,
+   "y": 830
+  },
+  "epimetheus": {
+   "x": 297,
+   "y": 830
+  },
+  "clymene": {
+   "x": 407,
+   "y": 665
+  },
+  "pontus": {
+   "x": -247.5,
+   "y": -500
+  },
+  "nereus": {
+   "x": -363,
+   "y": -665
+  },
+  "nereids": {
+   "x": -484,
+   "y": -995
+  },
+  "oceanus": {
+   "x": 220,
+   "y": -665
+  },
+  "doris": {
+   "x": 220,
+   "y": -830
+  },
+  "eurynome": {
+   "x": 297,
+   "y": -830
+  },
+  "tethys": {
+   "x": 308,
+   "y": -665
+  },
+  "hyperion": {
+   "x": 495,
+   "y": 374
+  },
+  "helios": {
+   "x": 660,
+   "y": 385
+  },
+  "eos": {
+   "x": 660,
+   "y": 616
+  },
+  "selene": {
+   "x": 660,
+   "y": 500
+  },
+  "theia": {
+   "x": 495,
+   "y": 500
+  },
+  "coeus": {
+   "x": -11,
+   "y": -665
+  },
+  "asteria": {
+   "x": 0,
+   "y": -830
+  },
+  "hecate": {
+   "x": -121,
+   "y": -995
+  },
+  "phoebe": {
+   "x": 88,
+   "y": -665
+  },
+  "nyx": {
+   "x": -165,
+   "y": 44
+  },
+  "nemesis": {
+   "x": -330,
+   "y": 417.5
+  },
+  "hypnos": {
+   "x": -330,
+   "y": 44
+  },
+  "thanatos": {
+   "x": -154,
+   "y": 500
+  },
+  "moirai": {
+   "x": -247.5,
+   "y": 500
+  },
+  "eris": {
+   "x": -330,
+   "y": 187
+  },
+  "hesperides": {
+   "x": -330,
+   "y": 264
+  },
+  "mnemosyne": {
+   "x": 22,
+   "y": 665
+  },
+  "muses": {
+   "x": 11,
+   "y": 995
+  },
+  "hephaestus": {
+   "x": 825,
+   "y": -110
+  },
+  "demeter": {
+   "x": 660,
+   "y": 242
+  },
+  "rhea": {
+   "x": 495,
+   "y": 176
+  },
+  "metis": {
+   "x": 577.5,
+   "y": -830
+  },
+  "leto": {
+   "x": 451,
+   "y": -830
+  },
+  "maia": {
+   "x": 660,
+   "y": -747.5
+  },
+  "semele": {
+   "x": 660,
+   "y": -627
+  },
+  "tartarus": {
+   "x": 0,
+   "y": -335
+  },
+  "typhon": {
+   "x": -330,
+   "y": -407
+  },
+  "echidna": {
+   "x": -330,
+   "y": -330
+  },
+  "erebus": {
+   "x": -165,
+   "y": 22
+  },
+  "aether": {
+   "x": -330,
+   "y": -132
+  },
+  "hemera": {
+   "x": -330,
+   "y": -44
+  },
+  "charon": {
+   "x": -330,
+   "y": -209
+  },
+  "eros": {
+   "x": 11,
+   "y": 335
+  },
+  "aphrodite": {
+   "x": 165,
+   "y": 665
+  },
+  "elder_cyclopes": {
+   "x": -495,
+   "y": 528
+  },
+  "hecatoncheires": {
+   "x": -495,
+   "y": 462
+  },
+  "deucalion": {
+   "x": -990,
+   "y": -1160
+  },
+  "bellerophon": {
+   "x": -1155,
+   "y": -1325
+  },
+  "thetis": {
+   "x": -680.5,
+   "y": 995
+  },
+  "cerberus": {
+   "x": -495,
+   "y": -386.7
+  },
+  "hydra": {
+   "x": -495,
+   "y": -197.8
+  },
+  "chimera": {
+   "x": -495,
+   "y": -321.8
+  },
+  "nemean_lion": {
+   "x": -495,
+   "y": -259.8
+  },
+  "sphinx": {
+   "x": -495,
+   "y": -492.1
+  },
+  "phorcys": {
+   "x": -247.5,
+   "y": 665
+  },
+  "medusa": {
+   "x": -247.5,
+   "y": 830
+  },
+  "pegasus": {
+   "x": -247.5,
+   "y": 995
+  },
+  "scylla": {
+   "x": -406.4,
+   "y": 830
+  },
+  "polyphemus": {
+   "x": -386.1,
+   "y": 995
+  },
+  "ceto": {
+   "x": -326.7,
+   "y": 665
+  },
+  "perseus": {
+   "x": 716.7,
+   "y": -1160
+  },
+  "heracles": {
+   "x": 1155,
+   "y": -601.2
+  },
+  "tantalus": {
+   "x": 990,
+   "y": -65.2
+  },
+  "dardanus": {
+   "x": 456.1,
+   "y": -1160
+  },
+  "aeacus": {
+   "x": 990,
+   "y": 586.4
+  },
+  "helen": {
+   "x": 1107,
+   "y": -1490
+  },
+  "dioscuri": {
+   "x": 1320,
+   "y": -1021.8
+  },
+  "io": {
+   "x": -35.2,
+   "y": -995
+  },
+  "atreus": {
+   "x": 1155,
+   "y": -65.2
+  },
+  "agamemnon": {
+   "x": 1320,
+   "y": -65.2
+  },
+  "orestes": {
+   "x": 1320,
+   "y": -127.2
+  },
+  "menelaus": {
+   "x": 1320,
+   "y": 0
+  },
+  "leda": {
+   "x": 1155,
+   "y": -1325
+  },
+  "clytemnestra": {
+   "x": 1320,
+   "y": -1490
+  },
+  "electra": {
+   "x": -606.7,
+   "y": -995
+  },
+  "priam": {
+   "x": 526.1,
+   "y": -1325
+  },
+  "hector": {
+   "x": 596.1,
+   "y": -1490
+  },
+  "paris": {
+   "x": 766.4,
+   "y": -1490
+  },
+  "anchises": {
+   "x": 375.8,
+   "y": -1325
+  },
+  "aeneas": {
+   "x": 375.8,
+   "y": -1490
+  },
+  "peleus": {
+   "x": 1155,
+   "y": 676.4
+  },
+  "achilles": {
+   "x": 1320,
+   "y": 766.4
+  },
+  "ajax": {
+   "x": 1320,
+   "y": 851.5
+  },
+  "harmonia": {
+   "x": 990,
+   "y": 110.3
+  },
+  "oedipus": {
+   "x": 1155,
+   "y": 110.3
+  },
+  "antigone": {
+   "x": 1320,
+   "y": 170.3
+  },
+  "cadmus": {
+   "x": 990,
+   "y": 912.1
+  },
+  "odysseus": {
+   "x": 1320,
+   "y": -510.9
+  }
+ },
+ "labels": {
+  "maia": "N",
+  "eurynome": "E",
+  "clymene": "S",
+  "prometheus": "S",
+  "hera": "N",
+  "hestia": "N",
+  "zeus": "N",
+  "hades": "N",
+  "demeter": "N",
+  "persephone": "N",
+  "ares": "N",
+  "hebe": "N",
+  "apollo": "N",
+  "artemis": "N",
+  "hermes": "N",
+  "dionysus": "N",
+  "hephaestus": "N",
+  "moirai": "E",
+  "thanatos": "E",
+  "iapetus": "W",
+  "athena": "N",
+  "semele": "N",
+  "epimetheus": "S",
+  "hypnos": "N",
+  "eris": "N",
+  "hesperides": "N",
+  "nemesis": "N",
+  "gaia": "N",
+  "charon": "N",
+  "aether": "N",
+  "hemera": "N",
+  "erebus": "N",
+  "pontus": "E",
+  "tartarus": "E",
+  "nereus": "W",
+  "tethys": "E",
+  "doris": "W",
+  "asteria": "W",
+  "helios": "N",
+  "selene": "N",
+  "eos": "N",
+  "eros": "E",
+  "nyx": "S",
+  "hyperion": "N",
+  "leto": "E",
+  "metis": "E",
+  "aphrodite": "W",
+  "mnemosyne": "W",
+  "muses": "W",
+  "hecatoncheires": "N",
+  "elder_cyclopes": "N",
+  "typhon": "N",
+  "echidna": "N",
+  "coeus": "W",
+  "phoebe": "E"
+ },
+ "lanes": {},
+ "trackOrder": [
+  "sea",
+  "hecate",
+  "ocean",
+  "sovereignty",
+  "rhea",
+  "sun",
+  "promethean",
+  "harvest",
+  "mountain"
+ ],
+ "stationOrder": {
+  "uranus": [
+   "hecate",
+   "ocean",
+   "sovereignty",
+   "rhea",
+   "sun",
+   "promethean",
+   "foam",
+   "memory",
+   "justice",
+   "blood",
+   "forge"
+  ],
+  "cronus": [
+   "sovereignty",
+   "rhea",
+   "hera",
+   "harvest"
+  ],
+  "chaos": [
+   "love",
+   "abyss",
+   "sea",
+   "hecate",
+   "ocean",
+   "sovereignty",
+   "sun",
+   "promethean",
+   "erebus",
+   "night",
+   "mountain"
+  ],
+  "apollo": [
+   "sovereignty",
+   "consort"
+  ]
+ }
+}

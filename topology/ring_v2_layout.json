@@ -1,0 +1,131 @@
+{
+  "orders": {
+    "chaos": [
+      "gaia",
+      "eros",
+      "nyx",
+      "erebus",
+      "tartarus"
+    ],
+    "gaia": [
+      "uranus",
+      "pontus"
+    ],
+    "uranus": [
+      "iapetus",
+      "hyperion",
+      "oceanus",
+      "cronus",
+      "hecatoncheires",
+      "elder_cyclopes",
+      "aphrodite",
+      "mnemosyne",
+      "phoebe",
+      "tethys",
+      "coeus",
+      "rhea",
+      "theia"
+    ],
+    "cronus": [
+      "hestia",
+      "zeus",
+      "demeter",
+      "poseidon",
+      "hades",
+      "hera"
+    ],
+    "zeus": [
+      "dardanus",
+      "perseus",
+      "helen",
+      "apollo",
+      "artemis",
+      "athena",
+      "dioscuri",
+      "charites",
+      "heracles",
+      "hermes",
+      "dionysus",
+      "tantalus",
+      "ares",
+      "hebe",
+      "persephone",
+      "aeacus"
+    ],
+    "iapetus": [
+      "prometheus",
+      "epimetheus",
+      "atlas"
+    ],
+    "pontus": [
+      "phorcys",
+      "ceto",
+      "nereus"
+    ],
+    "oceanus": [
+      "doris",
+      "io",
+      "eurynome"
+    ],
+    "hyperion": [
+      "eos",
+      "helios",
+      "selene"
+    ],
+    "nyx": [
+      "hesperides",
+      "eris",
+      "moirai",
+      "thanatos",
+      "charon",
+      "hemera",
+      "aether",
+      "nemesis",
+      "hypnos"
+    ],
+    "tartarus": [
+      "echidna",
+      "typhon"
+    ],
+    "nereus": [
+      "thetis",
+      "nereids"
+    ],
+    "echidna": [
+      "hydra",
+      "chimera",
+      "nemean_lion",
+      "cerberus",
+      "sphinx"
+    ],
+    "phorcys": [
+      "medusa",
+      "polyphemus",
+      "scylla"
+    ],
+    "dardanus": [
+      "anchises",
+      "priam"
+    ],
+    "aeacus": [
+      "peleus",
+      "ajax"
+    ],
+    "atreus": [
+      "agamemnon",
+      "menelaus"
+    ],
+    "priam": [
+      "hector",
+      "paris"
+    ]
+  },
+  "roots": {
+    "clymene": 0,
+    "metis": 0,
+    "leto": 0,
+    "maia": 0,
+    "semele": -1,
+    "leda": 0
+  }
+}
