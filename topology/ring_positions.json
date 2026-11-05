@@ -53,7 +53,7 @@
    "y": 242
   },
   "charites": {
-   "x": 297,
+   "x": 308,
    "y": -995
   },
   "hera": {
@@ -97,11 +97,11 @@
    "y": -500
   },
   "nereus": {
-   "x": -341,
+   "x": -385,
    "y": -665
   },
   "nereids": {
-   "x": -429,
+   "x": -495,
    "y": -995
   },
   "eurybia": {
@@ -117,11 +117,11 @@
    "y": 275
   },
   "oceanus": {
-   "x": 187,
+   "x": 220,
    "y": -665
   },
   "doris": {
-   "x": 187,
+   "x": 220,
    "y": -830
   },
   "eurynome": {
@@ -129,7 +129,7 @@
    "y": -830
   },
   "tethys": {
-   "x": 286,
+   "x": 308,
    "y": -665
   },
   "hyperion": {
@@ -142,15 +142,15 @@
   },
   "eos": {
    "x": 660,
-   "y": 528
+   "y": 616
   },
   "selene": {
    "x": 660,
-   "y": 451
+   "y": 500
   },
   "theia": {
    "x": 495,
-   "y": 462
+   "y": 500
   },
   "coeus": {
    "x": -11,
@@ -209,19 +209,19 @@
    "y": 264
   },
   "mnemosyne": {
-   "x": 0,
+   "x": 22,
    "y": 665
   },
   "muses": {
-   "x": -11,
+   "x": 11,
    "y": 995
   },
   "themis": {
-   "x": -154,
+   "x": -132,
    "y": 665
   },
   "horae": {
-   "x": -165,
+   "x": -143,
    "y": 995
   },
   "hephaestus": {
@@ -234,7 +234,7 @@
   },
   "rhea": {
    "x": 495,
-   "y": -88
+   "y": 176
   },
   "metis": {
    "x": 577.5,
@@ -285,7 +285,7 @@
    "y": 335
   },
   "aphrodite": {
-   "x": 154,
+   "x": 165,
    "y": 665
   },
   "elder_cyclopes": {
@@ -297,20 +297,19 @@
    "y": 462
   },
   "erinyes": {
-   "x": -275,
+   "x": -253,
    "y": 665
   },
   "gigantes": {
-   "x": -396,
+   "x": -374,
    "y": 665
   }
  },
  "labels": {
-  "eurybia": "E",
+  "eurybia": "W",
   "ourea": "N",
   "maia": "N",
   "eurynome": "E",
-  "cronus": "S",
   "clymene": "S",
   "prometheus": "S",
   "hera": "N",
@@ -345,14 +344,12 @@
   "erebus": "N",
   "pontus": "E",
   "tartarus": "E",
-  "rhea": "N",
   "nereus": "W",
-  "crius": "E",
-  "phoebe": "E",
+  "crius": "W",
   "tethys": "E",
   "doris": "W",
-  "asteria": "E",
-  "perses": "E",
+  "asteria": "W",
+  "perses": "W",
   "helios": "N",
   "selene": "N",
   "eos": "N",
@@ -371,7 +368,9 @@
   "hecatoncheires": "N",
   "elder_cyclopes": "N",
   "typhon": "N",
-  "echidna": "N"
+  "echidna": "N",
+  "coeus": "W",
+  "phoebe": "E"
  },
  "lanes": {},
  "trackOrder": [
@@ -389,8 +388,8 @@
   "uranus": [
    "hecate",
    "ocean",
-   "rhea",
    "sovereignty",
+   "rhea",
    "sun",
    "promethean",
    "foam",

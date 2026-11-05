@@ -535,10 +535,12 @@ function buildOnce(variant,showOthers,shift){
     const s=segMap.get(t.keys[0]);if(t.lines.length<2||!stationOrder(s.a))continue;
     const k=dot(pillN(s.a),leftN(startDir(s)));trunkOrder[t.keys[0]]=t.lines.slice().sort((a,b)=>(slotRaw(s.a,b)-slotRaw(s.a,a))*k);
   }
+  // A straight bundle slid onto its start's slots arrives slid too: endShift says by how much, across the bundle.
+  const endShift={},offEnd=(s,l)=>offOn(s,l)+(endShift[s.key]??0);
   for(const s of segs){
     if(s.lines.length<2||!stationOrder(s.a))continue;
     const nS=leftN(startDir(s)),d=s.lines.map(l=>slotAt(s.a,l).off*dot(slotAt(s.a,l).n,nS)-offOn(s,l)).sort((a,b)=>a-b),m=d[Math.floor((d.length-1)/2)];
-    if(Math.abs(m)>.25){const p=base[s.key];p[0]=add(p[0],mul(nS,m));p[1]=add(p[1],mul(nS,m))}
+    if(Math.abs(m)>.25){const p=base[s.key];p[0]=add(p[0],mul(nS,m));p[1]=add(p[1],mul(nS,m));if(p.length===2)endShift[s.key]=m}
   }
   // Two such trunks parting in opposite directions turn a shared line on the same spot, so it runs straight through
   // the junction instead of splitting into two tracks half a lane apart.
@@ -552,12 +554,12 @@ function buildOnce(variant,showOthers,shift){
       for(const s of outOf(v))if((lay.trunks[s.key]?.keys[0]??s.key)===b.key&&base[s.key].length>2){const p=base[s.key];p[1]=add(p[1],mul(da,m));p[2]=add(p[2],mul(da,m))}
     }
   }
-  const laneIn=(l,v)=>{const sl=slotAt(v,l);if(sl)return sl;const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offOn(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
+  const laneIn=(l,v)=>{const sl=slotAt(v,l);if(sl)return sl;const s=inTo(v).find(x=>x.lines.includes(l));if(!s)return null;return {off:s.lines.length>1?offEnd(s,l):(endOff[s.key]||0),n:leftN(endDir(s))}};
   // A line that begins at a station other lines already serve starts just outside their track, on the side it heads towards.
   const startOff={};
   for(const v of stations){
     const ref=inTo(v)[0]??outOf(v).find(s=>s.lines.length>1);if(!ref)continue;
-    const d=inTo(v).includes(ref)?endDir(ref):startDir(ref),n=leftN(d),offs=ref.lines.map(l=>ref.lines.length>1?offOn(ref,l):(endOff[ref.key]??0));
+    const d=inTo(v).includes(ref)?endDir(ref):startDir(ref),n=leftN(d),offs=ref.lines.map(l=>ref.lines.length>1?(inTo(v).includes(ref)?offEnd(ref,l):offOn(ref,l)):(endOff[ref.key]??0));
     const starters=[...new Map(outOf(v).filter(s=>s.lines.length===1&&!laneIn(s.lines[0],v)).map(s=>[s.lines[0],{l:s.lines[0],k:dot(n,norm(sub(pos[s.b],pos[v])))}])).values()];
     for(const sg of [1,-1])starters.filter(x=>(x.k>=0?1:-1)===sg).sort((a,b)=>Math.abs(a.k)-Math.abs(b.k)).forEach((x,i)=>startOff[v+'|'+x.l]={off:(sg>0?Math.max(...offs):Math.min(...offs))+sg*laneGap*(i+1),n});
   }
@@ -644,7 +646,7 @@ function buildOnce(variant,showOthers,shift){
     if(stationOrder(v)){const sp=slotSpan[v];return {v,type:'pill',a:add(pos[v],mul(n,sp.lo)),b:add(pos[v],mul(n,sp.hi)),n}}
     if(ms){
       // Where a trunk starts, the capsule spans all its lines.
-      const ls=ms.a===v?orderOf(ms):ms.lines,offs=ls.map(l=>ms.a===v?offIn(ls,l):offOn(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
+      const ls=ms.a===v?orderOf(ms):ms.lines,offs=ls.map(l=>ms.a===v?offIn(ls,l):offEnd(ms,l));for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);
       return {v,type:'pill',a:add(pos[v],mul(n,Math.min(...offs))),b:add(pos[v],mul(n,Math.max(...offs))),n};
     }
     if(linesAt[v].size>1||ins.length>1){const offs=ins.map(s=>endOff[s.key]??0);for(const l of linesAt[v])if(startOff[v+'|'+l])offs.push(startOff[v+'|'+l].off);return {v,type:'pill',a:add(pos[v],mul(n,Math.min(0,...offs))),b:add(pos[v],mul(n,Math.max(0,...offs))),n}}
