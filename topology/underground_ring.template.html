@@ -41,6 +41,7 @@ body.editing [data-label],body.editing [data-seg]{cursor:pointer}
   <span class="state" id="state"></span>
 </div>
 <div class="panel" id="panel" hidden></div>
+<script src="site_logo_href.js"></script>
 <script>
 const DATA=/* PROTOTYPE_DATA */;
 const VARIANT='/* VARIANT_KEY */';
@@ -737,6 +738,21 @@ function wrapRich([lead,body],width,size){
   for(const w of words){const ww=wordW(w);if(cur.length&&curW+space+ww>width){out.push(cur);cur=[];curW=0}curW+=(cur.length?space:0)+ww;cur.push(w)}
   if(cur.length)out.push(cur);return out;
 }
+function renderSiteFooter(svg,marginRight,pageBottom,pageW,inset){
+  if(typeof SITE_LOGO_HREF==='undefined')return;
+  // A little smaller, relative to the page, than the frameless poster's 13px text and 27x18 logo at 1424 wide.
+  // Inset by the page margin so it lines up with the map's right edge.
+  const k=.7*pageW/1424,logoW=27*k,logoH=18*k,logoGap=10*k,fontSize=13*k;
+  const capMid=pageBottom-inset-logoH/2,baseline=capMid+4.7*k;
+  const g=el('g',{'class':'poster-site-footer'},svg);
+  const site=el('text',{'font-family':FONT,'font-size':fontSize,'font-weight':750,'letter-spacing':'.16em',fill:'#2a2b27',y:baseline},g);
+  site.textContent='DRDIMG.COM';
+  const textW=site.getBBox().width-fontSize*.16;
+  const blockW=textW+logoGap+logoW,blockX=marginRight-inset-blockW;
+  site.setAttribute('x',blockX);
+  el('image',{class:'poster-site-logo',x:blockX+textW+logoGap,y:capMid-logoH/2,width:logoW,height:logoH,href:SITE_LOGO_HREF,preserveAspectRatio:'xMidYMid meet'},g);
+}
+
 function render(variant,showOthers){
   const B=build(variant,showOthers),{lay,pos}=B,svg=document.getElementById('poster');svg.innerHTML='';
   // map bounds
@@ -881,6 +897,8 @@ function render(variant,showOthers){
     ry+=paraGap;
   }
 
+
+  renderSiteFooter(svg,left+W,top+H,W,pad);
 
   const pair=pos.zeus&&pos.hera?`Zeus–Hera ${Math.round(dist(pos.zeus,pos.hera))} apart, `:'';
   const clashes=B.labels.filter(l=>l&&l.sc>=80).length;if(EDITOR.on)EDITOR.saved??=snapshot();
